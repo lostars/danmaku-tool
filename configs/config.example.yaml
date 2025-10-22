@@ -1,0 +1,6 @@
+bilibili:
+  cookie: ""
+  max-worker: 1
+  save-path: ""
+#   in seconds
+  timeout: 10
