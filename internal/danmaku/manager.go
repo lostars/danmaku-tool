@@ -29,6 +29,35 @@ type DataPersist interface {
 	Type() string
 }
 
+type MergedDanmaku struct {
+	Progress int64
+	Content  string
+	Danmaku  interface{}
+}
+
+func MergeDanmakuBuckets(dms []*MergedDanmaku, mills int64) []*MergedDanmaku {
+	buckets := make(map[int64]map[string]bool)
+	var result []*MergedDanmaku
+
+	for _, d := range dms {
+		bid := d.Progress / mills // 所属时间桶
+
+		if _, ok := buckets[bid]; !ok {
+			buckets[bid] = make(map[string]bool)
+		}
+
+		// 检查当前桶和前一个桶是否出现过（跨桶重复处理）
+		if buckets[bid][d.Content] || buckets[bid-1][d.Content] {
+			continue
+		}
+
+		result = append(result, d)
+		buckets[bid][d.Content] = true
+	}
+
+	return result
+}
+
 var debugger sync.Map
 var dataDebugger sync.Map
 

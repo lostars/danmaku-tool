@@ -22,7 +22,6 @@ type Client struct {
 	MaxWorker  int
 	Cookie     string
 	HttpClient *http.Client
-	SavePath   string
 
 	// 非并发安全 单线程下载每个视频弹幕 一旦并发下载这里会出问题
 	// 存储的是单个视频的弹幕数据
@@ -35,12 +34,31 @@ func (c *Client) Parse() (*danmaku.DanDanXML, error) {
 		return nil, danmaku.NewError(c, "danmaku is nil")
 	}
 
-	// TODO 合并重复弹幕 合并1s内的重复弹幕
+	// 合并重复弹幕
+	var source = c.danmaku
+	if config.GetConfig().MergeDanmakuInMills > 0 {
+		danmaku.Debugger(c).Printf("before danmaku merged: %v\n", len(source))
+		var mergeData = make([]*danmaku.MergedDanmaku, len(source))
+		for i, v := range source {
+			mergeData[i] = &danmaku.MergedDanmaku{
+				Progress: int64(v.Progress),
+				Content:  v.Content,
+				Danmaku:  v,
+			}
+		}
+		var merged = danmaku.MergeDanmakuBuckets(mergeData, config.GetConfig().MergeDanmakuInMills)
+		source = make([]*DanmakuElem, len(merged))
+		for i, v := range merged {
+			e, _ := v.Danmaku.(*DanmakuElem)
+			source[i] = e
+		}
+		danmaku.Debugger(c).Printf("after danmaku merged: %v\n", len(source))
+	}
 
-	var data = make([]danmaku.DanDanXMLDanmaku, len(c.danmaku))
+	var data = make([]danmaku.DanDanXMLDanmaku, len(source))
 	// <d p="2.603,1,25,16777215,[bilibili]">看看 X2</d>
 	// 第几秒/弹幕类型/字体大小/颜色
-	for i, v := range c.danmaku {
+	for i, v := range source {
 		var attr = []string{
 			strconv.FormatFloat(float64(v.Progress)/1000, 'f', 3, 64),
 			strconv.FormatInt(int64(v.Mode), 10),
@@ -62,7 +80,7 @@ func (c *Client) Parse() (*danmaku.DanDanXML, error) {
 		MaxLimit:       2000,
 		Source:         "k-v",
 		SourceProvider: c.Platform(),
-		DataSize:       len(c.danmaku),
+		DataSize:       len(source),
 		Danmaku:        data,
 	}
 
@@ -234,7 +252,7 @@ func (c *Client) Scrape(id interface{}) error {
 	}
 
 	// savePath/{platform}/{ss1234}/{index}_{epid}.xml : ./bilibili/ss1234/1_ss1234
-	path := filepath.Join(c.SavePath, c.Platform(), "ss"+strconv.FormatInt(series.Result.SeasonId, 10))
+	path := filepath.Join(config.GetConfig().SavePath, c.Platform(), "ss"+strconv.FormatInt(series.Result.SeasonId, 10))
 
 	// 顺序抓取每个ep的弹幕，并发抓取每个ep弹幕
 	for _, ep := range series.Result.Episodes {
@@ -328,7 +346,6 @@ func init() {
 	global := config.GetConfig()
 	client := Client{
 		Cookie:     global.Bilibili.Cookie,
-		SavePath:   global.SavePath,
 		MaxWorker:  global.Bilibili.MaxWorker,
 		HttpClient: &http.Client{Timeout: time.Duration(global.Bilibili.Timeout * 1e9)},
 	}

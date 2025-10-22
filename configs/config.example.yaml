@@ -1,5 +1,7 @@
 #  弹幕保存路径 只作用于CLI模式
 save-path: ""
+# 合并毫秒内重复弹幕 单位 ms <=0则不启用
+merge-danmaku-in-mills: 1000
 bilibili:
 #  SESSDATA 开头的cookie部分即可
   cookie: ""
