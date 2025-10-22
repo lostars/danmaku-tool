@@ -287,8 +287,13 @@ func (c *Client) Scrape(id interface{}) error {
 
 		wg.Wait()
 
-		// 此时的标题是真实的剧集id 纯数字
-		filename := ep.Title + "_" + strconv.FormatInt(ep.EPId, 10)
+		// 此时的标题是真实的剧集id 也可能是 "正片"
+		var index = "1"
+		_, err = strconv.ParseInt(ep.Title, 10, 64)
+		if err == nil {
+			index = ep.Title
+		}
+		filename := index + "_" + strconv.FormatInt(ep.EPId, 10)
 		generator := danmaku.DanDanXMLGenerator{
 			Indent:   true,
 			Parser:   c,
@@ -323,7 +328,7 @@ func init() {
 	global := config.GetConfig()
 	client := Client{
 		Cookie:     global.Bilibili.Cookie,
-		SavePath:   global.Bilibili.SavePath,
+		SavePath:   global.SavePath,
 		MaxWorker:  global.Bilibili.MaxWorker,
 		HttpClient: &http.Client{Timeout: time.Duration(global.Bilibili.Timeout * 1e9)},
 	}

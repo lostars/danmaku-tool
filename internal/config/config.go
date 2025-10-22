@@ -51,10 +51,10 @@ func loadDefaultConfig() []byte {
 }
 
 type DanmakuConfig struct {
+	SavePath string `yaml:"save-path"`
 	Bilibili struct {
 		Cookie    string `yaml:"cookie"`
 		MaxWorker int    `yaml:"max-worker"`
-		SavePath  string `yaml:"save-path"`
 		Timeout   int64  `yaml:"timeout"` // in seconds
 	} `yaml:"bilibili"`
 }

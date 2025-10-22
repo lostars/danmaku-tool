@@ -1,9 +1,9 @@
+#  弹幕保存路径 只作用于CLI模式
+save-path: ""
 bilibili:
 #  SESSDATA 开头的cookie部分即可
   cookie: ""
-#  并发数 只作用于一个视频弹幕的下载
-  max-worker: 1
-#  弹幕保存路径
-  save-path: ""
+#  单个视频弹幕下载的并发数 调高了注意账号风险 用的b站6min一段的弹幕接口，调高了意义也不大
+  max-worker: 4
 #  请求超时时间 单位：秒
   timeout: 10

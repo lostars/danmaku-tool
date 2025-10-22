@@ -1,8 +1,10 @@
 package danmaku
 
 import (
+	"danmu-tool/internal/config"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"sync"
@@ -39,8 +41,12 @@ func DataDebugger(s DataPersist) *log.Logger {
 			return &logger
 		}
 	}
-	// TODO config & 并发 test
-	logger := log.New(os.Stdout, fmt.Sprintf("[%s] ", prefix), 0)
+	var logger *log.Logger
+	if config.Debug {
+		logger = log.New(os.Stdout, fmt.Sprintf("[%s] ", prefix), 0)
+	} else {
+		logger = log.New(io.Discard, fmt.Sprintf("[%s] ", prefix), 0)
+	}
 	dataDebugger.Store(prefix, logger)
 	return logger
 }
@@ -58,8 +64,12 @@ func Debugger(p Platform) *log.Logger {
 			return &logger
 		}
 	}
-	// TODO config & 并发 test
-	logger := log.New(os.Stdout, fmt.Sprintf("[%s] ", prefix), 0)
+	var logger *log.Logger
+	if config.Debug {
+		logger = log.New(os.Stdout, fmt.Sprintf("[%s] ", prefix), 0)
+	} else {
+		logger = log.New(io.Discard, fmt.Sprintf("[%s] ", prefix), 0)
+	}
 	debugger.Store(prefix, logger)
 	return logger
 }
