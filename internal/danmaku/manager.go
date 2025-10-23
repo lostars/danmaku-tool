@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"sync"
+	"time"
 )
 
 type Media struct {
@@ -30,20 +31,24 @@ type DataPersist interface {
 }
 
 type MergedDanmaku struct {
-	Progress int64
+	Progress int64 // 弹幕所在时间 ms
 	Content  string
-	Danmaku  interface{}
+	Danmaku  interface{} //原弹幕数据
 }
 
-func MergeDanmakuBuckets(dms []*MergedDanmaku, mills int64) []*MergedDanmaku {
-	buckets := make(map[int64]map[string]bool)
-	var result []*MergedDanmaku
+func MergeDanmakuBuckets(dms []*MergedDanmaku, mergedInMills int64, durationInMills int64) []*MergedDanmaku {
+	var start = time.Now().Nanosecond()
+	getManagerDebugger().Printf("danmaku size before merge: %v\n", len(dms))
+	var totalBuckets = durationInMills/mergedInMills + 1
+	buckets := make(map[int64]map[string]bool, totalBuckets)
+	var result = make([]*MergedDanmaku, 0, len(dms))
 
 	for _, d := range dms {
-		bid := d.Progress / mills // 所属时间桶
+		bid := d.Progress / mergedInMills // 所属时间桶
 
 		if _, ok := buckets[bid]; !ok {
-			buckets[bid] = make(map[string]bool)
+			// 预估长度
+			buckets[bid] = make(map[string]bool, int64(len(dms))/totalBuckets+1)
 		}
 
 		// 检查当前桶和前一个桶是否出现过（跨桶重复处理）
@@ -55,11 +60,31 @@ func MergeDanmakuBuckets(dms []*MergedDanmaku, mills int64) []*MergedDanmaku {
 		buckets[bid][d.Content] = true
 	}
 
+	var end = time.Now().Nanosecond()
+	getManagerDebugger().Printf("damaku size after merge: %v\n", len(result))
+	getManagerDebugger().Printf("danmaku merge cost: %vns\n", end-start)
+
 	return result
 }
 
 var debugger sync.Map
 var dataDebugger sync.Map
+var managerDebugger *log.Logger
+
+func getManagerDebugger() *log.Logger {
+	if managerDebugger != nil {
+		return managerDebugger
+	}
+	var logger *log.Logger
+	var prefix = "[danmaku-manager] "
+	if config.Debug {
+		logger = log.New(os.Stdout, prefix, 0)
+	} else {
+		logger = log.New(io.Discard, prefix, 0)
+	}
+	managerDebugger = logger
+	return managerDebugger
+}
 
 func DataDebugger(s DataPersist) *log.Logger {
 	var prefix = s.Type()

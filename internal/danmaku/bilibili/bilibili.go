@@ -27,6 +27,9 @@ type Client struct {
 	// 存储的是单个视频的弹幕数据
 	danmaku     []*DanmakuElem
 	danmakuLock sync.Mutex
+	epId        int64
+	// ep时长 ms
+	epDuration int64
 }
 
 func (c *Client) Parse() (*danmaku.DanDanXML, error) {
@@ -37,7 +40,6 @@ func (c *Client) Parse() (*danmaku.DanDanXML, error) {
 	// 合并重复弹幕
 	var source = c.danmaku
 	if config.GetConfig().MergeDanmakuInMills > 0 {
-		danmaku.Debugger(c).Printf("before danmaku merged: %v\n", len(source))
 		var mergeData = make([]*danmaku.MergedDanmaku, len(source))
 		for i, v := range source {
 			mergeData[i] = &danmaku.MergedDanmaku{
@@ -46,13 +48,12 @@ func (c *Client) Parse() (*danmaku.DanDanXML, error) {
 				Danmaku:  v,
 			}
 		}
-		var merged = danmaku.MergeDanmakuBuckets(mergeData, config.GetConfig().MergeDanmakuInMills)
+		var merged = danmaku.MergeDanmakuBuckets(mergeData, config.GetConfig().MergeDanmakuInMills, c.epDuration)
 		source = make([]*DanmakuElem, len(merged))
 		for i, v := range merged {
 			e, _ := v.Danmaku.(*DanmakuElem)
 			source[i] = e
 		}
-		danmaku.Debugger(c).Printf("after danmaku merged: %v\n", len(source))
 	}
 
 	var data = make([]danmaku.DanDanXMLDanmaku, len(source))
@@ -75,7 +76,7 @@ func (c *Client) Parse() (*danmaku.DanDanXML, error) {
 
 	xml := danmaku.DanDanXML{
 		ChatServer:     "comment.bilibili.com",
-		ChatID:         1, // TODO
+		ChatID:         c.epId,
 		Mission:        0,
 		MaxLimit:       2000,
 		Source:         "k-v",
@@ -255,6 +256,7 @@ func (c *Client) Scrape(id interface{}) error {
 	path := filepath.Join(config.GetConfig().SavePath, c.Platform(), "ss"+strconv.FormatInt(series.Result.SeasonId, 10))
 
 	// 顺序抓取每个ep的弹幕，并发抓取每个ep弹幕
+	var epTitle string
 	for _, ep := range series.Result.Episodes {
 
 		// 如果是ep则只抓取对应一集弹幕
@@ -275,6 +277,11 @@ func (c *Client) Scrape(id interface{}) error {
 			segments = videoDuration/360 + 1
 		}
 
+		c.epId = ep.EPId
+		c.epDuration = ep.Duration
+		if isEP {
+			epTitle = ep.Title
+		}
 		tasks := make(chan task, segments)
 		var wg sync.WaitGroup
 		for w := 0; w < c.MaxWorker; w++ {
@@ -332,7 +339,11 @@ func (c *Client) Scrape(id interface{}) error {
 		danmaku.Debugger(c).Printf("ep%v danmaku scraped done, size: %v\n", ep.EPId, len(c.danmaku))
 	}
 
-	danmaku.Debugger(c).Printf("danmaku scraped done: %s\n", series.Result.Title)
+	var t = series.Result.Title
+	if isEP {
+		t += epTitle
+	}
+	danmaku.Debugger(c).Printf("danmaku scraped done: %s\n", t)
 
 	return nil
 }
