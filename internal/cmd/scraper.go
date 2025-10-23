@@ -4,6 +4,7 @@ import (
 	"danmu-tool/internal/danmaku"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -15,7 +16,8 @@ func ScraperCmd() *cobra.Command {
 	}
 
 	platform := FlagsProperty[string]{Flag: "platform", Register: &PlatformCompletion{}, Options: danmaku.ManagerOfDanmaku.GetPlatforms()}
-	cmd.Flags().StringVar(&platform.Value, platform.Flag, "", `danmaku platform`)
+	cmd.Flags().StringVar(&platform.Value, platform.Flag, "", `danmaku platform: 
+`+strings.Join(platform.Options, "\n"))
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		id := args[0]

@@ -33,36 +33,24 @@ type DanDanXMLParser interface {
 	Parse() (*DanDanXML, error)
 }
 
-type DanDanXMLGenerator struct {
+type DanDanXMLPersist struct {
 	Indent bool
 	Parser DanDanXMLParser
 }
 
-func (x *DanDanXMLGenerator) Type() string {
+func (x *DanDanXMLPersist) Type() string {
 	return DanDanXMLPersistType
 }
 
 const DanDanXMLPersistType = "dandanxml"
 
-func (x *DanDanXMLGenerator) WriteToFile(fullPath, filename string) error {
+func (x *DanDanXMLPersist) WriteToFile(fullPath, filename string) error {
 	if x.Parser == nil {
 		return NewDataError(x, "parser is nil")
 	}
-	if fullPath == "" || filename == "" {
-		return NewDataError(x, "empty save path or filename")
-	}
 
-	// check path
-	_, fileStatError := os.Stat(fullPath)
-	if fileStatError != nil {
-		if os.IsNotExist(fileStatError) {
-			mkdirError := os.MkdirAll(fullPath, os.ModePerm)
-			if mkdirError != nil {
-				return NewDataError(x, fmt.Sprintf("create path %s error: %s", fullPath, mkdirError.Error()))
-			}
-		} else {
-			return NewDataError(x, fmt.Sprintf("create path %s error: %s", fullPath, fileStatError.Error()))
-		}
+	if e := checkPersistPath(fullPath, filename); e != nil {
+		return NewDataError(x, fmt.Sprintf("%s", e.Error()))
 	}
 
 	var data, err = x.Parser.Parse()
@@ -88,6 +76,6 @@ func (x *DanDanXMLGenerator) WriteToFile(fullPath, filename string) error {
 		return NewDataError(x, fmt.Sprintf("%s write fail: %v", writeFile, err))
 	}
 
-	DataDebugger(x).Printf("%s wirte success", writeFile)
+	DataDebugger(x).Printf("%s wirte success\n", writeFile)
 	return nil
 }

@@ -349,22 +349,22 @@ type task struct {
 }
 
 func init() {
-	global := config.GetConfig()
+	globalConfig := config.GetConfig()
 	client := Client{
-		Cookie:       global.Bilibili.Cookie,
-		MaxWorker:    global.Bilibili.MaxWorker,
-		HttpClient:   &http.Client{Timeout: time.Duration(global.Bilibili.Timeout * 1e9)},
+		Cookie:       globalConfig.Bilibili.Cookie,
+		MaxWorker:    globalConfig.Bilibili.MaxWorker,
+		HttpClient:   &http.Client{Timeout: time.Duration(globalConfig.Bilibili.Timeout * 1e9)},
 		DataPersists: []danmaku.DataPersist{},
 	}
 	// 初始化数据存储器
-	for _, p := range global.Bilibili.Persists {
+	for _, p := range globalConfig.Bilibili.Persists {
 		switch p.Name {
 		case danmaku.DanDanXMLPersistType:
-			dandanXML := danmaku.DanDanXMLGenerator{
+			persist := danmaku.DanDanXMLPersist{
 				Indent: p.Indent,
 				Parser: &client,
 			}
-			client.DataPersists = append(client.DataPersists, &dandanXML)
+			client.DataPersists = append(client.DataPersists, &persist)
 		}
 	}
 
