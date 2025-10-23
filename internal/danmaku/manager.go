@@ -30,21 +30,36 @@ type DataPersist interface {
 	Type() string
 }
 
-type MergedDanmaku struct {
-	Progress int64 // 弹幕所在时间 ms
-	Content  string
-	Danmaku  interface{} //原弹幕数据
+// https://api.dandanplay.net/swagger/index.html#/%E5%BC%B9%E5%B9%95/Comment_GetComment
+// p 出现时间,模式,颜色,用户ID
+
+type StandardDanmaku struct {
+	Offset int64 // 偏移量 ms 注意dandan中保存的是秒，保留2位小数，这里为了精度使用ms，在API返回或者写入时才进行转换
+	Mode   int   // 1滚动 4底部 5顶部
+	Color  int   // 颜色 数字格式 16777215
+	// 以上三个字段按照顺序兼容dandan API p字段
+
+	Content string // dandan API m字段
+
+	// 以下字段用于其他记录
+	FontSize int32 // 字体大小
+	Platform string
+	Id       string // 全局id 在使用dandan API时有用
 }
 
-func MergeDanmakuBuckets(dms []*MergedDanmaku, mergedInMills int64, durationInMills int64) []*MergedDanmaku {
+const RollMode = 1
+const BottomMode = 4
+const TopMode = 5
+
+func MergeDanmaku(dms []*StandardDanmaku, mergedInMills int64, durationInMills int64) []*StandardDanmaku {
 	var start = time.Now().Nanosecond()
 	getManagerDebugger().Printf("danmaku size before merge: %v\n", len(dms))
 	var totalBuckets = durationInMills/mergedInMills + 1
 	buckets := make(map[int64]map[string]bool, totalBuckets)
-	var result = make([]*MergedDanmaku, 0, len(dms))
+	var result = make([]*StandardDanmaku, 0, len(dms))
 
 	for _, d := range dms {
-		bid := d.Progress / mergedInMills // 所属时间桶
+		bid := d.Offset / mergedInMills // 所属时间桶
 
 		if _, ok := buckets[bid]; !ok {
 			// 预估长度

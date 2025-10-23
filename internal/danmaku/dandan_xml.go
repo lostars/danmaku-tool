@@ -12,7 +12,7 @@ type DanDanXML struct {
 	XMLName xml.Name `xml:"i"`
 	// metadata
 	ChatServer     string             `xml:"chatserver"`
-	ChatID         int64              `xml:"chatid"`
+	ChatID         string             `xml:"chatid"`
 	Mission        int                `xml:"mission"`
 	MaxLimit       int                `xml:"maxlimit"`
 	Source         string             `xml:"source"`

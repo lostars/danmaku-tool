@@ -1,7 +1,5 @@
 #  弹幕保存路径 只作用于CLI模式
 save-path: ""
-# 合并毫秒内重复弹幕 单位 ms <=0则不启用
-merge-danmaku-in-mills: 1000
 bilibili:
 #  SESSDATA 开头的cookie部分即可
   cookie: ""
@@ -9,6 +7,8 @@ bilibili:
   max-worker: 4
 #  请求超时时间 单位：秒
   timeout: 10
+  # 合并毫秒内重复弹幕 单位 ms <=0则不启用
+  merge-danmaku-in-mills: 1000
   persists:
     - name: "dandanxml" # dandanxml 固定字符串
       indent: true # 是否开启缩进，否的话则用一行存储 只针对json xml类生效
@@ -16,3 +16,15 @@ bilibili:
     - name: "json" # json 固定字符串
       indent: true # 是否开启缩进，否的话则用一行存储 只针对json xml类生效
       compress: false # 是否开启压缩
+tencent:
+  cookie: "" # 暂时用不上，占位
+  max-worker: 4
+  timeout: 10
+  merge-danmaku-in-mills: 1000
+  persists:
+    - name: "dandanxml"
+      indent: true
+      compress: false
+    - name: "json"
+      indent: true
+      compress: false

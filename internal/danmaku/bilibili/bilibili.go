@@ -27,9 +27,9 @@ type Client struct {
 
 	// 非并发安全 单线程下载每个视频弹幕 一旦并发下载这里会出问题
 	// 存储的是单个视频的弹幕数据
-	danmaku     []*DanmakuElem
-	danmakuLock sync.Mutex
-	epId        int64
+	danmaku        []*danmaku.StandardDanmaku
+	danmakuLock    sync.Mutex
+	epId, seasonId int64
 	// ep时长 ms
 	epDuration int64
 }
@@ -41,20 +41,11 @@ func (c *Client) Parse() (*danmaku.DanDanXML, error) {
 
 	// 合并重复弹幕
 	var source = c.danmaku
-	if config.GetConfig().MergeDanmakuInMills > 0 {
-		var mergeData = make([]*danmaku.MergedDanmaku, len(source))
-		for i, v := range source {
-			mergeData[i] = &danmaku.MergedDanmaku{
-				Progress: int64(v.Progress),
-				Content:  v.Content,
-				Danmaku:  v,
-			}
-		}
-		var merged = danmaku.MergeDanmakuBuckets(mergeData, config.GetConfig().MergeDanmakuInMills, c.epDuration)
-		source = make([]*DanmakuElem, len(merged))
-		for i, v := range merged {
-			e, _ := v.Danmaku.(*DanmakuElem)
-			source[i] = e
+	if config.GetConfig().Bilibili.MergeDanmakuInMills > 0 {
+		var merged = danmaku.MergeDanmaku(c.danmaku, config.GetConfig().Bilibili.MergeDanmakuInMills, c.epDuration)
+		source = make([]*danmaku.StandardDanmaku, 0, len(merged))
+		for _, v := range merged {
+			source = append(source, v)
 		}
 	}
 
@@ -63,9 +54,9 @@ func (c *Client) Parse() (*danmaku.DanDanXML, error) {
 	// 第几秒/弹幕类型/字体大小/颜色
 	for i, v := range source {
 		var attr = []string{
-			strconv.FormatFloat(float64(v.Progress)/1000, 'f', 3, 64),
+			strconv.FormatFloat(float64(v.Offset)/1000, 'f', 2, 64),
 			strconv.FormatInt(int64(v.Mode), 10),
-			strconv.FormatInt(int64(v.Fontsize), 10),
+			strconv.FormatInt(int64(v.FontSize), 10),
 			strconv.FormatInt(int64(v.Color), 10),
 			fmt.Sprintf("[%s]", c.Platform()),
 		}
@@ -78,7 +69,7 @@ func (c *Client) Parse() (*danmaku.DanDanXML, error) {
 
 	xml := danmaku.DanDanXML{
 		ChatServer:     "comment.bilibili.com",
-		ChatID:         c.epId,
+		ChatID:         strconv.FormatInt(c.seasonId, 10) + "_" + strconv.FormatInt(c.epId, 10),
 		Mission:        0,
 		MaxLimit:       2000,
 		Source:         "k-v",
@@ -267,6 +258,7 @@ func (c *Client) Scrape(id interface{}) error {
 
 		// 排除掉预告，b站会把预告也放入其中
 		if ep.SectionType == 1 {
+			danmaku.Debugger(c).Printf("ep%v skipped because of section type of 1\n", ep.EPId)
 			continue
 		}
 
@@ -279,6 +271,7 @@ func (c *Client) Scrape(id interface{}) error {
 		}
 
 		c.epId = ep.EPId
+		c.seasonId = series.Result.SeasonId
 		c.epDuration = ep.Duration
 		if isEP {
 			epTitle = ep.Title
@@ -294,8 +287,18 @@ func (c *Client) Scrape(id interface{}) error {
 					if data == nil {
 						continue
 					}
+					var standardData = make([]*danmaku.StandardDanmaku, 0, len(data))
+					for _, d := range data {
+						standardData = append(standardData, &danmaku.StandardDanmaku{
+							Content:  d.Content,
+							Offset:   int64(d.Progress),
+							Mode:     int(d.Mode),
+							Color:    int(d.Color),
+							FontSize: d.Fontsize,
+						})
+					}
 					c.danmakuLock.Lock()
-					c.danmaku = append(c.danmaku, data...)
+					c.danmaku = append(c.danmaku, standardData...)
 					c.danmakuLock.Unlock()
 				}
 			}(w)
@@ -349,15 +352,15 @@ type task struct {
 }
 
 func init() {
-	globalConfig := config.GetConfig()
+	conf := config.GetConfig().Bilibili
 	client := Client{
-		Cookie:       globalConfig.Bilibili.Cookie,
-		MaxWorker:    globalConfig.Bilibili.MaxWorker,
-		HttpClient:   &http.Client{Timeout: time.Duration(globalConfig.Bilibili.Timeout * 1e9)},
+		Cookie:       conf.Cookie,
+		MaxWorker:    conf.MaxWorker,
+		HttpClient:   &http.Client{Timeout: time.Duration(conf.Timeout * 1e9)},
 		DataPersists: []danmaku.DataPersist{},
 	}
 	// 初始化数据存储器
-	for _, p := range globalConfig.Bilibili.Persists {
+	for _, p := range conf.Persists {
 		switch p.Name {
 		case danmaku.DanDanXMLPersistType:
 			persist := danmaku.DanDanXMLPersist{
