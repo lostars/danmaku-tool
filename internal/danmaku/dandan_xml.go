@@ -34,34 +34,34 @@ type DanDanXMLParser interface {
 }
 
 type DanDanXMLGenerator struct {
-	Indent   bool
-	Parser   DanDanXMLParser
-	FullPath string
-	Filename string
+	Indent bool
+	Parser DanDanXMLParser
 }
 
 func (x *DanDanXMLGenerator) Type() string {
-	return "dandanxml"
+	return DanDanXMLPersistType
 }
 
-func (x *DanDanXMLGenerator) WriteToFile() error {
+const DanDanXMLPersistType = "dandanxml"
+
+func (x *DanDanXMLGenerator) WriteToFile(fullPath, filename string) error {
 	if x.Parser == nil {
-		return NewDataError(x, "transformer is nil")
+		return NewDataError(x, "parser is nil")
 	}
-	if x.FullPath == "" || x.Filename == "" {
+	if fullPath == "" || filename == "" {
 		return NewDataError(x, "empty save path or filename")
 	}
 
 	// check path
-	_, fileStatError := os.Stat(x.FullPath)
+	_, fileStatError := os.Stat(fullPath)
 	if fileStatError != nil {
 		if os.IsNotExist(fileStatError) {
-			mkdirError := os.MkdirAll(x.FullPath, os.ModePerm)
+			mkdirError := os.MkdirAll(fullPath, os.ModePerm)
 			if mkdirError != nil {
-				return NewDataError(x, fmt.Sprintf("create path %s error: %s", x.FullPath, mkdirError.Error()))
+				return NewDataError(x, fmt.Sprintf("create path %s error: %s", fullPath, mkdirError.Error()))
 			}
 		} else {
-			return NewDataError(x, fmt.Sprintf("create path %s error: %s", x.FullPath, fileStatError.Error()))
+			return NewDataError(x, fmt.Sprintf("create path %s error: %s", fullPath, fileStatError.Error()))
 		}
 	}
 
@@ -82,7 +82,7 @@ func (x *DanDanXMLGenerator) WriteToFile() error {
 	// 注意：xml.Marshal 不会自动添加声明头，需要手动添加。
 	finalXml := []byte(xml.Header)
 	finalXml = append(finalXml, xmlData...)
-	writeFile := filepath.Join(x.FullPath, x.Filename+".xml")
+	writeFile := filepath.Join(fullPath, filename+".xml")
 	err = os.WriteFile(writeFile, finalXml, 0644)
 	if err != nil {
 		return NewDataError(x, fmt.Sprintf("%s write fail: %v", writeFile, err))

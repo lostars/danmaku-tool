@@ -23,6 +23,8 @@ type Client struct {
 	Cookie     string
 	HttpClient *http.Client
 
+	DataPersists []danmaku.DataPersist
+
 	// 非并发安全 单线程下载每个视频弹幕 一旦并发下载这里会出问题
 	// 存储的是单个视频的弹幕数据
 	danmaku     []*DanmakuElem
@@ -133,7 +135,7 @@ func (c *Client) scrape(oid, pid, segmentIndex int64) []*DanmakuElem {
 			if err != nil {
 				danmaku.Debugger(c).Printf("%v\n", err)
 			} else {
-				danmaku.Debugger(c).Printf("%s\n", string(raw))
+				danmaku.Debugger(c).Printf("unknown error: %s\n", string(raw))
 			}
 		} else {
 			danmaku.Debugger(c).Printf("unknown content type: %s\n", contentType)
@@ -218,13 +220,12 @@ func (c *Client) Scrape(id interface{}) error {
 	// 比如 悠哉日常大王 第三季 就是一个单独的剧集 md28231846:ss36204
 	//https://api.bilibili.com/pgc/view/web/season?ep_id=2231363 or season_id=12334
 	params := url.Values{}
-	var isEP, isSeason bool
+	var isEP bool
 	if strings.HasPrefix(realId, "ep") {
 		isEP = true
 		params.Add("ep_id", strings.Replace(realId, "ep", "", 1))
 	}
 	if strings.HasPrefix(realId, "ss") {
-		isSeason = true
 		params.Add("season_id", strings.Replace(realId, "ss", "", 1))
 	}
 	if len(params) == 0 {
@@ -319,24 +320,18 @@ func (c *Client) Scrape(id interface{}) error {
 			index = ep.Title
 		}
 		filename := index + "_" + strconv.FormatInt(ep.EPId, 10)
-		generator := danmaku.DanDanXMLGenerator{
-			Indent:   true,
-			Parser:   c,
-			FullPath: path,
-			Filename: filename,
+		for i, persist := range c.DataPersists {
+			wg.Add(1)
+			go func(i int) {
+				defer wg.Done()
+				if e := persist.WriteToFile(path, filename); e != nil {
+					danmaku.Debugger(c).Printf("%v", e.Error())
+				}
+			}(i)
 		}
-		err = generator.WriteToFile()
-		if err != nil {
-			if isEP {
-				return danmaku.NewError(c, fmt.Sprintf("scrape ep%v wirte to file err: %s", ep.EPId, err.Error()))
-			}
-			if isSeason {
-				// TODO anything else to do?
-				danmaku.Debugger(c).Printf("scrape ep%v wirte to file err: %s", ep.EPId, err.Error())
-				continue
-			}
-		}
-		danmaku.Debugger(c).Printf("ep%v danmaku scraped done, size: %v\n", ep.EPId, len(c.danmaku))
+		wg.Wait()
+
+		danmaku.Debugger(c).Printf("ep%v scraped done, size: %v\n", ep.EPId, len(c.danmaku))
 	}
 
 	var t = series.Result.Title
@@ -356,10 +351,23 @@ type task struct {
 func init() {
 	global := config.GetConfig()
 	client := Client{
-		Cookie:     global.Bilibili.Cookie,
-		MaxWorker:  global.Bilibili.MaxWorker,
-		HttpClient: &http.Client{Timeout: time.Duration(global.Bilibili.Timeout * 1e9)},
+		Cookie:       global.Bilibili.Cookie,
+		MaxWorker:    global.Bilibili.MaxWorker,
+		HttpClient:   &http.Client{Timeout: time.Duration(global.Bilibili.Timeout * 1e9)},
+		DataPersists: []danmaku.DataPersist{},
 	}
+	// 初始化数据存储器
+	for _, p := range global.Bilibili.Persists {
+		switch p.Name {
+		case danmaku.DanDanXMLPersistType:
+			dandanXML := danmaku.DanDanXMLGenerator{
+				Indent: p.Indent,
+				Parser: &client,
+			}
+			client.DataPersists = append(client.DataPersists, &dandanXML)
+		}
+	}
+
 	err := danmaku.RegisterPlatform(&client)
 	if err != nil {
 		danmaku.Debugger(&client).Printf("%v\n", err)

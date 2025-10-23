@@ -54,8 +54,15 @@ type DanmakuConfig struct {
 	SavePath            string `yaml:"save-path"`
 	MergeDanmakuInMills int64  `yaml:"merge-danmaku-in-mills"`
 	Bilibili            struct {
-		Cookie    string `yaml:"cookie"`
-		MaxWorker int    `yaml:"max-worker"`
-		Timeout   int64  `yaml:"timeout"` // in seconds
+		Cookie    string                 `yaml:"cookie"`
+		MaxWorker int                    `yaml:"max-worker"`
+		Timeout   int64                  `yaml:"timeout"` // in seconds
+		Persists  []DanmakuPersistConfig `yaml:"persists"`
 	} `yaml:"bilibili"`
+}
+
+type DanmakuPersistConfig struct {
+	Indent   bool   `yaml:"intent"`
+	Compress bool   `yaml:"compress"`
+	Name     string `yaml:"name"`
 }

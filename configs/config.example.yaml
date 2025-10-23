@@ -9,3 +9,10 @@ bilibili:
   max-worker: 4
 #  请求超时时间 单位：秒
   timeout: 10
+  persists:
+    - name: "dandanxml" # dandanxml 固定字符串
+      indent: true # 是否开启缩进，否的话则用一行存储 只针对json xml类生效
+      compress: false # 是否开启压缩
+    - name: "json" # json 固定字符串
+      indent: true # 是否开启缩进，否的话则用一行存储 只针对json xml类生效
+      compress: false # 是否开启压缩

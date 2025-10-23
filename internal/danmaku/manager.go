@@ -26,7 +26,7 @@ type MediaSearcher interface {
 }
 
 type DataPersist interface {
-	WriteToFile() error
+	WriteToFile(fullPath, filename string) error
 	Type() string
 }
 
