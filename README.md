@@ -37,9 +37,30 @@ You can run `danmaku completion` to generate autocompletion for your shell befor
 
 scrape danmaku:
 ```
-danmaku d --platform=bilibili
+danmaku d <id> --platform=bilibili
 ```
+**id**
+
+* bilibili support epid(ep269616) or ssid(ss28564) from url:
+
+    https://www.bilibili.com/bangumi/play/ss28564 or https://www.bilibili.com/bangumi/play/ep269616
+
+    `danmaku d ss28564 --platform=bilibili`
+
+    Notice that using ssid will scrape all EP's danmaku and download.
+
+    And using epid only download the corresponding danmaku.
+* tencent video support cid/vid from url:
+  
+    https://v.qq.com/x/cover/znda81ms78okdwd/e00242bvw06.html
+    `znda81ms78okdwd` is cid, `e00242bvw06` is vid
+    `danmaku d znda81ms78okdwd/e00242bvw06 --platform=tencent`
 
 #### WebServer
 
 ### Web API
+
+### Reference
+
+[bilibili-API-collect](https://github.com/SocialSisterYi/bilibili-API-collect)
+[misaka_danmu_server](https://github.com/l429609201/misaka_danmu_server)
