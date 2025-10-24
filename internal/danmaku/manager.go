@@ -1,21 +1,28 @@
 package danmaku
 
 import (
-	"danmu-tool/internal/config"
+	"danmu-tool/internal/utils"
 	"errors"
 	"fmt"
-	"io"
-	"log"
 	"os"
-	"sync"
 	"time"
 )
+
+var logger = utils.GetComponentLogger("manager")
+
+func PlatformError(p PlatformType, text string) error {
+	return fmt.Errorf("[%s] %s", p, text)
+}
+
+func DataPersistError(d DataPersistType, text string) error {
+	return fmt.Errorf("[%s] %s", d, text)
+}
 
 type Media struct {
 }
 
 type Platform interface {
-	Platform() string
+	Platform() PlatformType
 	Scrape(id interface{}) error
 }
 
@@ -27,7 +34,7 @@ type MediaSearcher interface {
 
 type DataPersist interface {
 	WriteToFile(fullPath, filename string) error
-	Type() string
+	Type() DataPersistType
 }
 
 // https://api.dandanplay.net/swagger/index.html#/%E5%BC%B9%E5%B9%95/Comment_GetComment
@@ -53,7 +60,7 @@ const TopMode = 5
 
 func MergeDanmaku(dms []*StandardDanmaku, mergedInMills int64, durationInMills int64) []*StandardDanmaku {
 	var start = time.Now().Nanosecond()
-	getManagerDebugger().Printf("danmaku size before merge: %v\n", len(dms))
+	logger.Debug("danmaku size before merge", "size", len(dms))
 	var totalBuckets = durationInMills/mergedInMills + 1
 	buckets := make(map[int64]map[string]bool, totalBuckets)
 	var result = make([]*StandardDanmaku, 0, len(dms))
@@ -76,75 +83,10 @@ func MergeDanmaku(dms []*StandardDanmaku, mergedInMills int64, durationInMills i
 	}
 
 	var end = time.Now().Nanosecond()
-	getManagerDebugger().Printf("damaku size after merge: %v\n", len(result))
-	getManagerDebugger().Printf("danmaku merge cost: %vns\n", end-start)
+	logger.Debug("danmaku size before merge", "size", len(result))
+	logger.Debug("danmaku merge cost", "duration", end-start)
 
 	return result
-}
-
-var debugger sync.Map
-var dataDebugger sync.Map
-var managerDebugger *log.Logger
-
-func getManagerDebugger() *log.Logger {
-	if managerDebugger != nil {
-		return managerDebugger
-	}
-	var logger *log.Logger
-	var prefix = "[danmaku-manager] "
-	if config.Debug {
-		logger = log.New(os.Stdout, prefix, 0)
-	} else {
-		logger = log.New(io.Discard, prefix, 0)
-	}
-	managerDebugger = logger
-	return managerDebugger
-}
-
-func DataDebugger(s DataPersist) *log.Logger {
-	var prefix = s.Type()
-	v, ok := dataDebugger.Load(prefix)
-	if ok {
-		logger, err := v.(log.Logger)
-		if err {
-			return &logger
-		}
-	}
-	var logger *log.Logger
-	if config.Debug {
-		logger = log.New(os.Stdout, fmt.Sprintf("[%s] ", prefix), 0)
-	} else {
-		logger = log.New(io.Discard, fmt.Sprintf("[%s] ", prefix), 0)
-	}
-	dataDebugger.Store(prefix, logger)
-	return logger
-}
-
-func NewDataError(d DataPersist, text string) error {
-	return errors.New(fmt.Sprintf("[%s]: %s", d.Type(), text))
-}
-
-func Debugger(p Platform) *log.Logger {
-	var prefix = p.Platform()
-	v, ok := debugger.Load(prefix)
-	if ok {
-		logger, err := v.(log.Logger)
-		if err {
-			return &logger
-		}
-	}
-	var logger *log.Logger
-	if config.Debug {
-		logger = log.New(os.Stdout, fmt.Sprintf("[%s] ", prefix), 0)
-	} else {
-		logger = log.New(io.Discard, fmt.Sprintf("[%s] ", prefix), 0)
-	}
-	debugger.Store(prefix, logger)
-	return logger
-}
-
-func NewError(p Platform, text string) error {
-	return errors.New(fmt.Sprintf("[%s] %s", p.Platform(), text))
 }
 
 type Manager struct {
@@ -160,7 +102,7 @@ var ManagerOfDanmaku = &Manager{
 func (m *Manager) GetPlatforms() []string {
 	var result []string
 	for _, v := range m.Platforms {
-		result = append(result, v.Platform())
+		result = append(result, string(v.Platform()))
 	}
 	return result
 }
@@ -186,10 +128,23 @@ func checkPersistPath(fullPath, filename string) error {
 }
 
 func RegisterPlatform(p Platform) error {
-	e := ManagerOfDanmaku.Platforms[p.Platform()]
+	e := ManagerOfDanmaku.Platforms[string(p.Platform())]
 	if e != nil {
 		return errors.New(fmt.Sprintf("%s registered", p.Platform()))
 	}
-	ManagerOfDanmaku.Platforms[p.Platform()] = p
+	ManagerOfDanmaku.Platforms[string(p.Platform())] = p
 	return nil
 }
+
+type PlatformType string
+
+const (
+	Bilibili = "bilibili"
+	Tencent  = "tencent"
+)
+
+type DataPersistType string
+
+const (
+	DanDanXMLType = "dandanxml"
+)

@@ -1,9 +1,9 @@
 package main
 
 import (
+	"danmu-tool/cmd/server"
 	"danmu-tool/internal/cmd"
 	"danmu-tool/internal/config"
-	_ "danmu-tool/internal/importer"
 	"fmt"
 	"os"
 
@@ -24,6 +24,7 @@ var rootCmd = &cobra.Command{
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		if config.RunServer {
 			// run web server
+			server.StartWebServer()
 			os.Exit(0)
 		}
 		return nil

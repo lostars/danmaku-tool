@@ -4,9 +4,11 @@ import (
 	"compress/gzip"
 	"danmu-tool/internal/config"
 	"danmu-tool/internal/danmaku"
+	"danmu-tool/internal/utils"
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"path/filepath"
@@ -36,7 +38,7 @@ type Client struct {
 
 func (c *Client) Parse() (*danmaku.DanDanXML, error) {
 	if c.danmaku == nil {
-		return nil, danmaku.NewError(c, "danmaku is nil")
+		return nil, danmaku.PlatformError(danmaku.Bilibili, fmt.Sprintf("ep%v danmaku is nil", c.epId))
 	}
 
 	// 合并重复弹幕
@@ -73,7 +75,7 @@ func (c *Client) Parse() (*danmaku.DanDanXML, error) {
 		Mission:        0,
 		MaxLimit:       2000,
 		Source:         "k-v",
-		SourceProvider: c.Platform(),
+		SourceProvider: danmaku.Bilibili,
 		DataSize:       len(source),
 		Danmaku:        data,
 	}
@@ -81,8 +83,8 @@ func (c *Client) Parse() (*danmaku.DanDanXML, error) {
 	return &xml, nil
 }
 
-func (c *Client) Platform() string {
-	return "bilibili"
+func (c *Client) Platform() danmaku.PlatformType {
+	return danmaku.Bilibili
 }
 
 func (c *Client) scrape(oid, pid, segmentIndex int64) []*DanmakuElem {
@@ -97,7 +99,7 @@ func (c *Client) scrape(oid, pid, segmentIndex int64) []*DanmakuElem {
 	client := &http.Client{}
 	req, err := http.NewRequest(http.MethodGet, api, nil)
 	if err != nil {
-		danmaku.Debugger(c).Printf("Failed to create request: %v\n", err)
+		logger.Info("Failed to create request", err)
 		return nil
 	}
 
@@ -107,13 +109,13 @@ func (c *Client) scrape(oid, pid, segmentIndex int64) []*DanmakuElem {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		danmaku.Debugger(c).Printf("HTTP request failed: %v\n", err)
+		logger.Info("HTTP request failed", err)
 		return nil
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		danmaku.Debugger(c).Printf("HTTP error: %s\n", resp.Status)
+		logger.Info("HTTP error", "code", resp.Status)
 		return nil
 	}
 
@@ -124,29 +126,30 @@ func (c *Client) scrape(oid, pid, segmentIndex int64) []*DanmakuElem {
 			var raw = json.RawMessage{}
 			err = json.NewDecoder(resp.Body).Decode(&raw)
 			if err != nil {
-				danmaku.Debugger(c).Printf("%v\n", err)
+				logger.Error(err.Error())
 			} else {
-				danmaku.Debugger(c).Printf("unknown error: %s\n", string(raw))
+				logger.Error("unknown error", "json", string(raw))
 			}
 		} else {
-			danmaku.Debugger(c).Printf("unknown content type: %s\n", contentType)
+			logger.Error("unknown content type", "contentType", contentType)
 		}
 		return nil
 	}
 
 	gzipReader, err := gzip.NewReader(resp.Body)
 	if err != nil {
-		danmaku.Debugger(c).Printf("Failed to create gzip reader: %v\n", err)
+		logger.Error("failed to create gzip reader", err)
+		return nil
 	}
 	defer gzipReader.Close()
 	reply := &DmSegMobileReply{}
 	jsonBytes, err := io.ReadAll(gzipReader)
 	if err != nil {
-		danmaku.Debugger(c).Printf("%v\n", err)
+		logger.Error(err.Error())
 		return nil
 	}
 	if err := proto.Unmarshal(jsonBytes, reply); err != nil {
-		danmaku.Debugger(c).Printf("%v\n", err)
+		logger.Error(err.Error())
 		return nil
 	}
 	return reply.GetElems()
@@ -196,16 +199,16 @@ type SeriesInfo struct {
 
 func (c *Client) Scrape(id interface{}) error {
 	if id == nil {
-		return danmaku.NewError(c, "nil params")
+		return danmaku.PlatformError(danmaku.Bilibili, "nil params")
 	}
 	v, ok := id.(string)
 	if !ok {
-		return danmaku.NewError(c, "invalid params")
+		return danmaku.PlatformError(danmaku.Bilibili, "invalid params")
 	}
 	realId := strings.TrimSpace(v)
-	danmaku.Debugger(c).Printf("scrape id: %s\n", realId)
+	logger.Info("scrape id", realId)
 	if realId == "" {
-		return danmaku.NewError(c, "invalid params")
+		return danmaku.PlatformError(danmaku.Bilibili, "invalid params")
 	}
 
 	// 比如 悠哉日常大王 第三季 就是一个单独的剧集 md28231846:ss36204
@@ -220,32 +223,32 @@ func (c *Client) Scrape(id interface{}) error {
 		params.Add("season_id", strings.Replace(realId, "ss", "", 1))
 	}
 	if len(params) == 0 {
-		return danmaku.NewError(c, "only support epid or ssid")
+		return danmaku.PlatformError(danmaku.Bilibili, "only support epid or ssid")
 	}
 
 	api := "https://api.bilibili.com/pgc/view/web/season?" + params.Encode()
 	req, err := http.NewRequest(http.MethodGet, api, nil)
 	if err != nil {
-		return danmaku.NewError(c, fmt.Sprintf("create season request err: %s", err.Error()))
+		return danmaku.PlatformError(danmaku.Bilibili, fmt.Sprintf("create season request err: %s", err.Error()))
 	}
 	req.Header.Set("Cookie", c.Cookie)
 	resp, err := c.HttpClient.Do(req)
 	if err != nil {
-		return danmaku.NewError(c, fmt.Sprintf("get season err: %s", err.Error()))
+		return danmaku.PlatformError(danmaku.Bilibili, fmt.Sprintf("get season err: %s", err.Error()))
 	}
 	defer resp.Body.Close()
 
 	var series SeriesInfo
 	err = json.NewDecoder(resp.Body).Decode(&series)
 	if err != nil {
-		return danmaku.NewError(c, fmt.Sprintf("decode season resp err: %s", err.Error()))
+		return danmaku.PlatformError(danmaku.Bilibili, fmt.Sprintf("decode season resp err: %s", err.Error()))
 	}
 	if series.Code != 0 {
-		return danmaku.NewError(c, fmt.Sprintf("season resp error code: %v, message: %s", series.Code, series.Message))
+		return danmaku.PlatformError(danmaku.Bilibili, fmt.Sprintf("season resp error code: %v, message: %s", series.Code, series.Message))
 	}
 
 	// savePath/{platform}/{ss1234}/{index}_{epid}.xml : ./bilibili/ss1234/1_ss1234
-	path := filepath.Join(config.GetConfig().SavePath, c.Platform(), "ss"+strconv.FormatInt(series.Result.SeasonId, 10))
+	path := filepath.Join(config.GetConfig().SavePath, danmaku.Bilibili, "ss"+strconv.FormatInt(series.Result.SeasonId, 10))
 
 	// 顺序抓取每个ep的弹幕，并发抓取每个ep弹幕
 	var epTitle string
@@ -258,7 +261,7 @@ func (c *Client) Scrape(id interface{}) error {
 
 		// 排除掉预告，b站会把预告也放入其中
 		if ep.SectionType == 1 {
-			danmaku.Debugger(c).Printf("ep%v skipped because of section type of 1\n", ep.EPId)
+			logger.Debug("scrape skipped because of section type of 1", "epId", ep.EPId)
 			continue
 		}
 
@@ -328,23 +331,25 @@ func (c *Client) Scrape(id interface{}) error {
 			go func(i int) {
 				defer wg.Done()
 				if e := persist.WriteToFile(path, filename); e != nil {
-					danmaku.Debugger(c).Printf("%v", e.Error())
+					logger.Error(e.Error())
 				}
 			}(i)
 		}
 		wg.Wait()
 
-		danmaku.Debugger(c).Printf("ep%v scraped done, size: %v\n", ep.EPId, len(c.danmaku))
+		logger.Info("scraped done", "epId", ep.EPId, "size", len(c.danmaku))
 	}
 
 	var t = series.Result.Title
 	if isEP {
 		t += epTitle
 	}
-	danmaku.Debugger(c).Printf("danmaku scraped done: %s\n", t)
+	logger.Info("danmaku scraped done", "size", t)
 
 	return nil
 }
+
+var logger *slog.Logger
 
 type task struct {
 	cid     int64
@@ -352,6 +357,7 @@ type task struct {
 }
 
 func init() {
+	logger = utils.GetPlatformLogger(danmaku.Bilibili)
 	conf := config.GetConfig().Bilibili
 	client := Client{
 		Cookie:       conf.Cookie,
@@ -362,7 +368,7 @@ func init() {
 	// 初始化数据存储器
 	for _, p := range conf.Persists {
 		switch p.Name {
-		case danmaku.DanDanXMLPersistType:
+		case danmaku.DanDanXMLType:
 			persist := danmaku.DanDanXMLPersist{
 				Indent: p.Indent,
 				Parser: &client,
@@ -373,6 +379,6 @@ func init() {
 
 	err := danmaku.RegisterPlatform(&client)
 	if err != nil {
-		danmaku.Debugger(&client).Printf("%v\n", err)
+		logger.Error(err.Error())
 	}
 }

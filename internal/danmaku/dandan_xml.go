@@ -1,6 +1,7 @@
 package danmaku
 
 import (
+	"danmu-tool/internal/utils"
 	"encoding/xml"
 	"fmt"
 	"os"
@@ -38,24 +39,24 @@ type DanDanXMLPersist struct {
 	Parser DanDanXMLParser
 }
 
-func (x *DanDanXMLPersist) Type() string {
-	return DanDanXMLPersistType
+func (x *DanDanXMLPersist) Type() DataPersistType {
+	return DanDanXMLType
 }
 
-const DanDanXMLPersistType = "dandanxml"
+var dandanXMLLogger = utils.GetComponentLogger(DanDanXMLType)
 
 func (x *DanDanXMLPersist) WriteToFile(fullPath, filename string) error {
 	if x.Parser == nil {
-		return NewDataError(x, "parser is nil")
+		return DataPersistError(DanDanXMLType, "parser is nil")
 	}
 
 	if e := checkPersistPath(fullPath, filename); e != nil {
-		return NewDataError(x, fmt.Sprintf("%s", e.Error()))
+		return DataPersistError(DanDanXMLType, fmt.Sprintf("%s", e.Error()))
 	}
 
 	var data, err = x.Parser.Parse()
 	if err != nil {
-		return NewDataError(x, fmt.Sprintf("parse data err: %v", err.Error()))
+		return DataPersistError(DanDanXMLType, fmt.Sprintf("parse data err: %v", err.Error()))
 	}
 	var xmlData []byte
 	if x.Indent {
@@ -64,7 +65,7 @@ func (x *DanDanXMLPersist) WriteToFile(fullPath, filename string) error {
 		xmlData, err = xml.Marshal(data)
 	}
 	if err != nil {
-		return NewDataError(x, fmt.Sprintf("marshal error: %v", err))
+		return DataPersistError(DanDanXMLType, fmt.Sprintf("marshal error: %v", err))
 	}
 
 	// 注意：xml.Marshal 不会自动添加声明头，需要手动添加。
@@ -73,9 +74,9 @@ func (x *DanDanXMLPersist) WriteToFile(fullPath, filename string) error {
 	writeFile := filepath.Join(fullPath, filename+".xml")
 	err = os.WriteFile(writeFile, finalXml, 0644)
 	if err != nil {
-		return NewDataError(x, fmt.Sprintf("%s write fail: %v", writeFile, err))
+		return DataPersistError(DanDanXMLType, fmt.Sprintf("%s write fail: %v", writeFile, err))
 	}
 
-	DataDebugger(x).Printf("%s wirte success\n", writeFile)
+	dandanXMLLogger.Info("file save success", "file", writeFile)
 	return nil
 }

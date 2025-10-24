@@ -29,7 +29,17 @@ func GetConfig() *DanmakuConfig {
 	return danmakuConfig
 }
 
+const configPathEnv = "DANMAKU_TOOL_CONFIG"
+
 func loadDefaultConfig() []byte {
+	// load from env
+	p := os.Getenv(configPathEnv)
+	if p != "" {
+		file, _ := os.ReadFile(p)
+		if file != nil {
+			return file
+		}
+	}
 	home, _ := os.UserHomeDir()
 	if home != "" {
 		// load from user home .config/danmaku-tool/config.yaml

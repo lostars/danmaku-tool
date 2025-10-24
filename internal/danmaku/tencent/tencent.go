@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"danmu-tool/internal/config"
 	"danmu-tool/internal/danmaku"
+	"danmu-tool/internal/utils"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"path/filepath"
 	"strconv"
@@ -30,7 +32,7 @@ type Client struct {
 
 func (c *Client) Parse() (*danmaku.DanDanXML, error) {
 	if c.danmaku == nil {
-		return nil, danmaku.NewError(c, "danmaku is nil")
+		return nil, danmaku.PlatformError(danmaku.Tencent, "danmaku is nil")
 	}
 
 	var source = c.danmaku
@@ -42,7 +44,7 @@ func (c *Client) Parse() (*danmaku.DanDanXML, error) {
 				source = append(source, v)
 			}
 		} else {
-			danmaku.Debugger(c).Printf("vid: %s duration is 0\n", c.vid)
+			logger.Error("vid: %s duration is 0\n", c.vid)
 		}
 	}
 
@@ -70,7 +72,7 @@ func (c *Client) Parse() (*danmaku.DanDanXML, error) {
 		Mission:        0,
 		MaxLimit:       2000,
 		Source:         "k-v",
-		SourceProvider: c.Platform(),
+		SourceProvider: danmaku.Tencent,
 		DataSize:       len(source),
 		Danmaku:        data,
 	}
@@ -78,8 +80,8 @@ func (c *Client) Parse() (*danmaku.DanDanXML, error) {
 	return &xml, nil
 }
 
-func (c *Client) Platform() string {
-	return "tencent"
+func (c *Client) Platform() danmaku.PlatformType {
+	return danmaku.Tencent
 }
 
 func (c *Client) doSeriesRequest(cid, vid string, pageId, pageContent string) (*SeriesResult, error) {
@@ -125,7 +127,7 @@ func (c *Client) series(cid string) ([]*SeriesItem, error) {
 	// 获取剧集信息
 	seriesResult, err := c.doSeriesRequest(cid, "", SeriesEPPageId, "")
 	if err != nil {
-		return nil, danmaku.NewError(c, err.Error())
+		return nil, err
 	}
 
 	// 获取当前tab剧集信息
@@ -139,13 +141,13 @@ func (c *Client) series(cid string) ([]*SeriesItem, error) {
 	// 解析剧集信息，可能会有多个tab
 	tabStr := seriesResult.Data.ModuleListData[0].ModuleData[0].ModuleParams.Tabs
 	if tabStr == "" {
-		danmaku.Debugger(c).Printf("series %s has no tabs\n", cid)
+		logger.Error("series has no tabs", "cid", cid)
 		return eps, nil
 	}
 	var tabs []SeriesTab
 	err = json.Unmarshal([]byte(tabStr), &tabs)
 	if err != nil {
-		danmaku.Debugger(c).Printf("parse tab %s error: %v\n", tabStr, err)
+		return nil, err
 	}
 
 	for _, tab := range tabs {
@@ -155,13 +157,13 @@ func (c *Client) series(cid string) ([]*SeriesItem, error) {
 
 		tabSeries, err := c.doSeriesRequest(cid, "", SeriesEPPageId, tab.PageContext)
 		if err != nil {
-			danmaku.Debugger(c).Printf("%v\n", err)
+			logger.Error(err.Error())
 			continue
 		}
 
 		d, err := tabSeries.series()
 		if err != nil {
-			danmaku.Debugger(c).Printf("%v\n", err)
+			logger.Error(err.Error())
 			continue
 		}
 		eps = append(eps, d...)
@@ -172,11 +174,11 @@ func (c *Client) series(cid string) ([]*SeriesItem, error) {
 
 func (c *Client) Scrape(id interface{}) error {
 	if id == nil {
-		return danmaku.NewError(c, "nil params")
+		return danmaku.PlatformError(danmaku.Tencent, "nil params")
 	}
 	idStr, ok := id.(string)
 	if !ok {
-		return danmaku.NewError(c, "invalid params")
+		return danmaku.PlatformError(danmaku.Tencent, "invalid params")
 	}
 	var isVID = len(idStr) == 11
 	var cid = idStr
@@ -186,15 +188,15 @@ func (c *Client) Scrape(id interface{}) error {
 		// 反查cid 然后再继续查询剧集
 		series, err := c.doSeriesRequest("", idStr, SeriesInfoPageId, "")
 		if err != nil {
-			return danmaku.NewError(c, err.Error())
+			return danmaku.PlatformError(danmaku.Tencent, err.Error())
 		}
 		infos, err := series.series()
 		if err != nil {
-			return danmaku.NewError(c, err.Error())
+			return danmaku.PlatformError(danmaku.Tencent, err.Error())
 		}
 		epCID := infos[0].ItemParams.ReportCID
 		if epCID == "" {
-			return danmaku.NewError(c, fmt.Sprintf("%s has no cid", idStr))
+			return danmaku.PlatformError(danmaku.Tencent, fmt.Sprintf("%s has no cid", idStr))
 		}
 		cid = epCID
 		onlyCurrentVID = true
@@ -204,7 +206,7 @@ func (c *Client) Scrape(id interface{}) error {
 	if err != nil {
 		return err
 	}
-	danmaku.Debugger(c).Printf("%s ep size: %v\n", cid, len(eps))
+	logger.Info("ep size", "cid", cid, "size", len(eps))
 	if len(eps) <= 0 {
 		return nil
 	}
@@ -215,12 +217,12 @@ func (c *Client) Scrape(id interface{}) error {
 			continue
 		}
 		if ep.ItemParams.IsTrailer == "1" {
-			danmaku.Debugger(c).Printf("vid %s skipped because of trailer type\n", ep.ItemParams.VID)
+			logger.Info("ep skipped because of trailer type", "vid", ep.ItemParams.VID)
 			continue
 		}
 		// 有可能vid为空
 		if ep.ItemParams.VID == "" {
-			danmaku.Debugger(c).Println("skipped because of empty vid")
+			logger.Debug("skipped because of empty vid")
 			continue
 		}
 
@@ -231,41 +233,41 @@ func (c *Client) Scrape(id interface{}) error {
 		}
 		configBytes, err := json.Marshal(param)
 		if err != nil {
-			danmaku.Debugger(c).Printf("marshal ep %s param error: %v\n", ep.ItemParams.VID, err)
+			logger.Error(err.Error())
 			continue
 		}
 		configAPI := "https://pbaccess.video.qq.com/trpc.barrage.custom_barrage.CustomBarrage/GetDMStartUpConfig"
 		danmakuConfigReq, err := http.NewRequest(http.MethodPost, configAPI, bytes.NewBuffer(configBytes))
 		if err != nil {
-			danmaku.Debugger(c).Printf("create ep %s segment request error: %v\n", ep.ItemParams.VID, err)
+			logger.Error(err.Error())
 			continue
 		}
 		c.setRequest(danmakuConfigReq)
 		resp, e := c.HttpClient.Do(danmakuConfigReq)
 		if e != nil {
-			danmaku.Debugger(c).Printf("%s segment request error: %v\n", ep.ItemParams.VID, e)
+			logger.Error(e.Error())
 			continue
 		}
 		var segmentResult DanmakuSegmentResult
 		e = json.NewDecoder(resp.Body).Decode(&segmentResult)
 		if e != nil {
-			danmaku.Debugger(c).Printf("%s segment decode error: %v\n", ep.ItemParams.VID, e)
+			logger.Error(e.Error())
 			continue
 		}
 		resp.Body.Close()
 		var segmentsLen = len(segmentResult.Data.SegmentIndex)
 		if segmentResult.Data.SegmentIndex == nil || segmentsLen <= 0 {
-			danmaku.Debugger(c).Printf("%s has no segments\n", ep.ItemParams.VID)
+			logger.Error("no segments", "vid", ep.ItemParams.VID)
 			continue
 		}
 
 		c.vid = ep.ItemParams.VID
-		danmaku.Debugger(c).Printf("vid %s has %v segments\n", c.vid, segmentsLen)
+		logger.Info("danmaku segments", "vid", c.vid, "size", segmentsLen)
 		v, err := strconv.ParseInt(ep.ItemParams.Duration, 10, 64)
 		if err == nil {
 			c.duration = v * 1000
 		} else {
-			danmaku.Debugger(c).Printf("%s duration is not number: %s\n", ep.ItemParams.VID, ep.ItemParams.Duration)
+			logger.Error("duration is not number\n", "vid", ep.ItemParams.VID, "duration", ep.ItemParams.Duration)
 		}
 		tasks := make(chan task, segmentsLen)
 		var wg sync.WaitGroup
@@ -297,23 +299,23 @@ func (c *Client) Scrape(id interface{}) error {
 
 		wg.Wait()
 
-		path := filepath.Join(config.GetConfig().SavePath, c.Platform(), ep.ItemParams.CID)
+		path := filepath.Join(config.GetConfig().SavePath, danmaku.Tencent, ep.ItemParams.CID)
 		filename := ep.ItemParams.Title + "_" + ep.ItemParams.VID
 		for i, persist := range c.DataPersists {
 			wg.Add(1)
 			go func(i int) {
 				defer wg.Done()
 				if e := persist.WriteToFile(path, filename); e != nil {
-					danmaku.Debugger(c).Printf("%v", e.Error())
+					logger.Error(e.Error())
 				}
 			}(i)
 		}
 		wg.Wait()
 
-		danmaku.Debugger(c).Printf("vid: %v scraped done, size: %v\n", ep.ItemParams.VID, len(c.danmaku))
+		logger.Info("danmaku scraped done", "vid", ep.ItemParams.VID, "size", len(c.danmaku))
 	}
 
-	danmaku.Debugger(c).Printf("cid: %s danmaku scraped done\n", cid)
+	logger.Info("danmaku scraped done", "cid", cid)
 
 	return nil
 }
@@ -361,12 +363,12 @@ func (c *Client) scrape(vid, segment string) []*danmaku.StandardDanmaku {
 
 	req, err := http.NewRequest(http.MethodGet, api, nil)
 	if err != nil {
-		danmaku.Debugger(c).Printf("scrapge danmuku req create error: %v\n", err)
+		logger.Error(err.Error())
 		return nil
 	}
 	resp, err := c.HttpClient.Do(req)
 	if err != nil {
-		danmaku.Debugger(c).Printf("scrapge danmuku request error: %v\n", err)
+		logger.Error(err.Error())
 		return nil
 	}
 	defer resp.Body.Close()
@@ -374,7 +376,7 @@ func (c *Client) scrape(vid, segment string) []*danmaku.StandardDanmaku {
 	var danmakuResult DanmakuResult
 	err = json.NewDecoder(resp.Body).Decode(&danmakuResult)
 	if err != nil {
-		danmaku.Debugger(c).Printf("scrapge danmuku decode error: %v\n", err)
+		logger.Error(err.Error())
 		return nil
 	}
 
@@ -382,7 +384,7 @@ func (c *Client) scrape(vid, segment string) []*danmaku.StandardDanmaku {
 	for _, v := range danmakuResult.BarrageList {
 		offset, err := strconv.ParseInt(v.TimeOffset, 10, 64)
 		if err != nil {
-			danmaku.Debugger(c).Printf("%s has invalid offset: %s", vid, v.TimeOffset)
+			logger.Error("invalid offset", "vid", vid, "offset", v.TimeOffset)
 			continue
 		}
 
@@ -412,7 +414,7 @@ func (c *Client) scrape(vid, segment string) []*danmaku.StandardDanmaku {
 			Offset:   offset,
 			Mode:     mode,
 			Color:    colorValue,
-			Platform: c.Platform(),
+			Platform: danmaku.Tencent,
 		}
 		result = append(result, r)
 	}
@@ -531,7 +533,10 @@ type SeriesReqPageParam struct {
 	DetailPageType string `json:"detail_page_type"`
 }
 
+var logger *slog.Logger
+
 func init() {
+	logger = utils.GetPlatformLogger(danmaku.Tencent)
 	conf := config.GetConfig().Tencent
 	client := Client{
 		Cookie:       conf.Cookie,
@@ -543,7 +548,7 @@ func init() {
 	// 初始化数据存储器
 	for _, p := range conf.Persists {
 		switch p.Name {
-		case danmaku.DanDanXMLPersistType:
+		case danmaku.DanDanXMLType:
 			persist := danmaku.DanDanXMLPersist{
 				Indent: p.Indent,
 				Parser: &client,
@@ -554,6 +559,6 @@ func init() {
 
 	err := danmaku.RegisterPlatform(&client)
 	if err != nil {
-		danmaku.Debugger(&client).Printf("%v\n", err)
+		logger.Error(err.Error())
 	}
 }
