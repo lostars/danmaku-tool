@@ -1,4 +1,4 @@
-package cmd
+package flags
 
 import (
 	"danmu-tool/internal/danmaku"
@@ -7,18 +7,18 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type FlagsProperty[T any] struct {
+type FProperty[T any] struct {
 	Value    T
 	Flag     string
-	Register FlagsPropertyRegister
+	Register FPropertyRegister
 	Options  []string
 }
 
-type FlagsPropertyRegister interface {
+type FPropertyRegister interface {
 	complete(toComplete string) []string
 }
 
-func (f *FlagsProperty[T]) RegisterCompletion(cmd *cobra.Command) {
+func (f *FProperty[T]) RegisterCompletion(cmd *cobra.Command) {
 	if f.Options != nil && len(f.Options) > 0 {
 		_ = cmd.RegisterFlagCompletionFunc(f.Flag, func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 			return f.Options, cobra.ShellCompDirectiveNoFileComp

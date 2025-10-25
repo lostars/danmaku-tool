@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"danmu-tool/internal/config"
 	"danmu-tool/internal/danmaku"
-	"danmu-tool/internal/utils"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,7 +13,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 )
 
 type Client struct {
@@ -30,7 +28,7 @@ type Client struct {
 	duration    int64
 }
 
-func (c *Client) Parse() (*danmaku.DanDanXML, error) {
+func (c *Client) Parse() (*danmaku.DataXML, error) {
 	if c.danmaku == nil {
 		return nil, danmaku.PlatformError(danmaku.Tencent, "danmaku is nil")
 	}
@@ -48,7 +46,7 @@ func (c *Client) Parse() (*danmaku.DanDanXML, error) {
 		}
 	}
 
-	var data = make([]danmaku.DanDanXMLDanmaku, len(source))
+	var data = make([]danmaku.DataXMLDanmaku, len(source))
 	// <d p="2.603,1,25,16777215,[tencent]">看看 X2</d>
 	// 第几秒/弹幕类型/字体大小/颜色
 	for i, v := range source {
@@ -59,14 +57,14 @@ func (c *Client) Parse() (*danmaku.DanDanXML, error) {
 			strconv.FormatInt(int64(v.Color), 10),
 			fmt.Sprintf("[%s]", c.Platform()),
 		}
-		d := danmaku.DanDanXMLDanmaku{
+		d := danmaku.DataXMLDanmaku{
 			Attributes: strings.Join(attr, ","),
 			Content:    v.Content,
 		}
 		data[i] = d
 	}
 
-	xml := danmaku.DanDanXML{
+	xml := danmaku.DataXML{
 		ChatServer:     "comment.bilibili.com",
 		ChatID:         c.vid,
 		Mission:        0,
@@ -80,7 +78,7 @@ func (c *Client) Parse() (*danmaku.DanDanXML, error) {
 	return &xml, nil
 }
 
-func (c *Client) Platform() danmaku.PlatformType {
+func (c *Client) Platform() danmaku.Platform {
 	return danmaku.Tencent
 }
 
@@ -534,31 +532,3 @@ type SeriesReqPageParam struct {
 }
 
 var logger *slog.Logger
-
-func init() {
-	logger = utils.GetPlatformLogger(danmaku.Tencent)
-	conf := config.GetConfig().Tencent
-	client := Client{
-		Cookie:       conf.Cookie,
-		MaxWorker:    conf.MaxWorker,
-		HttpClient:   &http.Client{Timeout: time.Duration(conf.Timeout * 1e9)},
-		DataPersists: []danmaku.DataPersist{},
-		danmaku:      make([]*danmaku.StandardDanmaku, 0, 50000),
-	}
-	// 初始化数据存储器
-	for _, p := range conf.Persists {
-		switch p.Name {
-		case danmaku.DanDanXMLType:
-			persist := danmaku.DanDanXMLPersist{
-				Indent: p.Indent,
-				Parser: &client,
-			}
-			client.DataPersists = append(client.DataPersists, &persist)
-		}
-	}
-
-	err := danmaku.RegisterPlatform(&client)
-	if err != nil {
-		logger.Error(err.Error())
-	}
-}

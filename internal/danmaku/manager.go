@@ -1,16 +1,11 @@
 package danmaku
 
 import (
-	"danmu-tool/internal/utils"
-	"errors"
+	"danmu-tool/internal/config"
 	"fmt"
-	"os"
-	"time"
 )
 
-var logger = utils.GetComponentLogger("manager")
-
-func PlatformError(p PlatformType, text string) error {
+func PlatformError(p Platform, text string) error {
 	return fmt.Errorf("[%s] %s", p, text)
 }
 
@@ -18,18 +13,46 @@ func DataPersistError(d DataPersistType, text string) error {
 	return fmt.Errorf("[%s] %s", d, text)
 }
 
+type MediaType string
+
+const (
+	Series = "series" // 季
+	Movie  = "movie"  // 单集
+)
+
 type Media struct {
+	Type     MediaType
+	TypeDesc string // 类型描述 TV动画 / 综艺
+	Id       string // 存储平台实际id
+	Title    string
+	Desc     string
+	Episodes []*MediaEpisode
 }
 
-type Platform interface {
-	Platform() PlatformType
+type MediaEpisode struct {
+	Id        string // 存储平台实际的id
+	EpisodeId string // 第几话
+	Title     string
+
+	Danmaku []*StandardDanmaku // 弹幕信息
+}
+
+type Scraper interface {
+	Platform() Platform
+	// Scrape 抓取并保存弹幕
 	Scrape(id interface{}) error
 }
 
+type Initializer interface {
+	Init(conf *config.DanmakuConfig) error
+}
+
 type MediaSearcher interface {
-	Search(keyword string) ([]Media, error)
-	Id(keyword string) ([]interface{}, error)
-	Searcher() string
+	// Search 搜索剧集信息，不会获取ep
+	Search(keyword string) ([]*Media, error)
+	// GetDanmaku 实时获取平台弹幕 id: [platform]_[id]_[id]
+	GetDanmaku(id string) ([]*StandardDanmaku, error)
+	SearcherType() Platform
 }
 
 type DataPersist interface {
@@ -50,93 +73,47 @@ type StandardDanmaku struct {
 
 	// 以下字段用于其他记录
 	FontSize int32 // 字体大小
-	Platform string
-	Id       string // 全局id 在使用dandan API时有用
+	Platform Platform
 }
 
 const RollMode = 1
 const BottomMode = 4
 const TopMode = 5
 
-func MergeDanmaku(dms []*StandardDanmaku, mergedInMills int64, durationInMills int64) []*StandardDanmaku {
-	var start = time.Now().Nanosecond()
-	logger.Debug("danmaku size before merge", "size", len(dms))
-	var totalBuckets = durationInMills/mergedInMills + 1
-	buckets := make(map[int64]map[string]bool, totalBuckets)
-	var result = make([]*StandardDanmaku, 0, len(dms))
-
-	for _, d := range dms {
-		bid := d.Offset / mergedInMills // 所属时间桶
-
-		if _, ok := buckets[bid]; !ok {
-			// 预估长度
-			buckets[bid] = make(map[string]bool, int64(len(dms))/totalBuckets+1)
-		}
-
-		// 检查当前桶和前一个桶是否出现过（跨桶重复处理）
-		if buckets[bid][d.Content] || buckets[bid-1][d.Content] {
-			continue
-		}
-
-		result = append(result, d)
-		buckets[bid][d.Content] = true
-	}
-
-	var end = time.Now().Nanosecond()
-	logger.Debug("danmaku size before merge", "size", len(result))
-	logger.Debug("danmaku merge cost", "duration", end-start)
-
-	return result
-}
-
 type Manager struct {
-	Platforms map[string]Platform
-	Searchers map[string]MediaSearcher
+	Scrapers     map[string]Scraper
+	Searchers    map[string]MediaSearcher
+	Initializers []Initializer
 }
 
 var ManagerOfDanmaku = &Manager{
-	Platforms: map[string]Platform{},
-	Searchers: map[string]MediaSearcher{},
+	Scrapers:     map[string]Scraper{},
+	Searchers:    map[string]MediaSearcher{},
+	Initializers: []Initializer{},
 }
 
 func (m *Manager) GetPlatforms() []string {
 	var result []string
-	for _, v := range m.Platforms {
+	for _, v := range m.Scrapers {
 		result = append(result, string(v.Platform()))
 	}
 	return result
 }
 
-func checkPersistPath(fullPath, filename string) error {
-	if fullPath == "" || filename == "" {
-		return errors.New("empty save path or filename")
+func Register(i interface{}) {
+	// TODO map相同名称多次注入会被覆盖
+	if v, ok := i.(MediaSearcher); ok {
+		ManagerOfDanmaku.Searchers[string(v.SearcherType())] = v
 	}
-
-	// check path
-	_, fileStatError := os.Stat(fullPath)
-	if fileStatError != nil {
-		if os.IsNotExist(fileStatError) {
-			mkdirError := os.MkdirAll(fullPath, os.ModePerm)
-			if mkdirError != nil {
-				return errors.New(fmt.Sprintf("create path %s error: %s", fullPath, mkdirError.Error()))
-			}
-		} else {
-			return errors.New(fmt.Sprintf("create path %s error: %s", fullPath, fileStatError.Error()))
-		}
+	if v, ok := i.(Scraper); ok {
+		ManagerOfDanmaku.Scrapers[string(v.Platform())] = v
 	}
-	return nil
+	if v, ok := i.(Initializer); ok {
+		ManagerOfDanmaku.Initializers = append(ManagerOfDanmaku.Initializers, v)
+	}
 }
 
-func RegisterPlatform(p Platform) error {
-	e := ManagerOfDanmaku.Platforms[string(p.Platform())]
-	if e != nil {
-		return errors.New(fmt.Sprintf("%s registered", p.Platform()))
-	}
-	ManagerOfDanmaku.Platforms[string(p.Platform())] = p
-	return nil
-}
-
-type PlatformType string
+type Platform string
 
 const (
 	Bilibili = "bilibili"
@@ -146,5 +123,5 @@ const (
 type DataPersistType string
 
 const (
-	DanDanXMLType = "dandanxml"
+	XMLPersistType = "xml"
 )

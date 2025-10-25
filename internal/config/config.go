@@ -8,59 +8,62 @@ import (
 )
 
 var (
-	Debug     = false
-	Port      = 8089
-	RunServer = false
+	Version string
 )
 
 var danmakuConfig *DanmakuConfig
 
-func GetConfig() *DanmakuConfig {
+func Init(path string, debug bool) {
 	if danmakuConfig != nil {
-		return danmakuConfig
+		return
 	}
-	var file = loadDefaultConfig()
+	var file = loadDefaultConfig(path)
 	if file == nil {
 		panic("danmaku config file load failed")
 	}
 	if err := yaml.Unmarshal(file, &danmakuConfig); err != nil {
 		panic(err.Error())
 	}
+	danmakuConfig.Debug = debug
+}
+
+func GetConfig() *DanmakuConfig {
 	return danmakuConfig
 }
 
 const configPathEnv = "DANMAKU_TOOL_CONFIG"
 
-func loadDefaultConfig() []byte {
-	// load from env
-	p := os.Getenv(configPathEnv)
-	if p != "" {
-		file, _ := os.ReadFile(p)
-		if file != nil {
-			return file
-		}
+func loadFromPath(path string) []byte {
+	file, err := os.ReadFile(path)
+	if err != nil {
+		panic(err)
 	}
-	home, _ := os.UserHomeDir()
-	if home != "" {
+	return file
+}
+
+func loadDefaultConfig(path string) []byte {
+	// load from cmd parameter
+	if path != "" {
+		return loadFromPath(path)
+	}
+	// load from env
+	if p := os.Getenv(configPathEnv); p != "" {
+		return loadFromPath(p)
+	}
+	if home, _ := os.UserHomeDir(); home != "" {
 		// load from user home .config/danmaku-tool/config.yaml
 		CfgPath := filepath.Join(home, ".config", "danmaku-tool", "config.yaml")
-		file, _ := os.ReadFile(CfgPath)
-		if file != nil {
-			return file
-		}
+		return loadFromPath(CfgPath)
 	}
-	execPath, _ := os.Executable()
-	if execPath != "" {
+	if execPath, _ := os.Executable(); execPath != "" {
 		CfgPath := filepath.Join(filepath.Dir(execPath), "config.yaml")
-		file, _ := os.ReadFile(CfgPath)
-		if file != nil {
-			return file
-		}
+		return loadFromPath(CfgPath)
 	}
 	return nil
 }
 
 type DanmakuConfig struct {
+	Debug    bool           `yaml:"debug"`
 	SavePath string         `yaml:"save-path"`
 	Bilibili PlatformConfig `yaml:"bilibili"`
 	Tencent  PlatformConfig `yaml:"tencent"`

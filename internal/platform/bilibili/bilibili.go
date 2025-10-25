@@ -4,7 +4,6 @@ import (
 	"compress/gzip"
 	"danmu-tool/internal/config"
 	"danmu-tool/internal/danmaku"
-	"danmu-tool/internal/utils"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -15,7 +14,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"google.golang.org/protobuf/proto"
 )
@@ -36,7 +34,7 @@ type Client struct {
 	epDuration int64
 }
 
-func (c *Client) Parse() (*danmaku.DanDanXML, error) {
+func (c *Client) Parse() (*danmaku.DataXML, error) {
 	if c.danmaku == nil {
 		return nil, danmaku.PlatformError(danmaku.Bilibili, fmt.Sprintf("ep%v danmaku is nil", c.epId))
 	}
@@ -51,7 +49,7 @@ func (c *Client) Parse() (*danmaku.DanDanXML, error) {
 		}
 	}
 
-	var data = make([]danmaku.DanDanXMLDanmaku, len(source))
+	var data = make([]danmaku.DataXMLDanmaku, len(source))
 	// <d p="2.603,1,25,16777215,[bilibili]">看看 X2</d>
 	// 第几秒/弹幕类型/字体大小/颜色
 	for i, v := range source {
@@ -62,14 +60,14 @@ func (c *Client) Parse() (*danmaku.DanDanXML, error) {
 			strconv.FormatInt(int64(v.Color), 10),
 			fmt.Sprintf("[%s]", c.Platform()),
 		}
-		d := danmaku.DanDanXMLDanmaku{
+		d := danmaku.DataXMLDanmaku{
 			Attributes: strings.Join(attr, ","),
 			Content:    v.Content,
 		}
 		data[i] = d
 	}
 
-	xml := danmaku.DanDanXML{
+	xml := danmaku.DataXML{
 		ChatServer:     "comment.bilibili.com",
 		ChatID:         strconv.FormatInt(c.seasonId, 10) + "_" + strconv.FormatInt(c.epId, 10),
 		Mission:        0,
@@ -83,7 +81,7 @@ func (c *Client) Parse() (*danmaku.DanDanXML, error) {
 	return &xml, nil
 }
 
-func (c *Client) Platform() danmaku.PlatformType {
+func (c *Client) Platform() danmaku.Platform {
 	return danmaku.Bilibili
 }
 
@@ -247,8 +245,8 @@ func (c *Client) Scrape(id interface{}) error {
 		return danmaku.PlatformError(danmaku.Bilibili, fmt.Sprintf("season resp error code: %v, message: %s", series.Code, series.Message))
 	}
 
-	// savePath/{platform}/{ss1234}/{index}_{epid}.xml : ./bilibili/ss1234/1_ss1234
-	path := filepath.Join(config.GetConfig().SavePath, danmaku.Bilibili, "ss"+strconv.FormatInt(series.Result.SeasonId, 10))
+	// savePath/{platform}/{ssid}/{epid}.xml : ./bilibili/1234/11234
+	path := filepath.Join(config.GetConfig().SavePath, danmaku.Bilibili, strconv.FormatInt(series.Result.SeasonId, 10))
 
 	// 顺序抓取每个ep的弹幕，并发抓取每个ep弹幕
 	var epTitle string
@@ -319,13 +317,7 @@ func (c *Client) Scrape(id interface{}) error {
 
 		wg.Wait()
 
-		// 此时的标题是真实的剧集id 也可能是 "正片"
-		var index = "1"
-		_, err = strconv.ParseInt(ep.Title, 10, 64)
-		if err == nil {
-			index = ep.Title
-		}
-		filename := index + "_" + strconv.FormatInt(ep.EPId, 10)
+		filename := strconv.FormatInt(ep.EPId, 10)
 		for i, persist := range c.DataPersists {
 			wg.Add(1)
 			go func(i int) {
@@ -354,31 +346,4 @@ var logger *slog.Logger
 type task struct {
 	cid     int64
 	segment int64
-}
-
-func init() {
-	logger = utils.GetPlatformLogger(danmaku.Bilibili)
-	conf := config.GetConfig().Bilibili
-	client := Client{
-		Cookie:       conf.Cookie,
-		MaxWorker:    conf.MaxWorker,
-		HttpClient:   &http.Client{Timeout: time.Duration(conf.Timeout * 1e9)},
-		DataPersists: []danmaku.DataPersist{},
-	}
-	// 初始化数据存储器
-	for _, p := range conf.Persists {
-		switch p.Name {
-		case danmaku.DanDanXMLType:
-			persist := danmaku.DanDanXMLPersist{
-				Indent: p.Indent,
-				Parser: &client,
-			}
-			client.DataPersists = append(client.DataPersists, &persist)
-		}
-	}
-
-	err := danmaku.RegisterPlatform(&client)
-	if err != nil {
-		logger.Error(err.Error())
-	}
 }

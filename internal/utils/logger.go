@@ -1,18 +1,23 @@
 package utils
 
 import (
-	"danmu-tool/internal/config"
 	"log/slog"
 	"os"
 )
 
-func GetLogger(m map[string]string) *slog.Logger {
+type LoggerConfig struct {
+	jsonHandler *slog.JSONHandler
+}
+
+var LoggerConf = &LoggerConfig{}
+
+func (c *LoggerConfig) InitLogger(debug bool) {
 	var level = slog.LevelInfo
-	if config.Debug {
+	if debug {
 		level = slog.LevelDebug
 	}
 
-	handler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+	c.jsonHandler = slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: level,
 		ReplaceAttr: func(groups []string, attr slog.Attr) slog.Attr {
 			if attr.Key == slog.TimeKey {
@@ -22,7 +27,10 @@ func GetLogger(m map[string]string) *slog.Logger {
 			return attr
 		},
 	})
-	logger := slog.New(handler)
+}
+
+func getLogger(m map[string]string) *slog.Logger {
+	logger := slog.New(LoggerConf.jsonHandler)
 	for k, v := range m {
 		logger = logger.With(k, v)
 	}
@@ -30,7 +38,7 @@ func GetLogger(m map[string]string) *slog.Logger {
 }
 
 func GetComponentLogger(component string) *slog.Logger {
-	return GetLogger(map[string]string{"component": component})
+	return getLogger(map[string]string{"component": component})
 }
 
 func GetPlatformLogger(platform string) *slog.Logger {
@@ -38,5 +46,5 @@ func GetPlatformLogger(platform string) *slog.Logger {
 		"platform":  platform,
 		"component": platform,
 	}
-	return GetLogger(m)
+	return getLogger(m)
 }
