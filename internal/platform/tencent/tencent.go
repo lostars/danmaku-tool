@@ -42,7 +42,7 @@ func (c *Client) Parse() (*danmaku.DataXML, error) {
 				source = append(source, v)
 			}
 		} else {
-			logger.Error("vid: %s duration is 0\n", c.vid)
+			logger.Error("parse xml duration is 0", "cid", c.vid)
 		}
 	}
 
@@ -204,7 +204,7 @@ func (c *Client) Scrape(id interface{}) error {
 	if err != nil {
 		return err
 	}
-	logger.Info("ep size", "cid", cid, "size", len(eps))
+	logger.Info("get ep done", "cid", cid, "size", len(eps))
 	if len(eps) <= 0 {
 		return nil
 	}
@@ -260,12 +260,12 @@ func (c *Client) Scrape(id interface{}) error {
 		}
 
 		c.vid = ep.ItemParams.VID
-		logger.Info("danmaku segments", "vid", c.vid, "size", segmentsLen)
+		logger.Info("segments done", "vid", c.vid, "size", segmentsLen)
 		v, err := strconv.ParseInt(ep.ItemParams.Duration, 10, 64)
 		if err == nil {
 			c.duration = v * 1000
 		} else {
-			logger.Error("duration is not number\n", "vid", ep.ItemParams.VID, "duration", ep.ItemParams.Duration)
+			logger.Error("duration is not number", "vid", ep.ItemParams.VID, "duration", ep.ItemParams.Duration)
 		}
 		tasks := make(chan task, segmentsLen)
 		var wg sync.WaitGroup
@@ -310,7 +310,7 @@ func (c *Client) Scrape(id interface{}) error {
 		}
 		wg.Wait()
 
-		logger.Info("danmaku scraped done", "vid", ep.ItemParams.VID, "size", len(c.danmaku))
+		logger.Info("ep scraped done", "vid", ep.ItemParams.VID, "size", len(c.danmaku))
 	}
 
 	logger.Info("danmaku scraped done", "cid", cid)

@@ -97,7 +97,7 @@ func (c *Client) scrape(oid, pid, segmentIndex int64) []*DanmakuElem {
 	client := &http.Client{}
 	req, err := http.NewRequest(http.MethodGet, api, nil)
 	if err != nil {
-		logger.Info("Failed to create request", err)
+		logger.Info(fmt.Sprintf("create request error: %s", err))
 		return nil
 	}
 
@@ -107,13 +107,13 @@ func (c *Client) scrape(oid, pid, segmentIndex int64) []*DanmakuElem {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		logger.Info("HTTP request failed", err)
+		logger.Info(fmt.Sprintf("request failed: %s", err))
 		return nil
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		logger.Info("HTTP error", "code", resp.Status)
+		logger.Info("request not ok", "code", resp.Status)
 		return nil
 	}
 
@@ -126,17 +126,17 @@ func (c *Client) scrape(oid, pid, segmentIndex int64) []*DanmakuElem {
 			if err != nil {
 				logger.Error(err.Error())
 			} else {
-				logger.Error("unknown error", "json", string(raw))
+				logger.Error(fmt.Sprintf("unknown error: %s", string(raw)))
 			}
 		} else {
-			logger.Error("unknown content type", "contentType", contentType)
+			logger.Error(fmt.Sprintf("unknown content type: %s", contentType))
 		}
 		return nil
 	}
 
 	gzipReader, err := gzip.NewReader(resp.Body)
 	if err != nil {
-		logger.Error("failed to create gzip reader", err)
+		logger.Error(fmt.Sprintf("failed to create gzip reader: %v", err))
 		return nil
 	}
 	defer gzipReader.Close()
@@ -204,7 +204,6 @@ func (c *Client) Scrape(id interface{}) error {
 		return danmaku.PlatformError(danmaku.Bilibili, "invalid params")
 	}
 	realId := strings.TrimSpace(v)
-	logger.Info("scrape id", realId)
 	if realId == "" {
 		return danmaku.PlatformError(danmaku.Bilibili, "invalid params")
 	}
@@ -245,6 +244,7 @@ func (c *Client) Scrape(id interface{}) error {
 		return danmaku.PlatformError(danmaku.Bilibili, fmt.Sprintf("season resp error code: %v, message: %s", series.Code, series.Message))
 	}
 
+	logger.Info("scrape start", "id", realId)
 	// savePath/{platform}/{ssid}/{epid}.xml : ./bilibili/1234/11234
 	path := filepath.Join(config.GetConfig().SavePath, danmaku.Bilibili, strconv.FormatInt(series.Result.SeasonId, 10))
 
@@ -329,14 +329,14 @@ func (c *Client) Scrape(id interface{}) error {
 		}
 		wg.Wait()
 
-		logger.Info("scraped done", "epId", ep.EPId, "size", len(c.danmaku))
+		logger.Info("ep scraped done", "epId", ep.EPId, "size", len(c.danmaku))
 	}
 
 	var t = series.Result.Title
 	if isEP {
 		t += epTitle
 	}
-	logger.Info("danmaku scraped done", "size", t)
+	logger.Info("danmaku scraped done", "title", t)
 
 	return nil
 }

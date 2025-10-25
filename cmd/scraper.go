@@ -3,9 +3,11 @@ package cmd
 import (
 	"danmu-tool/cmd/flags"
 	"danmu-tool/internal/danmaku"
+	"danmu-tool/internal/utils"
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -31,7 +33,11 @@ func scraperCmd() *cobra.Command {
 		if p == nil {
 			return errors.New(fmt.Sprintf("unsupported platform: %s", platform.Value))
 		}
+		logger := utils.GetComponentLogger("scrape-cmd")
+		start := time.Now().Nanosecond()
 		err := p.Scrape(id)
+		end := time.Now().Nanosecond()
+		logger.Debug("scrape cmd done", "cost_ms", (end-start)/1e6)
 		if err != nil {
 			return err
 		}
