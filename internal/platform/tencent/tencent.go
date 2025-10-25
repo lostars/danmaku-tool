@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"sync"
 )
 
@@ -20,62 +19,7 @@ type Client struct {
 	MaxWorker  int
 	Cookie     string
 
-	DataPersists []danmaku.DataPersist
-	// 弹幕数据
-	danmaku     []*danmaku.StandardDanmaku
-	vid         string
-	danmakuLock sync.Mutex
-	duration    int64
-}
-
-func (c *Client) Parse() (*danmaku.DataXML, error) {
-	if c.danmaku == nil {
-		return nil, danmaku.PlatformError(danmaku.Tencent, "danmaku is nil")
-	}
-
-	var source = c.danmaku
-	if config.GetConfig().Tencent.MergeDanmakuInMills > 0 {
-		if c.duration > 0 {
-			var merged = danmaku.MergeDanmaku(source, config.GetConfig().Tencent.MergeDanmakuInMills, c.duration)
-			source = make([]*danmaku.StandardDanmaku, 0, len(merged))
-			for _, v := range merged {
-				source = append(source, v)
-			}
-		} else {
-			logger.Error("parse xml duration is 0", "cid", c.vid)
-		}
-	}
-
-	var data = make([]danmaku.DataXMLDanmaku, len(source))
-	// <d p="2.603,1,25,16777215,[tencent]">看看 X2</d>
-	// 第几秒/弹幕类型/字体大小/颜色
-	for i, v := range source {
-		var attr = []string{
-			strconv.FormatFloat(float64(v.Offset)/1000, 'f', 2, 64),
-			strconv.FormatInt(int64(v.Mode), 10),
-			"25", // 腾讯视频弹幕没有字体大小，固定25
-			strconv.FormatInt(int64(v.Color), 10),
-			fmt.Sprintf("[%s]", c.Platform()),
-		}
-		d := danmaku.DataXMLDanmaku{
-			Attributes: strings.Join(attr, ","),
-			Content:    v.Content,
-		}
-		data[i] = d
-	}
-
-	xml := danmaku.DataXML{
-		ChatServer:     "comment.bilibili.com",
-		ChatID:         c.vid,
-		Mission:        0,
-		MaxLimit:       2000,
-		Source:         "k-v",
-		SourceProvider: danmaku.Tencent,
-		DataSize:       len(source),
-		Danmaku:        data,
-	}
-
-	return &xml, nil
+	xmlPersist *danmaku.DataXMLPersist
 }
 
 func (c *Client) Platform() danmaku.Platform {
@@ -259,11 +203,14 @@ func (c *Client) Scrape(id interface{}) error {
 			continue
 		}
 
-		c.vid = ep.ItemParams.VID
-		logger.Info("segments done", "vid", c.vid, "size", segmentsLen)
+		parser := &xmlParser{
+			vid: ep.ItemParams.VID,
+		}
+		parser.vid = ep.ItemParams.VID
+		logger.Info("segments done", "vid", parser.vid, "size", segmentsLen)
 		v, err := strconv.ParseInt(ep.ItemParams.Duration, 10, 64)
 		if err == nil {
-			c.duration = v * 1000
+			parser.duration = v * 1000
 		} else {
 			logger.Error("duration is not number", "vid", ep.ItemParams.VID, "duration", ep.ItemParams.Duration)
 		}
@@ -278,9 +225,9 @@ func (c *Client) Scrape(id interface{}) error {
 					if data == nil || len(data) <= 0 {
 						continue
 					}
-					c.danmakuLock.Lock()
-					c.danmaku = append(c.danmaku, data...)
-					c.danmakuLock.Unlock()
+					parser.danmakuLock.Lock()
+					parser.danmaku = append(parser.danmaku, data...)
+					parser.danmakuLock.Unlock()
 				}
 			}(w)
 		}
@@ -299,18 +246,11 @@ func (c *Client) Scrape(id interface{}) error {
 
 		path := filepath.Join(config.GetConfig().SavePath, danmaku.Tencent, ep.ItemParams.CID)
 		filename := ep.ItemParams.Title + "_" + ep.ItemParams.VID
-		for i, persist := range c.DataPersists {
-			wg.Add(1)
-			go func(i int) {
-				defer wg.Done()
-				if e := persist.WriteToFile(path, filename); e != nil {
-					logger.Error(e.Error())
-				}
-			}(i)
+		if e := c.xmlPersist.WriteToFile(parser, path, filename); e != nil {
+			logger.Error(e.Error())
 		}
-		wg.Wait()
 
-		logger.Info("ep scraped done", "vid", ep.ItemParams.VID, "size", len(c.danmaku))
+		logger.Info("ep scraped done", "vid", ep.ItemParams.VID, "size", len(parser.danmaku))
 	}
 
 	logger.Info("danmaku scraped done", "cid", cid)

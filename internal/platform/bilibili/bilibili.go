@@ -23,62 +23,7 @@ type Client struct {
 	Cookie     string
 	HttpClient *http.Client
 
-	DataPersists []danmaku.DataPersist
-
-	// 非并发安全 单线程下载每个视频弹幕 一旦并发下载这里会出问题
-	// 存储的是单个视频的弹幕数据
-	danmaku        []*danmaku.StandardDanmaku
-	danmakuLock    sync.Mutex
-	epId, seasonId int64
-	// ep时长 ms
-	epDuration int64
-}
-
-func (c *Client) Parse() (*danmaku.DataXML, error) {
-	if c.danmaku == nil {
-		return nil, danmaku.PlatformError(danmaku.Bilibili, fmt.Sprintf("ep%v danmaku is nil", c.epId))
-	}
-
-	// 合并重复弹幕
-	var source = c.danmaku
-	if config.GetConfig().Bilibili.MergeDanmakuInMills > 0 {
-		var merged = danmaku.MergeDanmaku(c.danmaku, config.GetConfig().Bilibili.MergeDanmakuInMills, c.epDuration)
-		source = make([]*danmaku.StandardDanmaku, 0, len(merged))
-		for _, v := range merged {
-			source = append(source, v)
-		}
-	}
-
-	var data = make([]danmaku.DataXMLDanmaku, len(source))
-	// <d p="2.603,1,25,16777215,[bilibili]">看看 X2</d>
-	// 第几秒/弹幕类型/字体大小/颜色
-	for i, v := range source {
-		var attr = []string{
-			strconv.FormatFloat(float64(v.Offset)/1000, 'f', 2, 64),
-			strconv.FormatInt(int64(v.Mode), 10),
-			strconv.FormatInt(int64(v.FontSize), 10),
-			strconv.FormatInt(int64(v.Color), 10),
-			fmt.Sprintf("[%s]", c.Platform()),
-		}
-		d := danmaku.DataXMLDanmaku{
-			Attributes: strings.Join(attr, ","),
-			Content:    v.Content,
-		}
-		data[i] = d
-	}
-
-	xml := danmaku.DataXML{
-		ChatServer:     "comment.bilibili.com",
-		ChatID:         strconv.FormatInt(c.seasonId, 10) + "_" + strconv.FormatInt(c.epId, 10),
-		Mission:        0,
-		MaxLimit:       2000,
-		Source:         "k-v",
-		SourceProvider: danmaku.Bilibili,
-		DataSize:       len(source),
-		Danmaku:        data,
-	}
-
-	return &xml, nil
+	xmlParser *danmaku.DataXMLPersist
 }
 
 func (c *Client) Platform() danmaku.Platform {
@@ -271,9 +216,12 @@ func (c *Client) Scrape(id interface{}) error {
 			segments = videoDuration/360 + 1
 		}
 
-		c.epId = ep.EPId
-		c.seasonId = series.Result.SeasonId
-		c.epDuration = ep.Duration
+		parser := &xmlParser{
+			epId:       ep.EPId,
+			seasonId:   series.Result.SeasonId,
+			epDuration: ep.Duration,
+			platform:   c.Platform(),
+		}
 		if isEP {
 			epTitle = ep.Title
 		}
@@ -298,9 +246,9 @@ func (c *Client) Scrape(id interface{}) error {
 							FontSize: d.Fontsize,
 						})
 					}
-					c.danmakuLock.Lock()
-					c.danmaku = append(c.danmaku, standardData...)
-					c.danmakuLock.Unlock()
+					parser.danmakuLock.Lock()
+					parser.danmaku = append(parser.danmaku, standardData...)
+					parser.danmakuLock.Unlock()
 				}
 			}(w)
 		}
@@ -318,18 +266,11 @@ func (c *Client) Scrape(id interface{}) error {
 		wg.Wait()
 
 		filename := strconv.FormatInt(ep.EPId, 10)
-		for i, persist := range c.DataPersists {
-			wg.Add(1)
-			go func(i int) {
-				defer wg.Done()
-				if e := persist.WriteToFile(path, filename); e != nil {
-					logger.Error(e.Error())
-				}
-			}(i)
+		if e := c.xmlParser.WriteToFile(parser, path, filename); e != nil {
+			logger.Error(e.Error())
 		}
-		wg.Wait()
 
-		logger.Info("ep scraped done", "epId", ep.EPId, "size", len(c.danmaku))
+		logger.Info("ep scraped done", "epId", ep.EPId, "size", len(parser.danmaku))
 	}
 
 	var t = series.Result.Title

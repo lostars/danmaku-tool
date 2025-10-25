@@ -35,16 +35,10 @@ type DataXMLParser interface {
 type DataXMLPersist struct {
 	// 缩进
 	Indent bool
-	// 解析器
-	Parser DataXMLParser
 }
 
-func (x *DataXMLPersist) Type() DataPersistType {
-	return XMLPersistType
-}
-
-func (x *DataXMLPersist) WriteToFile(fullPath, filename string) error {
-	if x.Parser == nil {
+func (x *DataXMLPersist) WriteToFile(parser DataXMLParser, fullPath, filename string) error {
+	if parser == nil {
 		return DataPersistError(XMLPersistType, "parser is nil")
 	}
 
@@ -52,7 +46,7 @@ func (x *DataXMLPersist) WriteToFile(fullPath, filename string) error {
 		return DataPersistError(XMLPersistType, fmt.Sprintf("%s", e.Error()))
 	}
 
-	var data, err = x.Parser.Parse()
+	var data, err = parser.Parse()
 	if err != nil {
 		return DataPersistError(XMLPersistType, fmt.Sprintf("parse data err: %v", err.Error()))
 	}

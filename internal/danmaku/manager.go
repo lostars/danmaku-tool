@@ -55,11 +55,6 @@ type MediaSearcher interface {
 	SearcherType() Platform
 }
 
-type DataPersist interface {
-	WriteToFile(fullPath, filename string) error
-	Type() DataPersistType
-}
-
 // https://api.dandanplay.net/swagger/index.html#/%E5%BC%B9%E5%B9%95/Comment_GetComment
 // p 出现时间,模式,颜色,用户ID
 

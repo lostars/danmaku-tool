@@ -15,17 +15,14 @@ func (c *Client) Init(config *config.DanmakuConfig) error {
 	c.Cookie = conf.Cookie
 	c.MaxWorker = conf.MaxWorker
 	c.HttpClient = &http.Client{Timeout: time.Duration(conf.Timeout * 1e9)}
-	c.DataPersists = []danmaku.DataPersist{}
 
 	// 初始化数据存储器
 	for _, p := range conf.Persists {
 		switch p.Name {
 		case danmaku.XMLPersistType:
-			persist := danmaku.DataXMLPersist{
+			c.xmlPersist = &danmaku.DataXMLPersist{
 				Indent: p.Indent,
-				Parser: c,
 			}
-			c.DataPersists = append(c.DataPersists, &persist)
 		}
 	}
 	return nil
