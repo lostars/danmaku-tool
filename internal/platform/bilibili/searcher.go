@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"path"
 	"strconv"
 	"strings"
 	"sync"
@@ -25,6 +26,7 @@ type SearchResult struct {
 				Cover          string `json:"cover"`            // 封面url
 				SeasonTypeName string `json:"season_type_name"` // 国创/电影
 				Title          string `json:"title"`            // 注意有html标签 <em class=\"keyword\">凡人</em>修仙传
+				Url            string `json:"url"`              // 该字段保存的是剧集链接或者ep链接，电影可以从该url解析epid
 				Desc           string `json:"desc"`
 				EPSize         int    `json:"ep_size"`
 				EPs            []struct {
@@ -117,12 +119,27 @@ func (c *Client) Search(keyword string) ([]*danmaku.Media, error) {
 					logger.Debug("search keyword bangumi skipped", "title", bangumi.Title, "resultType", m.ResultType)
 					continue
 				}
+				var eps = make([]*danmaku.MediaEpisode, 0)
+				if bangumi.Url != "" {
+					// https://www.bilibili.com/bangumi/play/ep747309?theme=movie
+					str := path.Base(bangumi.Url)[2:]
+					if strings.Contains(str, "?") {
+						str = strings.Split(str, "?")[0]
+					}
+					ep := &danmaku.MediaEpisode{
+						Id:        str,
+						EpisodeId: clearTitle,
+						Title:     clearTitle,
+					}
+					eps = append(eps, ep)
+				}
 				b := &danmaku.Media{
 					Id:       strconv.FormatInt(bangumi.SeasonId, 10),
 					Type:     danmaku.Movie,
 					TypeDesc: bangumi.SeasonTypeName,
 					Desc:     bangumi.Desc,
 					Title:    clearTitle,
+					Episodes: eps,
 				}
 				data = append(data, b)
 			}
