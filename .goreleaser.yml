@@ -36,7 +36,6 @@ checksum:
 dockers_v2:
   - id: danmaku-tool
     images:
-      - "{{ .ProjectName }}"
       - "ghcr.io/lostars/{{ .ProjectName }}"
     tags:
       - "{{ .Version }}"
