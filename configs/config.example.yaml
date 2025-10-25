@@ -1,5 +1,9 @@
 #  弹幕保存路径 只作用于CLI模式
 save-path: ""
+# dandan api模式
+# real_time 实时
+# database sqlite数据库
+dandan-mode: "real_time"
 bilibili:
 #  SESSDATA 开头的cookie部分即可
   cookie: ""

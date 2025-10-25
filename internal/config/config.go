@@ -63,10 +63,11 @@ func loadDefaultConfig(path string) []byte {
 }
 
 type DanmakuConfig struct {
-	Debug    bool           `yaml:"debug"`
-	SavePath string         `yaml:"save-path"`
-	Bilibili PlatformConfig `yaml:"bilibili"`
-	Tencent  PlatformConfig `yaml:"tencent"`
+	Debug      bool           `yaml:"debug"`
+	SavePath   string         `yaml:"save-path"`
+	DandanMode string         `yaml:"dandan-mode"`
+	Bilibili   PlatformConfig `yaml:"bilibili"`
+	Tencent    PlatformConfig `yaml:"tencent"`
 }
 
 type DanmakuPersistConfig struct {
