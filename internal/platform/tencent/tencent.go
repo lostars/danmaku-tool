@@ -168,81 +168,21 @@ func (c *Client) Scrape(id interface{}) error {
 			continue
 		}
 
-		// 获取弹幕分片信息
-		param := map[string]string{
-			"vid":            ep.ItemParams.VID,
-			"engine_version": "2.1.10",
-		}
-		configBytes, err := json.Marshal(param)
-		if err != nil {
-			logger.Error(err.Error())
-			continue
-		}
-		configAPI := "https://pbaccess.video.qq.com/trpc.barrage.custom_barrage.CustomBarrage/GetDMStartUpConfig"
-		danmakuConfigReq, err := http.NewRequest(http.MethodPost, configAPI, bytes.NewBuffer(configBytes))
-		if err != nil {
-			logger.Error(err.Error())
-			continue
-		}
-		c.setRequest(danmakuConfigReq)
-		resp, e := c.HttpClient.Do(danmakuConfigReq)
+		data, e := c.getDanmakuByVid(ep.ItemParams.VID)
 		if e != nil {
-			logger.Error(e.Error())
+			logger.Error(fmt.Sprintf("get danmaku by vid error: %s", e.Error()))
 			continue
 		}
-		var segmentResult DanmakuSegmentResult
-		e = json.NewDecoder(resp.Body).Decode(&segmentResult)
-		if e != nil {
-			logger.Error(e.Error())
-			continue
-		}
-		resp.Body.Close()
-		var segmentsLen = len(segmentResult.Data.SegmentIndex)
-		if segmentResult.Data.SegmentIndex == nil || segmentsLen <= 0 {
-			logger.Error("no segments", "vid", ep.ItemParams.VID)
-			continue
-		}
-
 		parser := &xmlParser{
-			vid: ep.ItemParams.VID,
+			vid:     ep.ItemParams.VID,
+			danmaku: data,
 		}
-		parser.vid = ep.ItemParams.VID
-		logger.Info("segments done", "vid", parser.vid, "size", segmentsLen)
 		v, err := strconv.ParseInt(ep.ItemParams.Duration, 10, 64)
 		if err == nil {
 			parser.duration = v * 1000
 		} else {
 			logger.Error("duration is not number", "vid", ep.ItemParams.VID, "duration", ep.ItemParams.Duration)
 		}
-		tasks := make(chan task, segmentsLen)
-		var wg sync.WaitGroup
-		for w := 0; w < c.MaxWorker; w++ {
-			wg.Add(1)
-			go func(i int) {
-				defer wg.Done()
-				for t := range tasks {
-					data := c.scrape(t.vid, t.segment)
-					if data == nil || len(data) <= 0 {
-						continue
-					}
-					parser.danmakuLock.Lock()
-					parser.danmaku = append(parser.danmaku, data...)
-					parser.danmakuLock.Unlock()
-				}
-			}(w)
-		}
-
-		go func() {
-			for _, v := range segmentResult.Data.SegmentIndex {
-				tasks <- task{
-					vid:     ep.ItemParams.VID,
-					segment: v.SegmentName,
-				}
-			}
-			close(tasks)
-		}()
-
-		wg.Wait()
 
 		path := filepath.Join(config.GetConfig().SavePath, danmaku.Tencent, ep.ItemParams.CID)
 		filename := ep.ItemParams.Title + "_" + ep.ItemParams.VID
@@ -256,6 +196,69 @@ func (c *Client) Scrape(id interface{}) error {
 	logger.Info("danmaku scraped done", "cid", cid)
 
 	return nil
+}
+
+func (c *Client) getDanmakuByVid(vid string) ([]*danmaku.StandardDanmaku, error) {
+	param := map[string]string{
+		"vid":            vid,
+		"engine_version": "2.1.10",
+	}
+	configBytes, err := json.Marshal(param)
+	if err != nil {
+		return nil, err
+	}
+	configAPI := "https://pbaccess.video.qq.com/trpc.barrage.custom_barrage.CustomBarrage/GetDMStartUpConfig"
+	danmakuConfigReq, err := http.NewRequest(http.MethodPost, configAPI, bytes.NewBuffer(configBytes))
+	if err != nil {
+		return nil, err
+	}
+	c.setRequest(danmakuConfigReq)
+	resp, e := c.HttpClient.Do(danmakuConfigReq)
+	if e != nil {
+		return nil, e
+	}
+	var segmentResult DanmakuSegmentResult
+	e = json.NewDecoder(resp.Body).Decode(&segmentResult)
+	if e != nil {
+		return nil, e
+	}
+	resp.Body.Close()
+	var segmentsLen = len(segmentResult.Data.SegmentIndex)
+	if segmentResult.Data.SegmentIndex == nil || segmentsLen <= 0 {
+		return nil, fmt.Errorf("no segments vid: %s", vid)
+	}
+	logger.Debug(fmt.Sprintf("danmaku segments size: %v", segmentsLen), "vid", vid, "size", segmentsLen)
+
+	var result []*danmaku.StandardDanmaku
+	tasks := make(chan task, segmentsLen)
+	var wg sync.WaitGroup
+	for w := 0; w < c.MaxWorker; w++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			for t := range tasks {
+				data := c.scrape(t.vid, t.segment)
+				if data == nil || len(data) <= 0 {
+					continue
+				}
+				result = append(result, data...)
+			}
+		}(w)
+	}
+
+	go func() {
+		for _, v := range segmentResult.Data.SegmentIndex {
+			tasks <- task{
+				vid:     vid,
+				segment: v.SegmentName,
+			}
+		}
+		close(tasks)
+	}()
+
+	wg.Wait()
+
+	return result, nil
 }
 
 type task struct {

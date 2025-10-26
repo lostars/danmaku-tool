@@ -105,3 +105,63 @@ type DanmakuSegmentResult struct {
 		} `json:"segment_index"`
 	} `json:"data"`
 }
+
+type SearchResult struct {
+	Ret  int    `json:"ret"`
+	Msg  string `json:"msg"`
+	Data struct {
+		NormalList struct {
+			ItemList []SearchResultItem `json:"itemList"`
+		} `json:"normalList"`
+	} `json:"data"`
+}
+
+type SearchResultItem struct {
+	Doc struct {
+		Id string `json:"id"` // civ 重要数据 用于获取vid
+	} `json:"doc"`
+	VideoInfo struct {
+		VideoType  int    `json:"videoType"` // 上面定义的Type
+		Desc       string `json:"descrip"`
+		TypeName   string `json:"typeName"` // 电视剧/电影
+		Title      string `json:"title"`    // 标题 可能包含第几季
+		SubTitle   string `json:"subTitle"` // 包含 全网搜 关键字则代表匹配失败
+		Status     int    `json:"status"`   // 可能是完结或者已开播的意思？ 1=未开播 0=正常
+		SubjectDoc struct {
+			VideoNum int `json:"videoNum"` // 剧集集数
+		} `json:"subjectDoc"`
+	} `json:"videoInfo"`
+}
+
+type SearchParam struct {
+	Version    string `json:"version"`    // 25101301
+	ClientType int    `json:"clientType"` // 1
+	// 非常重要的字段，少了会报错 ret = 400/500 哪怕是空字符串
+	// 该字段用于传递 网页搜索结果页面上 对结果进行筛选的tab的信息，比如全部 /动画电影 /动画剧集
+	FilterValue string `json:"filterValue"`
+	Query       string `json:"query"`      // 搜索关键字
+	PageNum     int    `json:"pagenum"`    // 0
+	IsPrefetch  bool   `json:"isPrefetch"` // true
+	PageSize    int    `json:"pagesize"`   // 30
+	QueryFrom   int    `json:"queryFrom"`  // 102
+
+	// 下面的字段用于调试，保不住哪天少了个字段接口又会报错
+
+	UUID          string          `json:"uuid"`
+	Retry         int             `json:"retry"`
+	SearchDatakey string          `json:"searchDatakey"`
+	TransInfo     string          `json:"transInfo"`
+	NeedQc        bool            `json:"isneedQc"` // true
+	PreQid        string          `json:"preQid"`
+	AdClientInfo  string          `json:"adClientInfo"`
+	ExtraInfo     SearchExtraInfo `json:"extraInfo"`
+}
+
+type SearchExtraInfo struct {
+	IsNewMarkLabel  string `json:"isNewMarkLabel"`
+	MultiTerminalPc string `json:"multi_terminal_pc"`
+	ThemeType       string `json:"themeType"`
+	SugRelatedIds   struct {
+	} `json:"sugRelatedIds"`
+	AppVersion string `json:"appVersion"`
+}

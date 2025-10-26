@@ -39,14 +39,11 @@ type SearchResult struct {
 	} `json:"data"`
 }
 
-var seriesRegex = regexp.MustCompile("(.*)\\sS(\\d{1,3})E(\\d{1,3})$")
 var chineseVersionRegex = regexp.MustCompile("中配版|粤配版|日语版")
-var chineseNumber = "一|二|三|四|五|六|七|八|九|十|十一|十二|十三|十四|十五|十六|十七|十八|十九|二十"
-var chineseNumberSlice = strings.Split(chineseNumber, "|")
 
 func (c *Client) Search(keyword string) ([]*danmaku.Media, error) {
 	// b站是无法搜索 S01 季节的，只能转成中文数字才能匹配
-	matches := seriesRegex.FindStringSubmatch(keyword)
+	matches := danmaku.SeriesRegex.FindStringSubmatch(keyword)
 	// 是否需要匹配第几季 >1季 才转换成汉语数字进行匹配
 	matchSeason := false
 	var ssId int64
@@ -57,7 +54,7 @@ func (c *Client) Search(keyword string) ([]*danmaku.Media, error) {
 			ssId = id
 			if id <= 20 && id > 1 {
 				matchSeason = true
-				keyword = strings.Join([]string{matches[1], "第", chineseNumberSlice[ssId-1], "季"}, "")
+				keyword = strings.Join([]string{matches[1], "第", danmaku.ChineseNumberSlice[ssId-1], "季"}, "")
 				logger.Info(fmt.Sprintf("real search keyword %s", keyword))
 			}
 		}
@@ -111,6 +108,7 @@ func (c *Client) Search(keyword string) ([]*danmaku.Media, error) {
 				Desc:     bangumi.Desc,
 				Title:    clearTitle,
 				Episodes: eps,
+				Platform: danmaku.Bilibili,
 			}
 			if checkChineseVersion && chineseVersionRegex.MatchString(clearTitle) {
 				filtered = append(filtered, b)
@@ -121,7 +119,7 @@ func (c *Client) Search(keyword string) ([]*danmaku.Media, error) {
 		case "media_bangumi":
 			// 如果解析到了季进行搜索，不包含正确的季则跳过
 			if matchSeason {
-				if !strings.Contains(bangumi.Title, "第"+chineseNumberSlice[ssId-1]+"季") {
+				if !strings.Contains(bangumi.Title, "第"+danmaku.ChineseNumberSlice[ssId-1]+"季") {
 					continue
 				}
 			}
@@ -159,6 +157,7 @@ func (c *Client) Search(keyword string) ([]*danmaku.Media, error) {
 				Desc:     bangumi.Desc,
 				Title:    clearTitle,
 				Episodes: eps,
+				Platform: danmaku.Bilibili,
 			}
 
 			if checkChineseVersion && chineseVersionRegex.MatchString(clearTitle) {

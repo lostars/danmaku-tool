@@ -3,6 +3,8 @@ package danmaku
 import (
 	"danmu-tool/internal/config"
 	"fmt"
+	"regexp"
+	"strings"
 )
 
 func PlatformError(p Platform, text string) error {
@@ -27,6 +29,7 @@ type Media struct {
 	Title    string
 	Desc     string
 	Episodes []*MediaEpisode
+	Platform Platform
 }
 
 type MediaEpisode struct {
@@ -48,12 +51,17 @@ type Initializer interface {
 }
 
 type MediaSearcher interface {
-	// Search 搜索剧集信息，不会获取ep
+	// Search 搜索剧集信息，如果是剧集，会获取ep信息同时返回 关键字格式是 'xxx S01E01'
 	Search(keyword string) ([]*Media, error)
 	// GetDanmaku 实时获取平台弹幕 id: [platform]_[id]_[id]
 	GetDanmaku(id string) ([]*StandardDanmaku, error)
 	SearcherType() Platform
 }
+
+var SeriesRegex = regexp.MustCompile("(.*)\\sS(\\d{1,3})E(\\d{1,3})$")
+var ChineseNumber = "一|二|三|四|五|六|七|八|九|十|十一|十二|十三|十四|十五|十六|十七|十八|十九|二十"
+var ChineseNumberSlice = strings.Split(ChineseNumber, "|")
+var MarkRegex = regexp.MustCompile(`[\p{P}\p{S}]`)
 
 // https://api.dandanplay.net/swagger/index.html#/%E5%BC%B9%E5%B9%95/Comment_GetComment
 // p 出现时间,模式,颜色,用户ID
