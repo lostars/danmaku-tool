@@ -23,6 +23,7 @@ func RegisterRoute(route *chi.Mux) {
 		})
 		d.Use(dandanOptions.Handler)
 		d.Use(middleware.Timeout(time.Duration(1e9 * timeout)))
+		d.Use(CacheMiddleware)
 	})
 	dandanRoute.Route("/api/v1/{token}/api/v2", func(r chi.Router) {
 		r.Get("/comment/{id}", CommentHandler)

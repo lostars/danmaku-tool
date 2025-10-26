@@ -25,6 +25,7 @@ func serverCmd() *cobra.Command {
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		Init()
+		dandan.InitDandanCache()
 		r := chi.NewRouter()
 
 		r.Use(LoggerMiddleware)
