@@ -3,16 +3,20 @@
 ### Milestone
 
 #### Phase 1: offering a danmaku scraper through CLI
-- [ ] bilibili
-- [ ] iqiyi
-- [ ] tencent
+- [x] **bilibili** basically usable
+- [ ] **iqiyi**
+- [x] **tencent** not fully tested
 - [ ] ...
 
-#### Phase 2: offering a web server and APIs 
+#### Phase 2: offering a web server and APIs
 
 #### Phase 3: supporting DanDanPlay API
+- [x] `/match`
+- [x] `/comment/{id}`
 
 ### Installation
+
+Run as CLI:
 
 ```
 git clone https://github.com/lostars/danmaku-tool.git
@@ -20,12 +24,17 @@ cd danmaku-tool
 make build
 ```
 
+Run as docker:
+```
+docker pull ghcr.io/lostars/danmaku-tool:latest
+```
+
 ### Configuration
 
 default config file in `~/.config/danmaku-tool/config.yaml` or
 same location as the executable file.
 
-You can check the full config [here](https://github.com/lostars/danmaku-tool/blob/main/configs/config.example.yaml).
+You can check the full config [here](configs/config.example.yaml).
 
 ### Usage
 
@@ -37,7 +46,7 @@ You can run `danmaku completion` to generate autocompletion for your shell befor
 
 scrape danmaku:
 ```
-danmaku d <id> --platform=bilibili
+danmaku scrape <id> --platform=bilibili
 ```
 **id**
 
@@ -58,9 +67,22 @@ danmaku d <id> --platform=bilibili
 
 #### WebServer
 
+`danmaku server -c /path/to/your/config.yaml -p [port]` to start a web server.
+Or u can start as a docker from above.
+
+```docker
+docker run -p 8089:8089 --name danmaku \
+-v /path/to/your/config.yaml:/app/config.yaml \
+ghcr.io/lostars/danmaku-tool:latest
+```
+
 ### Web API
+
+Only support DandanPlay `/match` and `/comment/{id}` API currently which is enough to most scenarios.
+
 
 ### Reference
 
-[bilibili-API-collect](https://github.com/SocialSisterYi/bilibili-API-collect)
-[misaka_danmu_server](https://github.com/l429609201/misaka_danmu_server)
+* [dandanplay-api](https://api.dandanplay.net/swagger/index.html#/)
+* [bilibili-API-collect](https://github.com/SocialSisterYi/bilibili-API-collect)
+* [misaka_danmu_server](https://github.com/l429609201/misaka_danmu_server)
