@@ -26,6 +26,7 @@ func serverCmd() *cobra.Command {
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		Init()
 		dandan.InitDandanCache()
+		httpLogger = utils.GetComponentLogger("dandan-api")
 		r := chi.NewRouter()
 
 		r.Use(LoggerMiddleware)
@@ -57,17 +58,18 @@ func serverCmd() *cobra.Command {
 	return cmd
 }
 
+var httpLogger *slog.Logger
+
 func LoggerMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		logger := utils.GetComponentLogger("dandan-api")
-		reqLogger := logger.With(
+		reqLogger := httpLogger.With(
 			slog.String("http_method", r.Method),
 			slog.String("path", r.URL.Path),
 		)
 		requestId := r.Header.Get("X-Request-ID")
 		if requestId != "" {
-			reqLogger = logger.With("request_id", requestId)
+			reqLogger = httpLogger.With("request_id", requestId)
 		}
 
 		ww := &statusRecorder{ResponseWriter: w, status: http.StatusOK}

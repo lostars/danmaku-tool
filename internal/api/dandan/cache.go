@@ -42,7 +42,7 @@ func CacheMiddleware(next http.Handler) http.Handler {
 		rr := &responseRecorder{ResponseWriter: w}
 		next.ServeHTTP(rr, r)
 
-		if cacheKey != "" {
+		if cacheKey != "" && rr.statusCode == http.StatusOK {
 			cacheData := rr.body.Bytes()
 			success := cache.SetWithTTL(cacheKey, cacheData, int64(len(cacheData)), time.Second*3600) // 1h to expire
 			if !success {
@@ -54,7 +54,8 @@ func CacheMiddleware(next http.Handler) http.Handler {
 
 type responseRecorder struct {
 	http.ResponseWriter
-	body *bytes.Buffer
+	body       *bytes.Buffer
+	statusCode int
 }
 
 func (r *responseRecorder) Write(b []byte) (int, error) {
@@ -63,4 +64,9 @@ func (r *responseRecorder) Write(b []byte) (int, error) {
 	}
 	r.body.Write(b)
 	return r.ResponseWriter.Write(b)
+}
+
+func (r *responseRecorder) WriteHeader(statusCode int) {
+	r.statusCode = statusCode
+	r.ResponseWriter.WriteHeader(statusCode)
 }
