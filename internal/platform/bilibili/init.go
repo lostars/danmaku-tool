@@ -16,7 +16,7 @@ func (c *Client) Init(config *config.DanmakuConfig) error {
 	c.HttpClient = &http.Client{Timeout: time.Duration(conf.Timeout * 1e9)}
 	// 初始化数据存储器
 	for _, p := range conf.Persists {
-		switch p.Name {
+		switch p.Type {
 		case danmaku.XMLPersistType:
 			c.xmlParser = &danmaku.DataXMLPersist{
 				Indent: p.Indent,

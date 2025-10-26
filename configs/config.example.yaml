@@ -4,8 +4,12 @@ save-path: ""
 # real_time 实时
 # database sqlite数据库
 dandan-mode: "real_time"
+dandan-timeout: 60 # dandan api timeout in seconds
+server:
+  timeout: 10
+  port: 8089
 bilibili:
-#  SESSDATA 开头的cookie部分即可
+#  最好提供完整cookie
   cookie: ""
 #  单个视频弹幕下载的并发数 调高了注意账号风险 用的b站6min一段的弹幕接口，调高了意义也不大
   max-worker: 4
@@ -14,10 +18,10 @@ bilibili:
   # 合并毫秒内重复弹幕 单位 ms <=0则不启用
   merge-danmaku-in-mills: 1000
   persists:
-    - name: "dandanxml" # dandanxml 固定字符串
+    - type: "xml" # xml 固定字符串
       indent: true # 是否开启缩进，否的话则用一行存储 只针对json xml类生效
       compress: false # 是否开启压缩
-    - name: "json" # json 固定字符串
+    - type: "json" # json 固定字符串
       indent: true # 是否开启缩进，否的话则用一行存储 只针对json xml类生效
       compress: false # 是否开启压缩
 tencent:
@@ -26,9 +30,9 @@ tencent:
   timeout: 10
   merge-danmaku-in-mills: 1000
   persists:
-    - name: "dandanxml"
+    - type: "xml"
       indent: true
       compress: false
-    - name: "json"
+    - type: "json"
       indent: true
       compress: false

@@ -18,7 +18,7 @@ func (c *Client) Init(config *config.DanmakuConfig) error {
 
 	// 初始化数据存储器
 	for _, p := range conf.Persists {
-		switch p.Name {
+		switch p.Type {
 		case danmaku.XMLPersistType:
 			c.xmlPersist = &danmaku.DataXMLPersist{
 				Indent: p.Indent,

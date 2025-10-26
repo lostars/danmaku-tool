@@ -63,17 +63,24 @@ func loadDefaultConfig(path string) []byte {
 }
 
 type DanmakuConfig struct {
-	Debug      bool           `yaml:"debug"`
-	SavePath   string         `yaml:"save-path"`
-	DandanMode string         `yaml:"dandan-mode"`
-	Bilibili   PlatformConfig `yaml:"bilibili"`
-	Tencent    PlatformConfig `yaml:"tencent"`
+	Debug         bool           `yaml:"debug"`
+	SavePath      string         `yaml:"save-path"`
+	DandanMode    string         `yaml:"dandan-mode"`
+	DandanTimeout int            `yaml:"dandan-timeout"`
+	Bilibili      PlatformConfig `yaml:"bilibili"`
+	Tencent       PlatformConfig `yaml:"tencent"`
+	Server        ServerConfig   `yaml:"server"`
+}
+
+type ServerConfig struct {
+	Port    int `yaml:"port"`    // can be overwritten by cli parameter
+	Timeout int `yaml:"timeout"` // 全局api超时时间
 }
 
 type DanmakuPersistConfig struct {
 	Indent   bool   `yaml:"indent"`
 	Compress bool   `yaml:"compress"`
-	Name     string `yaml:"name"`
+	Type     string `yaml:"type"`
 }
 
 type PlatformConfig struct {

@@ -3,6 +3,7 @@ package cmd
 import (
 	"danmu-tool/internal/api"
 	"danmu-tool/internal/api/dandan"
+	"danmu-tool/internal/config"
 	"danmu-tool/internal/utils"
 	"log/slog"
 	"net/http"
@@ -20,14 +21,21 @@ func serverCmd() *cobra.Command {
 		Short: "start as a web server",
 	}
 	var port int
-	cmd.Flags().IntVarP(&port, "port", "p", 8089, "server port")
+	cmd.Flags().IntVarP(&port, "port", "p", 0, "server port")
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		Init()
 		r := chi.NewRouter()
 
 		r.Use(LoggerMiddleware)
-		r.Use(middleware.Timeout(60 * time.Second))
+		if port <= 0 {
+			port = config.GetConfig().Server.Port
+		}
+		timeout := config.GetConfig().Server.Timeout
+		if timeout <= 0 {
+			timeout = 60
+		}
+		r.Use(middleware.Timeout(time.Duration(1e9 * timeout)))
 
 		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 			api.ResponseJSON(w, http.StatusOK, map[string]string{"version": ""})
