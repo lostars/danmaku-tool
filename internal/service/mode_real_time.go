@@ -1,6 +1,7 @@
 package service
 
 import (
+	"danmu-tool/internal/config"
 	"danmu-tool/internal/danmaku"
 	"danmu-tool/internal/utils"
 	"errors"
@@ -10,6 +11,17 @@ import (
 	"sync"
 	"time"
 )
+
+/*
+	dandan api 实时模式，将dandan api的 episodeId 通过规则映射在内存中
+	episodeId -> memory_cache -> [platform]_[id]_[id] -> platform scraper
+
+	最终用于获取弹幕的都是最后的 拼接 字符串，用于多平台，同时抓取弹幕的保存结构也是如此。
+	方便后续服务以无状态运行。
+	唯一的问题就是每次重启服务会导致同一集的 episodeId 发生变化，因为这个完全是按照请求的次序来编码id的。
+
+	memory_cache 指的是 episodeId 和 实际剧集信息的映射关系，并不是指缓存弹幕数据或者剧集信息本身。
+*/
 
 func (c *realTimeData) Search(param MatchParam) (*MatchResult, error) {
 
@@ -95,6 +107,17 @@ func (c *realTimeData) GetDanmaku(param CommentParam) (*CommentResult, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// merge danmaku
+	var source []*danmaku.StandardDanmaku
+	if config.GetConfig().Bilibili.MergeDanmakuInMills > 0 {
+		var merged = danmaku.MergeDanmaku(data, config.GetConfig().Bilibili.MergeDanmakuInMills, 0)
+		source = make([]*danmaku.StandardDanmaku, 0, len(merged))
+		for _, v := range merged {
+			source = append(source, v)
+		}
+	}
+
 	comment := &CommentResult{
 		Count:    int64(len(data)),
 		Comments: make([]*Comment, 0, len(data)),
@@ -118,7 +141,7 @@ func (c *realTimeData) Mode() Mode {
 
 type realTimeData struct {
 	season   []string // platform_ss 作key
-	platform []danmaku.Platform
+	platform []string
 	episode  []string // platform_ss_ep 作key
 	lock     sync.Mutex
 }
@@ -181,14 +204,14 @@ func (c *realTimeData) genEpisodeId(p danmaku.Platform, ss string, ep string) in
 	var pId int
 	var pE bool
 	for i, v := range c.platform {
-		if v == p {
+		if v == string(p) {
 			pId = i + 1
 			pE = true
 			break
 		}
 	}
 	if !pE {
-		c.platform = append(c.platform, p)
+		c.platform = append(c.platform, string(p))
 		pId = len(c.platform)
 	}
 

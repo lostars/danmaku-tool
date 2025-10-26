@@ -15,7 +15,7 @@ bilibili:
   max-worker: 4
 #  请求超时时间 单位：秒
   timeout: 10
-  # 合并毫秒内重复弹幕 单位 ms <=0则不启用
+  # 合并毫秒内重复弹幕 单位 ms <=0则不启用 同时作用于弹幕抓取和dandan api
   merge-danmaku-in-mills: 1000
   persists:
     - type: "xml" # xml 固定字符串

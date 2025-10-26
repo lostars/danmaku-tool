@@ -11,8 +11,18 @@ func MergeDanmaku(dms []*StandardDanmaku, mergedInMills int64, durationInMills i
 	var start = time.Now().Nanosecond()
 	logger := utils.GetComponentLogger("manager-util")
 	logger.Debug("danmaku size merge start", "size", len(dms))
-	var totalBuckets = durationInMills/mergedInMills + 1
-	buckets := make(map[int64]map[string]bool, totalBuckets)
+	if mergedInMills <= 0 {
+		logger.Debug("danmaku size merge no merge mills set")
+		return dms
+	}
+	var initBuckets int64
+	if durationInMills > 0 {
+		initBuckets = durationInMills/mergedInMills + 1
+	} else {
+		logger.Debug("danmaku size merge no duration mills set")
+		initBuckets = 7200 // 2h
+	}
+	buckets := make(map[int64]map[string]bool, initBuckets)
 	var result = make([]*StandardDanmaku, 0, len(dms))
 
 	for _, d := range dms {
@@ -20,7 +30,7 @@ func MergeDanmaku(dms []*StandardDanmaku, mergedInMills int64, durationInMills i
 
 		if _, ok := buckets[bid]; !ok {
 			// 预估长度
-			buckets[bid] = make(map[string]bool, int64(len(dms))/totalBuckets+1)
+			buckets[bid] = make(map[string]bool, int64(len(dms))/initBuckets+1)
 		}
 
 		// 检查当前桶和前一个桶是否出现过（跨桶重复处理）

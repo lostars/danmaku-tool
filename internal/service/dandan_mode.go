@@ -8,23 +8,18 @@ import (
 
 func init() {
 	realTimeMode := &realTimeData{
-		platform: []danmaku.Platform{danmaku.Bilibili, danmaku.Tencent},
+		platform: danmaku.ManagerOfDanmaku.GetPlatforms(),
 		season:   make([]string, 0),
 		episode:  make([]string, 0),
 		lock:     sync.Mutex{},
 	}
-	sourceModes = map[Mode]DandanSourceMode{realTimeMode.Mode(): realTimeMode}
+	sourceModes = map[string]DandanSourceMode{string(realTimeMode.Mode()): realTimeMode}
 }
 
-var sourceModes map[Mode]DandanSourceMode
+var sourceModes map[string]DandanSourceMode
 
 func GetDandanSourceMode() DandanSourceMode {
-	switch config.GetConfig().DandanMode {
-	case realTime:
-		return sourceModes[realTime]
-
-	}
-	return nil
+	return sourceModes[config.GetConfig().DandanMode]
 }
 
 // DandanSourceMode dandan api 数据源接口
