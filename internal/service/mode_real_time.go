@@ -32,7 +32,8 @@ func (c *realTimeData) Search(param MatchParam) (*MatchResult, error) {
 	if strs[0] == "" {
 		return nil, errors.New("invalid param")
 	}
-	searchTitle := strs[0]
+	// 不能截取 后面包含季信息用于搜索
+	searchTitle := param.FileName
 	searchMovies := false
 	if len(strs) == 1 || strs[1] == "" {
 		searchMovies = true
