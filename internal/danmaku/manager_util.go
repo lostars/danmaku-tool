@@ -8,7 +8,7 @@ import (
 )
 
 func MergeDanmaku(dms []*StandardDanmaku, mergedInMills int64, durationInMills int64) []*StandardDanmaku {
-	var start = time.Now().Nanosecond()
+	var start = time.Now()
 	logger := utils.GetComponentLogger("manager-util")
 	logger.Debug("danmaku size merge start", "size", len(dms))
 	if mergedInMills <= 0 {
@@ -42,8 +42,7 @@ func MergeDanmaku(dms []*StandardDanmaku, mergedInMills int64, durationInMills i
 		buckets[bid][d.Content] = true
 	}
 
-	var end = time.Now().Nanosecond()
-	logger.Debug("danmaku size merge end", "size", len(result), "cost_ms", (end-start)/1e6)
+	logger.Debug("danmaku size merge end", "size", len(result), "cost_ms", time.Since(start).Milliseconds())
 
 	return result
 }

@@ -113,13 +113,8 @@ func (c *realTimeData) GetDanmaku(param CommentParam) (*CommentResult, error) {
 	}
 
 	// merge danmaku
-	var source []*danmaku.StandardDanmaku
 	if config.GetConfig().Bilibili.MergeDanmakuInMills > 0 {
-		var merged = danmaku.MergeDanmaku(data, config.GetConfig().Bilibili.MergeDanmakuInMills, 0)
-		source = make([]*danmaku.StandardDanmaku, 0, len(merged))
-		for _, v := range merged {
-			source = append(source, v)
-		}
+		data = danmaku.MergeDanmaku(data, config.GetConfig().Bilibili.MergeDanmakuInMills, 0)
 	}
 
 	comment := &CommentResult{

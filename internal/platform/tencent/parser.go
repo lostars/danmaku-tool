@@ -25,15 +25,7 @@ func (c *xmlParser) Parse() (*danmaku.DataXML, error) {
 
 	var source = c.danmaku
 	if config.GetConfig().Tencent.MergeDanmakuInMills > 0 {
-		if c.duration > 0 {
-			var merged = danmaku.MergeDanmaku(source, config.GetConfig().Tencent.MergeDanmakuInMills, c.duration)
-			source = make([]*danmaku.StandardDanmaku, 0, len(merged))
-			for _, v := range merged {
-				source = append(source, v)
-			}
-		} else {
-			logger.Error("parse xml duration is 0", "cid", c.vid)
-		}
+		source = danmaku.MergeDanmaku(source, config.GetConfig().Tencent.MergeDanmakuInMills, c.duration)
 	}
 
 	var data = make([]danmaku.DataXMLDanmaku, len(source))

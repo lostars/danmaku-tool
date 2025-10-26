@@ -26,11 +26,7 @@ func (c *xmlParser) Parse() (*danmaku.DataXML, error) {
 	// 合并重复弹幕
 	var source = c.danmaku
 	if config.GetConfig().Bilibili.MergeDanmakuInMills > 0 {
-		var merged = danmaku.MergeDanmaku(c.danmaku, config.GetConfig().Bilibili.MergeDanmakuInMills, c.epDuration)
-		source = make([]*danmaku.StandardDanmaku, 0, len(merged))
-		for _, v := range merged {
-			source = append(source, v)
-		}
+		source = danmaku.MergeDanmaku(c.danmaku, config.GetConfig().Bilibili.MergeDanmakuInMills, c.epDuration)
 	}
 
 	var data = make([]danmaku.DataXMLDanmaku, len(source))

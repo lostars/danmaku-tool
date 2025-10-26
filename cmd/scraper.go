@@ -34,10 +34,9 @@ func scraperCmd() *cobra.Command {
 			return errors.New(fmt.Sprintf("unsupported platform: %s", platform.Value))
 		}
 		logger := utils.GetComponentLogger("scrape-cmd")
-		start := time.Now().Nanosecond()
+		start := time.Now()
 		err := p.Scrape(id)
-		end := time.Now().Nanosecond()
-		logger.Debug("scrape cmd done", "cost_ms", (end-start)/1e6)
+		logger.Debug("scrape cmd done", "cost_ms", time.Since(start).Milliseconds())
 		if err != nil {
 			return err
 		}
