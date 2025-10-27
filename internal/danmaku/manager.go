@@ -83,36 +83,57 @@ const RollMode = 1
 const BottomMode = 4
 const TopMode = 5
 
-type Manager struct {
-	Scrapers     map[string]Scraper
-	Searchers    map[string]MediaSearcher
-	Initializers []Initializer
+type manager struct {
+	scrapers     []Scraper
+	searchers    []MediaSearcher
+	initializers []Initializer
 }
 
-var ManagerOfDanmaku = &Manager{
-	Scrapers:     map[string]Scraper{},
-	Searchers:    map[string]MediaSearcher{},
-	Initializers: []Initializer{},
+var adapter = &manager{
+	scrapers:     []Scraper{},
+	searchers:    []MediaSearcher{},
+	initializers: []Initializer{},
 }
 
-func (m *Manager) GetPlatforms() []string {
+func GetScraper(platform string) Scraper {
+	for _, v := range adapter.scrapers {
+		if string(v.Platform()) == platform {
+			return v
+		}
+	}
+	return nil
+}
+
+func GetSearcher(platform string) MediaSearcher {
+	for _, v := range adapter.searchers {
+		if string(v.SearcherType()) == platform {
+			return v
+		}
+	}
+	return nil
+}
+
+func GetInitializers() []Initializer {
+	return adapter.initializers
+}
+
+func GetPlatforms() []string {
 	var result []string
-	for _, v := range m.Scrapers {
+	for _, v := range adapter.scrapers {
 		result = append(result, string(v.Platform()))
 	}
 	return result
 }
 
 func Register(i interface{}) {
-	// TODO map相同名称多次注入会被覆盖
 	if v, ok := i.(MediaSearcher); ok {
-		ManagerOfDanmaku.Searchers[string(v.SearcherType())] = v
+		adapter.searchers = append(adapter.searchers, v)
 	}
 	if v, ok := i.(Scraper); ok {
-		ManagerOfDanmaku.Scrapers[string(v.Platform())] = v
+		adapter.scrapers = append(adapter.scrapers, v)
 	}
 	if v, ok := i.(Initializer); ok {
-		ManagerOfDanmaku.Initializers = append(ManagerOfDanmaku.Initializers, v)
+		adapter.initializers = append(adapter.initializers, v)
 	}
 }
 

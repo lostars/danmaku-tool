@@ -8,7 +8,7 @@ import (
 
 func init() {
 	realTimeMode := &realTimeData{
-		platform: danmaku.ManagerOfDanmaku.GetPlatforms(),
+		platform: danmaku.GetPlatforms(),
 		season:   make([]string, 0),
 		episode:  make([]string, 0),
 		lock:     sync.Mutex{},

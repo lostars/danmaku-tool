@@ -24,8 +24,9 @@ func (c *xmlParser) Parse() (*danmaku.DataXML, error) {
 	}
 
 	var source = c.danmaku
-	if config.GetConfig().Tencent.MergeDanmakuInMills > 0 {
-		source = danmaku.MergeDanmaku(source, config.GetConfig().Tencent.MergeDanmakuInMills, c.duration)
+	mergedMills := config.GetConfig().GetPlatformConfig(danmaku.Tencent).MergeDanmakuInMills
+	if mergedMills > 0 {
+		source = danmaku.MergeDanmaku(source, mergedMills, c.duration)
 	}
 
 	var data = make([]danmaku.DataXMLDanmaku, len(source))
@@ -47,7 +48,7 @@ func (c *xmlParser) Parse() (*danmaku.DataXML, error) {
 	}
 
 	xml := danmaku.DataXML{
-		ChatServer:     "comment.bilibili.com",
+		ChatServer:     "chat.v.qq.com",
 		ChatID:         c.vid,
 		Mission:        0,
 		MaxLimit:       2000,

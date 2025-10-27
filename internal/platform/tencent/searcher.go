@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-func (c *Client) Search(keyword string) ([]*danmaku.Media, error) {
+func (c *client) Search(keyword string) ([]*danmaku.Media, error) {
 	ssId := int64(0)
 	var err error
 	matches := danmaku.SeriesRegex.FindStringSubmatch(keyword)
@@ -125,7 +125,7 @@ func (c *Client) Search(keyword string) ([]*danmaku.Media, error) {
 	return result, nil
 }
 
-func (v *SearchResultItem) toMedia(c *Client) (*danmaku.Media, error) {
+func (v *SearchResultItem) toMedia(c *client) (*danmaku.Media, error) {
 	seriesItems, e := c.series(v.Doc.Id)
 	if e != nil {
 		return nil, e
@@ -161,7 +161,7 @@ func (v *SearchResultItem) toMedia(c *Client) (*danmaku.Media, error) {
 
 var tencentExcludeRegex = regexp.MustCompile("全网搜")
 
-func (c *Client) GetDanmaku(id string) ([]*danmaku.StandardDanmaku, error) {
+func (c *client) GetDanmaku(id string) ([]*danmaku.StandardDanmaku, error) {
 	// [platform]_[id]_[id]
 	s := strings.Split(id, "_")
 	if len(s) != 3 {
@@ -170,6 +170,6 @@ func (c *Client) GetDanmaku(id string) ([]*danmaku.StandardDanmaku, error) {
 	return c.getDanmakuByVid(s[2])
 }
 
-func (c *Client) SearcherType() danmaku.Platform {
+func (c *client) SearcherType() danmaku.Platform {
 	return danmaku.Tencent
 }

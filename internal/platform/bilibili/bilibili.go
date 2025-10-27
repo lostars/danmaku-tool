@@ -18,7 +18,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type Client struct {
+type client struct {
 	MaxWorker  int
 	Cookie     string
 	HttpClient *http.Client
@@ -26,11 +26,11 @@ type Client struct {
 	xmlParser *danmaku.DataXMLPersist
 }
 
-func (c *Client) Platform() danmaku.Platform {
+func (c *client) Platform() danmaku.Platform {
 	return danmaku.Bilibili
 }
 
-func (c *Client) scrape(oid, pid, segmentIndex int64) []*DanmakuElem {
+func (c *client) scrape(oid, pid, segmentIndex int64) []*DanmakuElem {
 	params := url.Values{
 		"type":          {"1"},
 		"oid":           {strconv.FormatInt(oid, 10)},
@@ -140,7 +140,7 @@ type SeriesInfo struct {
 	} `json:"result"`
 }
 
-func (c *Client) Scrape(id interface{}) error {
+func (c *client) Scrape(id interface{}) error {
 	if id == nil {
 		return danmaku.PlatformError(danmaku.Bilibili, "nil params")
 	}

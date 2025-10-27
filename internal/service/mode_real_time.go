@@ -57,37 +57,30 @@ func (c *realTimeData) Search(param MatchParam) (*MatchResult, error) {
 		Success: true,
 	}
 
-	for _, s := range danmaku.ManagerOfDanmaku.Searchers {
-		media, err := s.Search(searchTitle)
-		if err != nil {
-			logger.Error(err.Error(), "searchType", s.SearcherType(), "title", searchTitle)
+	media := danmaku.SearchMedia(searchTitle)
+	for _, m := range media {
+		if m.Episodes == nil || len(m.Episodes) == 0 {
 			continue
 		}
-		logger.Debug("search success", "searchType", s.SearcherType(), "title", searchTitle)
-		for _, m := range media {
-			if m.Episodes == nil || len(m.Episodes) == 0 {
-				continue
-			}
-			if searchMovies {
-				result.IsMatched = true
-				result.Matches = append(result.Matches, Match{
-					EpisodeId:    c.genEpisodeId(s.SearcherType(), m.Id, m.Episodes[0].Id),
-					AnimeTitle:   m.Title,
-					EpisodeTitle: m.Episodes[0].Title,
-				})
-			} else {
-				for _, ep := range m.Episodes {
-					epStr := strconv.FormatInt(epId, 10)
-					if ep.EpisodeId == epStr {
-						logger.Info("ep match success", "searchType", s.SearcherType(), "title", searchTitle, "ep", ep.EpisodeId)
-						result.IsMatched = true
-						result.Matches = append(result.Matches, Match{
-							EpisodeId:    c.genEpisodeId(s.SearcherType(), m.Id, ep.Id),
-							AnimeTitle:   m.Title,
-							EpisodeTitle: ep.EpisodeId,
-						})
-						break
-					}
+		if searchMovies {
+			result.IsMatched = true
+			result.Matches = append(result.Matches, Match{
+				EpisodeId:    c.genEpisodeId(m.Platform, m.Id, m.Episodes[0].Id),
+				AnimeTitle:   m.Title + " [" + string(m.Platform) + "]",
+				EpisodeTitle: m.Episodes[0].Title,
+			})
+		} else {
+			for _, ep := range m.Episodes {
+				epStr := strconv.FormatInt(epId, 10)
+				if ep.EpisodeId == epStr {
+					logger.Info("ep match success", "searchType", m.Platform, "title", searchTitle, "ep", ep.EpisodeId)
+					result.IsMatched = true
+					result.Matches = append(result.Matches, Match{
+						EpisodeId:    c.genEpisodeId(m.Platform, m.Id, ep.Id),
+						AnimeTitle:   m.Title + " [" + string(m.Platform) + "]",
+						EpisodeTitle: ep.EpisodeId,
+					})
+					break
 				}
 			}
 		}
@@ -103,18 +96,19 @@ func (c *realTimeData) GetDanmaku(param CommentParam) (*CommentResult, error) {
 	if len(ids) != 3 {
 		return nil, errors.New("invalid param")
 	}
-	var scraper = danmaku.ManagerOfDanmaku.Searchers[ids[0]]
-	if scraper == nil {
+	var searcher = danmaku.GetSearcher(ids[0])
+	if searcher == nil {
 		return nil, errors.New("invalid param")
 	}
-	data, err := scraper.GetDanmaku(id)
+	data, err := searcher.GetDanmaku(id)
 	if err != nil {
 		return nil, err
 	}
 
 	// merge danmaku
-	if config.GetConfig().Bilibili.MergeDanmakuInMills > 0 {
-		data = danmaku.MergeDanmaku(data, config.GetConfig().Bilibili.MergeDanmakuInMills, 0)
+	mergeMills := config.GetConfig().GetPlatformConfig(string(searcher.SearcherType())).MergeDanmakuInMills
+	if mergeMills > 0 {
+		data = danmaku.MergeDanmaku(data, mergeMills, 0)
 	}
 
 	comment := &CommentResult{

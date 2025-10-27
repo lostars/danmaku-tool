@@ -8,31 +8,35 @@ dandan-timeout: 60 # dandan api timeout in seconds
 server:
   timeout: 10
   port: 8089
-bilibili:
-#  最好提供完整cookie
-  cookie: ""
-#  单个视频弹幕下载的并发数 调高了注意账号风险 用的b站6min一段的弹幕接口，调高了意义也不大
-  max-worker: 4
-#  请求超时时间 单位：秒
-  timeout: 10
-  # 合并毫秒内重复弹幕 单位 ms <=0则不启用 同时作用于弹幕抓取和dandan api
-  merge-danmaku-in-mills: 1000
-  persists:
-    - type: "xml" # xml 固定字符串
-      indent: true # 是否开启缩进，否的话则用一行存储 只针对json xml类生效
-      compress: false # 是否开启压缩
-    - type: "json" # json 固定字符串
-      indent: true # 是否开启缩进，否的话则用一行存储 只针对json xml类生效
-      compress: false # 是否开启压缩
-tencent:
-  cookie: "" # 暂时用不上，占位
-  max-worker: 4
-  timeout: 10
-  merge-danmaku-in-mills: 1000
-  persists:
-    - type: "xml"
-      indent: true
-      compress: false
-    - type: "json"
-      indent: true
-      compress: false
+platforms:
+  - name: "bilibili"
+  #  优先级 用于控制剧集搜索结果 越小则排的更靠前(int) <0 则禁用该平台
+    priority: 10
+  #  最好提供完整cookie
+    cookie: ""
+  #  单个视频弹幕下载的并发数 调高了注意账号风险 用的b站6min一段的弹幕接口，调高了意义也不大
+    max-worker: 4 # 默认4
+  #  请求超时时间 单位：秒
+    timeout: 10
+    # 合并毫秒内重复弹幕 单位 ms <=0则不启用 同时作用于弹幕抓取和dandan api
+    merge-danmaku-in-mills: 1000
+    persists:
+      - type: "xml" # xml 固定字符串
+        indent: true # 是否开启缩进，否的话则用一行存储 只针对json xml类生效
+        compress: false # 是否开启压缩
+      - type: "json" # json 固定字符串
+        indent: true # 是否开启缩进，否的话则用一行存储 只针对json xml类生效
+        compress: false # 是否开启压缩
+  - name: "tencent"
+    priority: 100
+    cookie: "" # 暂时用不上，占位
+    max-worker: 8 # 默认 8
+    timeout: 100
+    merge-danmaku-in-mills: 1000
+    persists:
+      - type: "xml"
+        indent: true
+        compress: false
+      - type: "json"
+        indent: true
+        compress: false

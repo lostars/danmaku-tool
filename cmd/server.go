@@ -18,7 +18,7 @@ import (
 func serverCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "server",
-		Short: "start as a web server",
+		Short: "run as a web server",
 	}
 	var port int
 	cmd.Flags().IntVarP(&port, "port", "p", 0, "server port")

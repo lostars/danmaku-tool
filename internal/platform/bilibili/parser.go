@@ -25,8 +25,9 @@ func (c *xmlParser) Parse() (*danmaku.DataXML, error) {
 
 	// 合并重复弹幕
 	var source = c.danmaku
-	if config.GetConfig().Bilibili.MergeDanmakuInMills > 0 {
-		source = danmaku.MergeDanmaku(c.danmaku, config.GetConfig().Bilibili.MergeDanmakuInMills, c.epDuration)
+	mergedMills := config.GetConfig().GetPlatformConfig(danmaku.Bilibili).MergeDanmakuInMills
+	if mergedMills > 0 {
+		source = danmaku.MergeDanmaku(source, mergedMills, c.epDuration)
 	}
 
 	var data = make([]danmaku.DataXMLDanmaku, len(source))
@@ -48,7 +49,7 @@ func (c *xmlParser) Parse() (*danmaku.DataXML, error) {
 	}
 
 	xml := danmaku.DataXML{
-		ChatServer:     "comment.bilibili.com",
+		ChatServer:     "chat.bilibili.com",
 		ChatID:         strconv.FormatInt(c.seasonId, 10) + "_" + strconv.FormatInt(c.epId, 10),
 		Mission:        0,
 		MaxLimit:       2000,

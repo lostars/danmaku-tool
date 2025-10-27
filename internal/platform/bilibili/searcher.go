@@ -41,7 +41,7 @@ type SearchResult struct {
 
 var chineseVersionRegex = regexp.MustCompile("中配版|粤配版|日语版")
 
-func (c *Client) Search(keyword string) ([]*danmaku.Media, error) {
+func (c *client) Search(keyword string) ([]*danmaku.Media, error) {
 	// b站是无法搜索 S01 季节的，只能转成中文数字才能匹配
 	matches := danmaku.SeriesRegex.FindStringSubmatch(keyword)
 	// 是否需要匹配第几季 >1季 才转换成汉语数字进行匹配
@@ -209,7 +209,7 @@ func (c *Client) Search(keyword string) ([]*danmaku.Media, error) {
 	return data, nil
 }
 
-func (c *Client) searchByType(searchType string, keyword string) (*SearchResult, error) {
+func (c *client) searchByType(searchType string, keyword string) (*SearchResult, error) {
 	api := "https://api.bilibili.com/x/web-interface/wbi/search/type?search_type=%s&keyword=%s"
 	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf(api, searchType, keyword), nil)
 	if err != nil {
@@ -239,7 +239,7 @@ func (c *Client) searchByType(searchType string, keyword string) (*SearchResult,
 	return &result, nil
 }
 
-func (c *Client) GetDanmaku(id string) ([]*danmaku.StandardDanmaku, error) {
+func (c *client) GetDanmaku(id string) ([]*danmaku.StandardDanmaku, error) {
 	s := strings.Split(id, "_")
 	if len(s) != 3 {
 		return nil, danmaku.PlatformError(danmaku.Bilibili, "invalid id")
@@ -340,6 +340,6 @@ func (c *Client) GetDanmaku(id string) ([]*danmaku.StandardDanmaku, error) {
 	return result, nil
 }
 
-func (c *Client) SearcherType() danmaku.Platform {
+func (c *client) SearcherType() danmaku.Platform {
 	return danmaku.Bilibili
 }

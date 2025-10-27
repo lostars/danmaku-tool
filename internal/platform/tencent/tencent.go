@@ -14,7 +14,7 @@ import (
 	"sync"
 )
 
-type Client struct {
+type client struct {
 	HttpClient *http.Client
 	MaxWorker  int
 	Cookie     string
@@ -22,11 +22,11 @@ type Client struct {
 	xmlPersist *danmaku.DataXMLPersist
 }
 
-func (c *Client) Platform() danmaku.Platform {
+func (c *client) Platform() danmaku.Platform {
 	return danmaku.Tencent
 }
 
-func (c *Client) doSeriesRequest(cid, vid string, pageId, pageContent string) (*SeriesResult, error) {
+func (c *client) doSeriesRequest(cid, vid string, pageId, pageContent string) (*SeriesResult, error) {
 	var seriesReqParam = SeriesReqParam{
 		HasCache: 1,
 		PageParams: SeriesReqPageParam{
@@ -65,7 +65,7 @@ func (c *Client) doSeriesRequest(cid, vid string, pageId, pageContent string) (*
 	return &seriesResult, nil
 }
 
-func (c *Client) series(cid string) ([]*SeriesItem, error) {
+func (c *client) series(cid string) ([]*SeriesItem, error) {
 	// 获取剧集信息
 	seriesResult, err := c.doSeriesRequest(cid, "", SeriesEPPageId, "")
 	if err != nil {
@@ -83,7 +83,7 @@ func (c *Client) series(cid string) ([]*SeriesItem, error) {
 	// 解析剧集信息，可能会有多个tab
 	tabStr := seriesResult.Data.ModuleListData[0].ModuleData[0].ModuleParams.Tabs
 	if tabStr == "" {
-		logger.Error("series has no tabs", "cid", cid)
+		logger.Debug("series has no tabs", "cid", cid)
 		return eps, nil
 	}
 	var tabs []SeriesTab
@@ -114,7 +114,7 @@ func (c *Client) series(cid string) ([]*SeriesItem, error) {
 	return eps, nil
 }
 
-func (c *Client) Scrape(id interface{}) error {
+func (c *client) Scrape(id interface{}) error {
 	if id == nil {
 		return danmaku.PlatformError(danmaku.Tencent, "nil params")
 	}
@@ -185,7 +185,11 @@ func (c *Client) Scrape(id interface{}) error {
 		}
 
 		path := filepath.Join(config.GetConfig().SavePath, danmaku.Tencent, ep.ItemParams.CID)
-		filename := ep.ItemParams.Title + "_" + ep.ItemParams.VID
+		title := ""
+		if _, err := strconv.ParseInt(ep.ItemParams.Title, 10, 64); err == nil {
+			title = ep.ItemParams.Title + "_"
+		}
+		filename := title + ep.ItemParams.VID
 		if e := c.xmlPersist.WriteToFile(parser, path, filename); e != nil {
 			logger.Error(e.Error())
 		}
@@ -198,7 +202,7 @@ func (c *Client) Scrape(id interface{}) error {
 	return nil
 }
 
-func (c *Client) getDanmakuByVid(vid string) ([]*danmaku.StandardDanmaku, error) {
+func (c *client) getDanmakuByVid(vid string) ([]*danmaku.StandardDanmaku, error) {
 	param := map[string]string{
 		"vid":            vid,
 		"engine_version": "2.1.10",
@@ -266,7 +270,7 @@ type task struct {
 	segment string
 }
 
-func (c *Client) scrape(vid, segment string) []*danmaku.StandardDanmaku {
+func (c *client) scrape(vid, segment string) []*danmaku.StandardDanmaku {
 	//https://dm.video.qq.com/barrage/segment/{vid}/{segment}
 	api := fmt.Sprintf("https://dm.video.qq.com/barrage/segment/%s/%s", vid, segment)
 
@@ -331,7 +335,7 @@ func (c *Client) scrape(vid, segment string) []*danmaku.StandardDanmaku {
 	return result
 }
 
-func (c *Client) setRequest(req *http.Request) {
+func (c *client) setRequest(req *http.Request) {
 	// 目前腾讯接口不用Cookie
 	//req.Header.Set("Cookie", c.Cookie)
 	req.Header.Set("Origin", "https://v.qq.com/")

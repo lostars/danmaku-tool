@@ -62,14 +62,22 @@ func loadDefaultConfig(path string) []byte {
 	return nil
 }
 
+func (c *DanmakuConfig) GetPlatformConfig(platform string) *PlatformConfig {
+	for _, v := range c.Platforms {
+		if v.Name == platform {
+			return &v
+		}
+	}
+	return nil
+}
+
 type DanmakuConfig struct {
-	Debug         bool           `yaml:"debug"`
-	SavePath      string         `yaml:"save-path"`
-	DandanMode    string         `yaml:"dandan-mode"`
-	DandanTimeout int            `yaml:"dandan-timeout"`
-	Bilibili      PlatformConfig `yaml:"bilibili"`
-	Tencent       PlatformConfig `yaml:"tencent"`
-	Server        ServerConfig   `yaml:"server"`
+	Debug         bool             `yaml:"debug"`
+	SavePath      string           `yaml:"save-path"`
+	DandanMode    string           `yaml:"dandan-mode"`
+	DandanTimeout int              `yaml:"dandan-timeout"`
+	Platforms     []PlatformConfig `yaml:"platforms"`
+	Server        ServerConfig     `yaml:"server"`
 }
 
 type ServerConfig struct {
@@ -84,6 +92,8 @@ type DanmakuPersistConfig struct {
 }
 
 type PlatformConfig struct {
+	Name                string                 `yaml:"name"`
+	Priority            int                    `yaml:"priority"`
 	Cookie              string                 `yaml:"cookie"`
 	MaxWorker           int                    `yaml:"max-worker"`
 	Timeout             int64                  `yaml:"timeout"` // in seconds

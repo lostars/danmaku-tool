@@ -18,7 +18,7 @@ func scraperCmd() *cobra.Command {
 		Short: "scrape danmaku from id",
 	}
 
-	platform := flags.FProperty[string]{Flag: "platform", Register: &flags.PlatformCompletion{}, Options: danmaku.ManagerOfDanmaku.GetPlatforms()}
+	platform := flags.FProperty[string]{Flag: "platform", Register: &flags.PlatformCompletion{}, Options: danmaku.GetPlatforms()}
 	cmd.Flags().StringVar(&platform.Value, platform.Flag, "", `danmaku platform: 
 `+strings.Join(platform.Options, "\n"))
 
@@ -29,7 +29,7 @@ func scraperCmd() *cobra.Command {
 			return errors.New("id is empty")
 		}
 
-		var p = danmaku.ManagerOfDanmaku.Scrapers[platform.Value]
+		var p = danmaku.GetScraper(platform.Value)
 		if p == nil {
 			return errors.New(fmt.Sprintf("unsupported platform: %s", platform.Value))
 		}
