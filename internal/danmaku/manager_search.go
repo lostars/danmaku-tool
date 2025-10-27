@@ -40,7 +40,7 @@ func SearchMedia(keyword string) []*Media {
 	sort.Slice(result, func(i, j int) bool {
 		a := conf.GetPlatformConfig(string(result[i].Platform))
 		b := conf.GetPlatformConfig(string(result[j].Platform))
-		return a.Priority < b.Priority
+		return a.Priority > b.Priority
 	})
 
 	return result
