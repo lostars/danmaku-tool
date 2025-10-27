@@ -149,7 +149,7 @@ type SearchParam struct {
 
 	UUID          string          `json:"uuid"`
 	Retry         int             `json:"retry"`
-	SearchDatakey string          `json:"searchDatakey"`
+	SearchDataKey string          `json:"searchDatakey"`
 	TransInfo     string          `json:"transInfo"`
 	NeedQc        bool            `json:"isneedQc"` // true
 	PreQid        string          `json:"preQid"`
@@ -161,7 +161,7 @@ type SearchExtraInfo struct {
 	IsNewMarkLabel  string `json:"isNewMarkLabel"`
 	MultiTerminalPc string `json:"multi_terminal_pc"`
 	ThemeType       string `json:"themeType"`
-	SugRelatedIds   struct {
-	} `json:"sugRelatedIds"`
-	AppVersion string `json:"appVersion"`
+	// 该字段应该是一个 json 字符串，如果错误的传递成 {} 或者其他非法json，可能导致接口无法搜索出数据
+	SugRelatedIds string `json:"sugRelatedIds"`
+	AppVersion    string `json:"appVersion"`
 }

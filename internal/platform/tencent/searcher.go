@@ -92,7 +92,7 @@ func (c *client) Search(keyword string) ([]*danmaku.Media, error) {
 		case 1:
 			// 去掉标点之后 直接比较
 			plainTitle := danmaku.MarkRegex.ReplaceAllLiteralString(v.VideoInfo.Title, "")
-			plainKeyword := danmaku.MarkRegex.ReplaceAllLiteralString(v.VideoInfo.Title, "")
+			plainKeyword := danmaku.MarkRegex.ReplaceAllLiteralString(keyword, "")
 			if plainTitle != plainKeyword {
 				continue
 			}
@@ -107,11 +107,26 @@ func (c *client) Search(keyword string) ([]*danmaku.Media, error) {
 		// 2剧集 3动漫
 		case 2, 3:
 			// 匹配标题 搜出来即是命中
+			checkFirstSeason := false
 			if ssId == 1 && original != v.VideoInfo.Title {
-				continue
+				checkFirstSeason = true
 			}
-			if ssId > 1 && keyword != v.VideoInfo.Title {
-				continue
+			if ssId > 1 || checkFirstSeason {
+				clearTitle := strings.ReplaceAll(v.VideoInfo.Title, " ", "")
+				match := danmaku.SeasonTitleMatch.FindStringSubmatch(clearTitle)
+				// 匹配到 第5季
+				if len(match) > 1 {
+					id, _ := strconv.ParseInt(match[1], 10, 64)
+					clearTitle = danmaku.SeasonTitleMatch.ReplaceAllString(clearTitle, "第"+danmaku.ChineseNumberSlice[id-1]+"季")
+					if clearTitle != keyword {
+						continue
+					}
+				} else {
+					// 没匹配到 也可能是中文 第五季
+					if clearTitle != keyword {
+						continue
+					}
+				}
 			}
 			if v.VideoInfo.SubjectDoc.VideoNum <= 0 {
 				// 没有集数信息

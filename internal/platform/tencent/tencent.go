@@ -336,8 +336,7 @@ func (c *client) scrape(vid, segment string) []*danmaku.StandardDanmaku {
 }
 
 func (c *client) setRequest(req *http.Request) {
-	// 目前腾讯接口不用Cookie
-	//req.Header.Set("Cookie", c.Cookie)
+	req.Header.Set("Cookie", c.Cookie)
 	req.Header.Set("Origin", "https://v.qq.com/")
 	req.Header.Set("Referer", "https://v.qq.com/")
 	// 注意如果json请求不设置该请求头，则会导致部分接口异常返回400，哪怕参数全部正常。

@@ -16,7 +16,7 @@ platforms:
   - name: "bilibili"
   #  优先级 用于控制剧集搜索结果 越小则排的更靠前(int) <0 则禁用该平台
     priority: 10
-  #  最好提供完整cookie
+  #  完整cookie 否则部分接口不出数据
     cookie: ""
   #  单个视频弹幕下载的并发数 调高了注意账号风险 用的b站6min一段的弹幕接口，调高了意义也不大
     max-worker: 4 # 默认4
@@ -33,7 +33,7 @@ platforms:
         compress: false # 是否开启压缩
   - name: "tencent"
     priority: 100
-    cookie: "" # 暂时用不上，占位
+    cookie: "xxx" # 最好提供，否则可能会导致搜不到数据
     max-worker: 8 # 默认 8
     timeout: 100
     merge-danmaku-in-mills: 1000

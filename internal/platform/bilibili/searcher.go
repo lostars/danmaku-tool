@@ -20,7 +20,10 @@ type SearchResult struct {
 	Message string `json:"message"`
 	Data    struct {
 		Result []struct {
-			Type           string `json:"type"`             // media_bangumi 剧集  media_ft 电影一类
+			// 5=真人剧集 2=电影 4=动画剧集
+			// 5和2 都是media_ft 4是media_bangumi 用分类接口不好一次性搜索
+			MediaType      int    `json:"media_type"`
+			Type           string `json:"type"`             // 这个字段难以区真人剧集和电影，都算作media_ft
 			MediaId        int64  `json:"media_id"`         // md id
 			SeasonId       int64  `json:"season_id"`        // ss id
 			Cover          string `json:"cover"`            // 封面url
@@ -66,13 +69,19 @@ func (c *client) Search(keyword string) ([]*danmaku.Media, error) {
 		checkChineseVersion = false
 	}
 
-	searchType := "media_ft"
-	if ssId > 0 {
-		searchType = "media_bangumi"
-	}
 	var data = make([]*danmaku.Media, 0, 10)
-	result, e := c.searchByType(searchType, keyword)
-	if e != nil {
+	var result SearchResult
+	// 分类搜索接口 搜索类型无法区分真人剧集和电影 因为都是 media_ft 只能搜索两次
+	result1, e1 := c.searchByType("media_ft", keyword)
+	result2, e2 := c.searchByType("media_bangumi", keyword)
+	if e1 == nil {
+		result.Data.Result = append(result.Data.Result, result1.Data.Result...)
+	}
+	if e2 == nil {
+		result.Data.Result = append(result.Data.Result, result2.Data.Result...)
+	}
+	if result.Data.Result == nil {
+		logger.Info("search no result", "keyword", keyword)
 		return data, nil
 	}
 
@@ -85,8 +94,8 @@ func (c *client) Search(keyword string) ([]*danmaku.Media, error) {
 			logger.Debug("search keyword bangumi skipped", "title", bangumi.Title, "resultType", bangumi.Type)
 			continue
 		}
-		switch bangumi.Type {
-		case "media_ft":
+		switch bangumi.MediaType {
+		case 2:
 			var eps = make([]*danmaku.MediaEpisode, 0)
 			if bangumi.Url != "" {
 				// https://www.bilibili.com/bangumi/play/ep747309?theme=movie
@@ -115,8 +124,8 @@ func (c *client) Search(keyword string) ([]*danmaku.Media, error) {
 			} else {
 				data = append(data, b)
 			}
-
-		case "media_bangumi":
+		//	真人剧集和动画剧集
+		case 4, 5:
 			// 如果解析到了季进行搜索，不包含正确的季则跳过
 			if matchSeason {
 				if !strings.Contains(bangumi.Title, "第"+danmaku.ChineseNumberSlice[ssId-1]+"季") {
@@ -168,40 +177,6 @@ func (c *client) Search(keyword string) ([]*danmaku.Media, error) {
 		}
 	}
 
-	// 有时候b站的剧集标题是不带第几季的，但是返回的顺序是按照发布时间倒序的，所以可以从下标获取
-	if ssId > 0 && len(data) <= 0 && ssId <= int64(len(result.Data.Result)) {
-		bangumi := result.Data.Result[int64(len(result.Data.Result))-ssId]
-		if bangumi.EPs != nil {
-			eps := make([]*danmaku.MediaEpisode, 0, len(bangumi.EPs))
-			for i, ep := range bangumi.EPs {
-				// 如果发现 ep.Title 不是从1开始，常见的就是 第二季 36集 开始计数
-				// 则从数组下标开始计数
-				epTitle := ep.Title
-				id, e := strconv.ParseInt(epTitle, 10, 64)
-				if e == nil && id > 1 {
-					epTitle = strconv.FormatInt(int64(i), 10)
-				}
-
-				eps = append(eps, &danmaku.MediaEpisode{
-					Id:        strconv.FormatInt(ep.Id, 10),
-					EpisodeId: epTitle,
-					Title:     ep.LongTitle,
-				})
-			}
-			var clearTitle = utils.StripHTMLTags(bangumi.Title)
-			b := &danmaku.Media{
-				Id:       strconv.FormatInt(bangumi.SeasonId, 10),
-				Type:     danmaku.Series,
-				TypeDesc: bangumi.SeasonTypeName,
-				Desc:     bangumi.Desc,
-				Title:    clearTitle,
-				Episodes: eps,
-			}
-			data = append(data, b)
-			logger.Info("get season")
-		}
-	}
-
 	if checkChineseVersion && len(data) <= 0 {
 		data = append(data, filtered...)
 	}
@@ -210,8 +185,20 @@ func (c *client) Search(keyword string) ([]*danmaku.Media, error) {
 }
 
 func (c *client) searchByType(searchType string, keyword string) (*SearchResult, error) {
-	api := "https://api.bilibili.com/x/web-interface/wbi/search/type?search_type=%s&keyword=%s"
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf(api, searchType, keyword), nil)
+	api := "https://api.bilibili.com/x/web-interface/wbi/search/type?"
+	params := url.Values{
+		"search_type": {searchType},
+		"page":        {"1"},
+		"page_size":   {"10"},
+		"platform":    {"pc"},
+		"highlight":   {"1"},
+		"keyword":     {keyword},
+	}
+	params, err := c.sign(params)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequest(http.MethodGet, api+params.Encode(), nil)
 	if err != nil {
 		return nil, err
 	}

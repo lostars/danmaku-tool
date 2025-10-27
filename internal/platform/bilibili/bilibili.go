@@ -23,6 +23,9 @@ type client struct {
 	Cookie     string
 	HttpClient *http.Client
 
+	// 接口签名token信息
+	token tokenKey
+
 	xmlParser *danmaku.DataXMLPersist
 }
 
