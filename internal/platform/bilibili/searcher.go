@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"path"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -20,7 +19,7 @@ type SearchResult struct {
 	Message string `json:"message"`
 	Data    struct {
 		Result []struct {
-			// 5=真人剧集 2=电影 4=动画剧集 1=番剧
+			// 5=真人剧集 2=电影 4=动画剧集 1=番剧 3=纪录片
 			// 5和2 都是media_ft 4是media_bangumi 用分类接口不好一次性搜索
 			MediaType      int    `json:"media_type"`
 			Type           string `json:"type"`             // 这个字段难以区真人剧集和电影，都算作media_ft
@@ -42,31 +41,24 @@ type SearchResult struct {
 	} `json:"data"`
 }
 
-var chineseVersionRegex = regexp.MustCompile("中配版|粤配版|日语版")
-
 func (c *client) Search(keyword string) ([]*danmaku.Media, error) {
 	// b站是无法搜索 S01 季节的，只能转成中文数字才能匹配
 	matches := danmaku.SeriesRegex.FindStringSubmatch(keyword)
 	// 是否需要匹配第几季 >1季 才转换成汉语数字进行匹配
-	matchSeason := false
-	var ssId int64
+	//original := keyword
+	var ssId = int64(-1)
 	if len(matches) > 3 {
 		keyword = matches[1]
+		//original = matches[1]
 		id, err := strconv.ParseInt(matches[2], 10, 64)
 		if err == nil {
 			ssId = id
 			if id <= 20 && id > 1 {
-				matchSeason = true
+				//matchSeason = true
 				keyword = strings.Join([]string{matches[1], "第", danmaku.ChineseNumberSlice[ssId-1], "季"}, "")
 				logger.Info(fmt.Sprintf("real search keyword %s", keyword))
 			}
 		}
-	}
-
-	var checkChineseVersion = true
-	// 本身搜索词就带了版本则不进行过滤
-	if chineseVersionRegex.MatchString(keyword) {
-		checkChineseVersion = false
 	}
 
 	var data = make([]*danmaku.Media, 0, 10)
@@ -85,24 +77,82 @@ func (c *client) Search(keyword string) ([]*danmaku.Media, error) {
 		return data, nil
 	}
 
-	var filtered []*danmaku.Media
 	for _, bangumi := range result.Data.Result {
 
-		var clearTitle = utils.StripHTMLTags(bangumi.Title)
-		// 搜索命中的标题都带有html em标签 如果一样说明是广告或者推荐一类
-		if clearTitle == bangumi.Title {
-			logger.Debug("search keyword bangumi skipped", "title", bangumi.Title, "resultType", bangumi.Type)
+		keys := danmaku.MatchKeyword.FindStringSubmatch(bangumi.Title)
+		if len(keys) < 2 {
 			continue
 		}
-		switch bangumi.MediaType {
-		case 2:
-			// 由于剧集在两种搜索类型中都有，如果关键字带ssid，那么就不匹配电影
-			if ssId > 0 {
+		matchedKeyword := keys[1]
+		if !strings.Contains(keyword, matchedKeyword) {
+			continue
+		}
+
+		var clearTitle = utils.StripHTMLTags(bangumi.Title)
+		clearTitle = strings.ReplaceAll(clearTitle, " ", "")
+		clearTitle = danmaku.MarkRegex.ReplaceAllLiteralString(clearTitle, "")
+
+		// 处理语言版本
+		if danmaku.MatchLanguage.MatchString(keyword) {
+			// 搜索词带版本
+			pureLang := danmaku.MarkRegex.ReplaceAllLiteralString(keyword, "")
+			if pureLang != clearTitle {
 				continue
 			}
-			var eps = make([]*danmaku.MediaEpisode, 0)
-			if bangumi.EPs != nil && len(bangumi.EPs) > 0 {
-				// 多个版本的电影
+		} else {
+			// 搜索词不带版本但又命中了语言关键字则过滤掉
+			if danmaku.MatchLanguage.MatchString(clearTitle) {
+				continue
+			}
+		}
+
+		var eps []*danmaku.MediaEpisode
+		// 分两类处理
+		/*
+			1. 有EP信息 可能是剧集 也可能是一部电影的多部
+				1.1 如果带了ssId进行搜索，则按照剧集进行处理
+				1.2 否则就当作一部电影的多部曲来处理
+					所以如果剧集故意不带ssId进行搜索 则不会出相关数据
+			2. 无EP信息 丛url解析epId 则只可能是电影一类单视频
+		*/
+		var mediaType danmaku.MediaType
+		if bangumi.EPs != nil && len(bangumi.EPs) > 0 {
+			mediaType = danmaku.Series
+			if ssId >= 0 {
+				if ssId == 0 {
+					continue
+				}
+				if ssId == 1 {
+					// 标题一样 或者 包含第一季
+					if !(keyword == clearTitle || danmaku.MatchFirstSeason.MatchString(clearTitle)) {
+						continue
+					}
+				}
+				// 大部分剧集都是需要去匹配季信息的，标题都带了
+				// TODO 有些剧集不一定带了季编号在标题上 比如 刺客伍六七 在这里就被过滤掉了
+				if ssId > 1 {
+					if !strings.Contains(clearTitle, "第"+danmaku.ChineseNumberSlice[ssId-1]+"季") {
+						continue
+					}
+				}
+
+				for i, ep := range bangumi.EPs {
+					// 如果发现 ep.Title 不是从1开始，常见的就是 第二季 36集 开始计数
+					// 则从数组下标开始计数
+					epTitle := ep.Title
+					id, e := strconv.ParseInt(epTitle, 10, 64)
+					if e == nil && id > 1 {
+						epTitle = strconv.FormatInt(int64(i+1), 10)
+					}
+
+					eps = append(eps, &danmaku.MediaEpisode{
+						Id: strconv.FormatInt(ep.Id, 10),
+						// 外部需要依靠这个字段去匹配是EP几，需要正确赋值
+						EpisodeId: epTitle,
+						Title:     ep.LongTitle,
+					})
+				}
+			} else {
 				for _, v := range bangumi.EPs {
 					episodeId := "1"
 					match := false
@@ -127,99 +177,36 @@ func (c *client) Search(keyword string) ([]*danmaku.Media, error) {
 						break
 					}
 				}
-			} else {
-				// 只有一个版本 只能从url获取epId
-				if bangumi.Url != "" {
-					// https://www.bilibili.com/bangumi/play/ep747309?theme=movie
-					str := path.Base(bangumi.Url)[2:]
-					if strings.Contains(str, "?") {
-						str = strings.Split(str, "?")[0]
-					}
-					ep := &danmaku.MediaEpisode{
-						Id:        str,
-						EpisodeId: clearTitle,
-						Title:     clearTitle,
-					}
-					eps = append(eps, ep)
-				}
-			}
-			b := &danmaku.Media{
-				Id:       strconv.FormatInt(bangumi.SeasonId, 10),
-				Type:     danmaku.Movie,
-				TypeDesc: bangumi.SeasonTypeName,
-				Desc:     bangumi.Desc,
-				Title:    clearTitle,
-				Episodes: eps,
-				Platform: danmaku.Bilibili,
-			}
-			if checkChineseVersion && chineseVersionRegex.MatchString(clearTitle) {
-				filtered = append(filtered, b)
-			} else {
-				data = append(data, b)
-			}
-		//	真人剧集和动画剧集
-		case 1, 4, 5:
-			// 由于剧集在两种搜索类型中都有，如果关键字不带ssid，那么就不匹配剧集
-			if ssId <= 0 {
-				continue
-			}
-			// 由于使用分类接口 导致各种剧集全部集中到这里处理，需要再次匹配标题
-			if strings.ReplaceAll(clearTitle, " ", "") != keyword {
-				continue
-			}
-			// 如果解析到了季进行搜索，不包含正确的季则跳过
-			if matchSeason {
-				if !strings.Contains(bangumi.Title, "第"+danmaku.ChineseNumberSlice[ssId-1]+"季") {
-					continue
-				}
-			}
-			if ssId == 1 {
-				// 标题一样 或者 包含第一季
-				if !(keyword == clearTitle || danmaku.MatchFirstSeason.MatchString(clearTitle)) {
-					continue
-				}
-			}
-			var eps []*danmaku.MediaEpisode
-			if bangumi.EPs != nil {
-				eps = make([]*danmaku.MediaEpisode, 0, len(bangumi.EPs))
-				for i, ep := range bangumi.EPs {
-					// 如果发现 ep.Title 不是从1开始，常见的就是 第二季 36集 开始计数
-					// 则从数组下标开始计数
-					epTitle := ep.Title
-					id, e := strconv.ParseInt(epTitle, 10, 64)
-					if e == nil && id > 1 {
-						epTitle = strconv.FormatInt(int64(i+1), 10)
-					}
-
-					eps = append(eps, &danmaku.MediaEpisode{
-						Id: strconv.FormatInt(ep.Id, 10),
-						// 外部需要依靠这个字段去匹配是EP几，需要正确赋值
-						EpisodeId: epTitle,
-						Title:     ep.LongTitle,
-					})
-				}
 			}
 
-			b := &danmaku.Media{
-				Id:       strconv.FormatInt(bangumi.SeasonId, 10),
-				Type:     danmaku.Series,
-				TypeDesc: bangumi.SeasonTypeName,
-				Desc:     bangumi.Desc,
-				Title:    clearTitle,
-				Episodes: eps,
-				Platform: danmaku.Bilibili,
-			}
-
-			if checkChineseVersion && chineseVersionRegex.MatchString(clearTitle) {
-				filtered = append(filtered, b)
-			} else {
-				data = append(data, b)
+		} else {
+			if bangumi.Url != "" {
+				mediaType = danmaku.Movie
+				// https://www.bilibili.com/bangumi/play/ep747309?theme=movie
+				str := path.Base(bangumi.Url)[2:]
+				if strings.Contains(str, "?") {
+					str = strings.Split(str, "?")[0]
+				}
+				ep := &danmaku.MediaEpisode{
+					Id:        str,
+					EpisodeId: clearTitle,
+					Title:     clearTitle,
+				}
+				eps = append(eps, ep)
 			}
 		}
-	}
 
-	if checkChineseVersion && len(data) <= 0 {
-		data = append(data, filtered...)
+		b := &danmaku.Media{
+			Id:       strconv.FormatInt(bangumi.SeasonId, 10),
+			Type:     mediaType,
+			TypeDesc: bangumi.SeasonTypeName,
+			Desc:     bangumi.Desc,
+			Title:    clearTitle,
+			Episodes: eps,
+			Platform: danmaku.Bilibili,
+		}
+		data = append(data, b)
+
 	}
 
 	return data, nil
