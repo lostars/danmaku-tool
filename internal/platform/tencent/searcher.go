@@ -21,13 +21,17 @@ func (c *client) Search(keyword string) ([]*danmaku.Media, error) {
 		ssId, err = strconv.ParseInt(matches[2], 10, 64)
 		if err == nil {
 			original = matches[1]
-			if ssId <= 20 {
+			if ssId > 0 && ssId <= 20 {
 				// 腾讯视频带上第几季搜索更精确 第一季也是 但是命中则不会显示 xx第一季
 				keyword = strings.Join([]string{matches[1], "第", danmaku.ChineseNumberSlice[ssId-1], "季"}, "")
+			} else if ssId == 0 {
+				// S00
+				keyword = matches[1] + "剧场版"
 			}
 		}
 	}
 
+	logger.Debug(fmt.Sprintf("search keyword: %s", keyword))
 	searchParam := SearchParam{
 		Version:    "25101301",
 		ClientType: 1,
@@ -93,15 +97,15 @@ func (c *client) Search(keyword string) ([]*danmaku.Media, error) {
 				continue
 			}
 
-			media, e := v.toMedia(c)
+			media, e := v.toMedia(c, danmaku.Movie, -1)
 			if e != nil {
 				continue
 			}
 			result = append(result, media)
 		// 综艺
 		case 10:
-		// 剧集
-		case 2:
+		// 2剧集 3动漫
+		case 2, 3:
 			// 匹配标题 搜出来即是命中
 			if ssId == 1 && original != v.VideoInfo.Title {
 				continue
@@ -114,7 +118,7 @@ func (c *client) Search(keyword string) ([]*danmaku.Media, error) {
 				continue
 			}
 			// 搜索剧集列表
-			media, e := v.toMedia(c)
+			media, e := v.toMedia(c, danmaku.Series, ssId)
 			if e != nil {
 				continue
 			}
@@ -125,7 +129,7 @@ func (c *client) Search(keyword string) ([]*danmaku.Media, error) {
 	return result, nil
 }
 
-func (v *SearchResultItem) toMedia(c *client) (*danmaku.Media, error) {
+func (v *SearchResultItem) toMedia(c *client, mediaType danmaku.MediaType, ssId int64) (*danmaku.Media, error) {
 	seriesItems, e := c.series(v.Doc.Id)
 	if e != nil {
 		return nil, e
@@ -147,9 +151,16 @@ func (v *SearchResultItem) toMedia(c *client) (*danmaku.Media, error) {
 		})
 	}
 
+	// 匹配剧场版 epId 暂时使用下标作为S00的epId 最新发布的在最前面
+	if ssId == 0 {
+		for i, ep := range eps {
+			ep.EpisodeId = strconv.FormatInt(int64(len(eps)-i), 10)
+		}
+	}
+
 	media := &danmaku.Media{
 		Id:       v.Doc.Id,
-		Type:     danmaku.Series,
+		Type:     mediaType,
 		TypeDesc: v.VideoInfo.TypeName,
 		Desc:     v.VideoInfo.Desc,
 		Title:    v.VideoInfo.Title,

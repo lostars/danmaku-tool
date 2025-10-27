@@ -4,6 +4,7 @@ import (
 	"danmu-tool/internal/api"
 	"danmu-tool/internal/service"
 	"danmu-tool/internal/utils"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -69,6 +70,7 @@ func MatchHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	result, err := mode.Search(param)
+	utils.GetComponentLogger("dandan-api").Debug(fmt.Sprintf("request original param: %v", param))
 	if err != nil {
 		api.ResponseJSON(w, http.StatusBadRequest, map[string]string{
 			"message": err.Error(),
