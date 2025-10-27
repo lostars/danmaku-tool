@@ -97,18 +97,47 @@ func (c *client) Search(keyword string) ([]*danmaku.Media, error) {
 		switch bangumi.MediaType {
 		case 2:
 			var eps = make([]*danmaku.MediaEpisode, 0)
-			if bangumi.Url != "" {
-				// https://www.bilibili.com/bangumi/play/ep747309?theme=movie
-				str := path.Base(bangumi.Url)[2:]
-				if strings.Contains(str, "?") {
-					str = strings.Split(str, "?")[0]
+			if bangumi.EPs != nil && len(bangumi.EPs) > 0 {
+				// 多个版本的电影
+				for _, v := range bangumi.EPs {
+					episodeId := "1"
+					match := false
+					// 匹配搜索版本
+					if danmaku.MatchLanguage.MatchString(keyword) {
+						if strings.Contains(keyword, v.Title) {
+							match = true
+						}
+					} else {
+						// 匹配原版
+						if strings.Contains(v.Title, "原版") {
+							match = true
+						}
+					}
+					if match {
+						ep := &danmaku.MediaEpisode{
+							Id:        strconv.FormatInt(v.Id, 10),
+							EpisodeId: episodeId,
+							Title:     v.Title,
+						}
+						eps = append(eps, ep)
+						break
+					}
 				}
-				ep := &danmaku.MediaEpisode{
-					Id:        str,
-					EpisodeId: clearTitle,
-					Title:     clearTitle,
+			} else {
+				// 只有一个版本 只能从url获取epId
+				if bangumi.Url != "" {
+					// https://www.bilibili.com/bangumi/play/ep747309?theme=movie
+					str := path.Base(bangumi.Url)[2:]
+					if strings.Contains(str, "?") {
+						str = strings.Split(str, "?")[0]
+					}
+					ep := &danmaku.MediaEpisode{
+						Id:        str,
+						EpisodeId: clearTitle,
+						Title:     clearTitle,
+					}
+					eps = append(eps, ep)
 				}
-				eps = append(eps, ep)
 			}
 			b := &danmaku.Media{
 				Id:       strconv.FormatInt(bangumi.SeasonId, 10),
@@ -134,7 +163,7 @@ func (c *client) Search(keyword string) ([]*danmaku.Media, error) {
 			}
 			if ssId == 1 {
 				// 标题一样 或者 包含第一季
-				if !(keyword == clearTitle || strings.Contains(clearTitle, "第一季")) {
+				if !(keyword == clearTitle || danmaku.MatchFirstSeason.MatchString(clearTitle)) {
 					continue
 				}
 			}
