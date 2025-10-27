@@ -20,7 +20,7 @@ type SearchResult struct {
 	Message string `json:"message"`
 	Data    struct {
 		Result []struct {
-			// 5=真人剧集 2=电影 4=动画剧集
+			// 5=真人剧集 2=电影 4=动画剧集 1=番剧
 			// 5和2 都是media_ft 4是media_bangumi 用分类接口不好一次性搜索
 			MediaType      int    `json:"media_type"`
 			Type           string `json:"type"`             // 这个字段难以区真人剧集和电影，都算作media_ft
@@ -96,6 +96,10 @@ func (c *client) Search(keyword string) ([]*danmaku.Media, error) {
 		}
 		switch bangumi.MediaType {
 		case 2:
+			// 由于剧集在两种搜索类型中都有，如果关键字带ssid，那么就不匹配电影
+			if ssId > 0 {
+				continue
+			}
 			var eps = make([]*danmaku.MediaEpisode, 0)
 			if bangumi.EPs != nil && len(bangumi.EPs) > 0 {
 				// 多个版本的电影
@@ -154,7 +158,15 @@ func (c *client) Search(keyword string) ([]*danmaku.Media, error) {
 				data = append(data, b)
 			}
 		//	真人剧集和动画剧集
-		case 4, 5:
+		case 1, 4, 5:
+			// 由于剧集在两种搜索类型中都有，如果关键字不带ssid，那么就不匹配剧集
+			if ssId <= 0 {
+				continue
+			}
+			// 由于使用分类接口 导致各种剧集全部集中到这里处理，需要再次匹配标题
+			if strings.ReplaceAll(clearTitle, " ", "") != keyword {
+				continue
+			}
 			// 如果解析到了季进行搜索，不包含正确的季则跳过
 			if matchSeason {
 				if !strings.Contains(bangumi.Title, "第"+danmaku.ChineseNumberSlice[ssId-1]+"季") {

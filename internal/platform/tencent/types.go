@@ -13,8 +13,8 @@ const SeriesEPPageId = "vsite_episode_list"
 const SeriesInfoPageId = "detail_page_introduction"
 
 type SeriesItem struct {
-	ItemId     string `json:"item_id"` // 等于vid？
-	ItemType   string `json:"item_type"`
+	ItemId     string `json:"item_id"`
+	ItemType   string `json:"item_type"` // =28 一部电影的 多集？
 	ItemParams struct {
 		// 以下是 page_id=vsite_episode_list 返回的剧集ep信息
 		VID          string `json:"vid"`
@@ -113,6 +113,10 @@ type SearchResult struct {
 		NormalList struct {
 			ItemList []SearchResultItem `json:"itemList"`
 		} `json:"normalList"`
+		AreaBoxList []struct {
+			BoxId    string             `json:"boxId"`
+			ItemList []SearchResultItem `json:"itemList"`
+		} `json:"areaBoxList"`
 	} `json:"data"`
 }
 

@@ -13,7 +13,7 @@ import (
 )
 
 func (c *client) Search(keyword string) ([]*danmaku.Media, error) {
-	ssId := int64(0)
+	ssId := int64(-1)
 	var err error
 	matches := danmaku.SeriesRegex.FindStringSubmatch(keyword)
 	original := keyword
@@ -76,12 +76,22 @@ func (c *client) Search(keyword string) ([]*danmaku.Media, error) {
 	if searchResult.Ret != 0 {
 		return nil, errors.New(fmt.Sprintf("search ret code: %v %s", searchResult.Ret, searchResult.Msg))
 	}
-	if searchResult.Data.NormalList.ItemList == nil || len(searchResult.Data.NormalList.ItemList) <= 0 {
-		return nil, errors.New(fmt.Sprintf("search empty normal list"))
+
+	var itemList []SearchResultItem
+	if searchResult.Data.NormalList.ItemList != nil {
+		itemList = append(itemList, searchResult.Data.NormalList.ItemList...)
+	}
+	if searchResult.Data.AreaBoxList != nil {
+		for _, v := range searchResult.Data.AreaBoxList {
+			// 有时候从normalList不出数据，需要从areaBoxList中获取
+			if v.BoxId == "MainNeed" && v.ItemList != nil {
+				itemList = append(itemList, v.ItemList...)
+			}
+		}
 	}
 
 	var result []*danmaku.Media
-	for _, v := range searchResult.Data.NormalList.ItemList {
+	for _, v := range itemList {
 		if tencentExcludeRegex.MatchString(v.VideoInfo.SubTitle) {
 			// 命中黑名单 则代表搜索不到
 			logger.Info("title in blacklist", "subTitle", v.VideoInfo.SubTitle)
@@ -90,6 +100,9 @@ func (c *client) Search(keyword string) ([]*danmaku.Media, error) {
 		switch v.VideoInfo.VideoType {
 		// 电影
 		case 1:
+			if ssId > 0 {
+				continue
+			}
 			// 去掉标点之后 直接比较
 			plainTitle := danmaku.MarkRegex.ReplaceAllLiteralString(v.VideoInfo.Title, "")
 			plainKeyword := danmaku.MarkRegex.ReplaceAllLiteralString(keyword, "")
@@ -97,7 +110,7 @@ func (c *client) Search(keyword string) ([]*danmaku.Media, error) {
 				continue
 			}
 
-			media, e := v.toMedia(c, danmaku.Movie, -1)
+			media, e := v.toMedia(c, danmaku.Movie, -1, keyword)
 			if e != nil {
 				continue
 			}
@@ -106,6 +119,9 @@ func (c *client) Search(keyword string) ([]*danmaku.Media, error) {
 		case 10:
 		// 2剧集 3动漫
 		case 2, 3:
+			if ssId < 0 {
+				continue
+			}
 			// 匹配标题 搜出来即是命中
 			checkFirstSeason := false
 			if ssId == 1 && original != v.VideoInfo.Title {
@@ -133,7 +149,7 @@ func (c *client) Search(keyword string) ([]*danmaku.Media, error) {
 				continue
 			}
 			// 搜索剧集列表
-			media, e := v.toMedia(c, danmaku.Series, ssId)
+			media, e := v.toMedia(c, danmaku.Series, ssId, "")
 			if e != nil {
 				continue
 			}
@@ -144,7 +160,7 @@ func (c *client) Search(keyword string) ([]*danmaku.Media, error) {
 	return result, nil
 }
 
-func (v *SearchResultItem) toMedia(c *client, mediaType danmaku.MediaType, ssId int64) (*danmaku.Media, error) {
+func (v *SearchResultItem) toMedia(c *client, mediaType danmaku.MediaType, ssId int64, keyword string) (*danmaku.Media, error) {
 	seriesItems, e := c.series(v.Doc.Id)
 	if e != nil {
 		return nil, e
@@ -157,6 +173,10 @@ func (v *SearchResultItem) toMedia(c *client, mediaType danmaku.MediaType, ssId 
 		}
 		// 有可能vid为空
 		if ep.ItemParams.VID == "" {
+			continue
+		}
+		// 如果是电影则再次比对title 有些电影是没匹配上，但是剧集里会有一些预告甚至垃圾视频
+		if ssId < 0 && ep.ItemParams.Title != keyword {
 			continue
 		}
 		eps = append(eps, &danmaku.MediaEpisode{
@@ -185,7 +205,7 @@ func (v *SearchResultItem) toMedia(c *client, mediaType danmaku.MediaType, ssId 
 	return media, nil
 }
 
-var tencentExcludeRegex = regexp.MustCompile("全网搜")
+var tencentExcludeRegex = regexp.MustCompile(`(全网搜|外站)`)
 
 func (c *client) GetDanmaku(id string) ([]*danmaku.StandardDanmaku, error) {
 	// [platform]_[id]_[id]
