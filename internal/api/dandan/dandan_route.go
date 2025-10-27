@@ -1,6 +1,7 @@
 package dandan
 
 import (
+	"danmu-tool/internal/api"
 	"danmu-tool/internal/config"
 	"net/http"
 	"time"
@@ -26,11 +27,26 @@ func RegisterRoute(route *chi.Mux) {
 		d.Use(CacheMiddleware)
 	})
 	dandanRoute.Route("/api/v1/{token}/api/v2", func(r chi.Router) {
+		r.Use(TokenValidatorMiddleware)
 		r.Get("/comment/{id}", CommentHandler)
 		r.Post("/match", MatchHandler)
 	})
 	dandanRoute.Route("/api/v1/{token}", func(r chi.Router) {
+		r.Use(TokenValidatorMiddleware)
 		r.Get("/comment/{id}", CommentHandler)
 		r.Post("/match", MatchHandler)
+	})
+}
+
+func TokenValidatorMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token := chi.URLParam(r, "token")
+		for _, t := range config.GetConfig().Server.Tokens {
+			if token == t {
+				next.ServeHTTP(w, r)
+				return
+			}
+		}
+		api.ResponseJSON(w, http.StatusUnauthorized, map[string]string{"message": "Unauthorized"})
 	})
 }

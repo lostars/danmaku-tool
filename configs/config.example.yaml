@@ -6,6 +6,10 @@ save-path: ""
 dandan-mode: "real_time"
 dandan-timeout: 60 # dandan api timeout in seconds
 server:
+#  dandan api token 配置
+  tokens:
+    - "xxx"
+    - "aaa"
   timeout: 10
   port: 8089
 platforms:

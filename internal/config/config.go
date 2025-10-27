@@ -81,8 +81,9 @@ type DanmakuConfig struct {
 }
 
 type ServerConfig struct {
-	Port    int `yaml:"port"`    // can be overwritten by cli parameter
-	Timeout int `yaml:"timeout"` // 全局api超时时间
+	Port    int      `yaml:"port"`    // can be overwritten by cli parameter
+	Timeout int      `yaml:"timeout"` // 全局api超时时间
+	Tokens  []string `yaml:"tokens"`  // token配置
 }
 
 type DanmakuPersistConfig struct {

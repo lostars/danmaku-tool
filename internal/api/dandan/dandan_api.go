@@ -60,13 +60,6 @@ func MatchHandler(w http.ResponseWriter, r *http.Request) {
 		api.ResponseJSON(w, http.StatusBadRequest, map[string]string{})
 		return
 	}
-	//{
-	// "fileName": "天穗之咲稻姬 S01E01",
-	// "fileSize": 0,
-	// "matchMode": "fileNameOnly",
-	// "videoDuration": 0,
-	// "fileHash": "123d05841b9456ccc7420b3f0bb21c3b"
-	//}
 
 	mode := service.GetDandanSourceMode()
 	if mode == nil {
