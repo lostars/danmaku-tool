@@ -4,6 +4,7 @@ import (
 	"compress/gzip"
 	"danmu-tool/internal/config"
 	"danmu-tool/internal/danmaku"
+	"danmu-tool/internal/utils"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -20,6 +21,7 @@ import (
 
 func (c *client) Init(config *config.DanmakuConfig) error {
 	common, err := danmaku.InitPlatformClient(danmaku.Bilibili)
+	logger = utils.GetComponentLogger(danmaku.Bilibili)
 	if err != nil {
 		return err
 	}

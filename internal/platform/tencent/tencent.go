@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"danmu-tool/internal/config"
 	"danmu-tool/internal/danmaku"
+	"danmu-tool/internal/utils"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -16,6 +17,7 @@ import (
 
 func (c *client) Init(config *config.DanmakuConfig) error {
 	common, err := danmaku.InitPlatformClient(danmaku.Tencent)
+	logger = utils.GetPlatformLogger(danmaku.Tencent)
 	if err != nil {
 		return err
 	}
