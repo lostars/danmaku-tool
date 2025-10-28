@@ -217,7 +217,7 @@ func (c *client) searchByType(searchType string, keyword string) (*SearchResult,
 	params := url.Values{
 		"search_type": {searchType},
 		"page":        {"1"},
-		"page_size":   {"10"},
+		"page_size":   {"30"},
 		"platform":    {"pc"},
 		"highlight":   {"1"},
 		"keyword":     {keyword},

@@ -57,7 +57,7 @@ func (c *realTimeData) Match(param MatchParam) (*MatchResult, error) {
 		Success: true,
 	}
 
-	media := danmaku.SearchMedia(searchTitle)
+	media := danmaku.MatchMedia(searchTitle)
 	for _, m := range media {
 		if m.Episodes == nil || len(m.Episodes) == 0 {
 			continue

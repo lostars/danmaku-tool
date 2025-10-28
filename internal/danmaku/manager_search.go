@@ -7,7 +7,7 @@ import (
 	"sync"
 )
 
-func SearchMedia(keyword string) []*Media {
+func MatchMedia(keyword string) []*Media {
 
 	searchers := adapter.searchers
 
