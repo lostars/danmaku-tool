@@ -24,7 +24,7 @@ func GetDandanSourceMode() DandanSourceMode {
 
 // DandanSourceMode dandan api 数据源接口
 type DandanSourceMode interface {
-	Search(param MatchParam) (*MatchResult, error)
+	Match(param MatchParam) (*MatchResult, error)
 	GetDanmaku(param CommentParam) (*CommentResult, error)
 	Mode() Mode
 }

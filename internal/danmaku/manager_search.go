@@ -21,7 +21,7 @@ func SearchMedia(keyword string) []*Media {
 	for _, s := range searchers {
 		go func(searcher MediaSearcher) {
 			defer wg.Done()
-			media, err := searcher.Search(keyword)
+			media, err := searcher.Match(keyword)
 			if err != nil {
 				logger.Error(err.Error(), "searchType", searcher.SearcherType(), "title", keyword)
 				return
@@ -40,7 +40,7 @@ func SearchMedia(keyword string) []*Media {
 	sort.Slice(result, func(i, j int) bool {
 		a := conf.GetPlatformConfig(string(result[i].Platform))
 		b := conf.GetPlatformConfig(string(result[j].Platform))
-		return a.Priority > b.Priority
+		return a.Priority < b.Priority
 	})
 
 	return result

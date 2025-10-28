@@ -51,8 +51,8 @@ type Initializer interface {
 }
 
 type MediaSearcher interface {
-	// Search 搜索剧集信息，如果是剧集，会获取ep信息同时返回 关键字格式是 'xxx S01E01'
-	Search(keyword string) ([]*Media, error)
+	// Match 匹配剧集信息，如果是剧集，会获取ep信息同时返回 关键字格式是 'xxx S01E01'
+	Match(keyword string) ([]*Media, error)
 	// GetDanmaku 实时获取平台弹幕 id: [platform]_[id]_[id]
 	GetDanmaku(id string) ([]*StandardDanmaku, error)
 	SearcherType() Platform

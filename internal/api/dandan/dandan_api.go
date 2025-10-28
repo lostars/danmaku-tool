@@ -69,7 +69,7 @@ func MatchHandler(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	result, err := mode.Search(param)
+	result, err := mode.Match(param)
 	utils.GetComponentLogger("dandan-api").Debug(fmt.Sprintf("request original param: %v", param))
 	if err != nil {
 		api.ResponseJSON(w, http.StatusBadRequest, map[string]string{

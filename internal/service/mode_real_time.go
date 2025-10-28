@@ -26,7 +26,7 @@ import (
 	memory_cache 指的是 episodeId 和 实际剧集信息的映射关系，并不是指缓存弹幕数据或者剧集信息本身。
 */
 
-func (c *realTimeData) Search(param MatchParam) (*MatchResult, error) {
+func (c *realTimeData) Match(param MatchParam) (*MatchResult, error) {
 
 	strs := strings.Split(param.FileName, " ")
 	if strs[0] == "" {

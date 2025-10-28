@@ -41,7 +41,7 @@ type SearchResult struct {
 	} `json:"data"`
 }
 
-func (c *client) Search(keyword string) ([]*danmaku.Media, error) {
+func (c *client) Match(keyword string) ([]*danmaku.Media, error) {
 	// b站是无法搜索 S01 季节的，只能转成中文数字才能匹配
 	matches := danmaku.SeriesRegex.FindStringSubmatch(keyword)
 	// 是否需要匹配第几季 >1季 才转换成汉语数字进行匹配
@@ -84,7 +84,7 @@ func (c *client) Search(keyword string) ([]*danmaku.Media, error) {
 			continue
 		}
 		matchedKeyword := keys[1]
-		if !strings.Contains(keyword, matchedKeyword) {
+		if !strings.Contains(keyword, strings.ReplaceAll(matchedKeyword, " ", "")) {
 			continue
 		}
 

@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-func (c *client) Search(keyword string) ([]*danmaku.Media, error) {
+func (c *client) Match(keyword string) ([]*danmaku.Media, error) {
 	ssId := int64(-1)
 	var err error
 	matches := danmaku.SeriesRegex.FindStringSubmatch(keyword)
@@ -97,31 +97,17 @@ func (c *client) Search(keyword string) ([]*danmaku.Media, error) {
 			logger.Info("title in blacklist", "subTitle", v.VideoInfo.SubTitle)
 			continue
 		}
-		switch v.VideoInfo.VideoType {
-		// 电影
-		case 1:
-			if ssId > 0 {
-				continue
-			}
+
+		var mediaType danmaku.MediaType
+		if ssId < 0 {
 			// 去掉标点之后 直接比较
 			plainTitle := danmaku.MarkRegex.ReplaceAllLiteralString(v.VideoInfo.Title, "")
 			plainKeyword := danmaku.MarkRegex.ReplaceAllLiteralString(keyword, "")
 			if plainTitle != plainKeyword {
 				continue
 			}
-
-			media, e := v.toMedia(c, danmaku.Movie, -1, keyword)
-			if e != nil {
-				continue
-			}
-			result = append(result, media)
-		// 综艺
-		case 10:
-		// 2剧集 3动漫
-		case 2, 3:
-			if ssId < 0 {
-				continue
-			}
+			mediaType = danmaku.Movie
+		} else {
 			// 匹配标题 搜出来即是命中
 			checkFirstSeason := false
 			if ssId == 1 && original != v.VideoInfo.Title {
@@ -148,61 +134,56 @@ func (c *client) Search(keyword string) ([]*danmaku.Media, error) {
 				// 没有集数信息
 				continue
 			}
-			// 搜索剧集列表
-			media, e := v.toMedia(c, danmaku.Series, ssId, "")
-			if e != nil {
+			mediaType = danmaku.Series
+		}
+
+		seriesItems, e := c.series(v.Doc.Id)
+		if e != nil {
+			logger.Error(e.Error())
+			continue
+		}
+
+		var eps = make([]*danmaku.MediaEpisode, 0, v.VideoInfo.SubjectDoc.VideoNum)
+		for _, ep := range seriesItems {
+			if ep.ItemParams.IsTrailer == "1" {
 				continue
 			}
-			result = append(result, media)
+			// 有可能vid为空
+			if ep.ItemParams.VID == "" {
+				continue
+			}
+
+			// 如果是电影则再次比对title 有些电影是没匹配上，但是剧集里会有一些预告甚至垃圾视频
+			if ssId < 0 && ep.ItemParams.Title != keyword {
+				continue
+			}
+			eps = append(eps, &danmaku.MediaEpisode{
+				Id:        ep.ItemParams.VID,
+				EpisodeId: ep.ItemParams.Title,
+				Title:     ep.ItemParams.CTitleOutput,
+			})
 		}
+		// 匹配剧场版 epId 暂时使用下标作为S00的epId 最新发布的在最前面
+		if ssId == 0 {
+			for i, ep := range eps {
+				ep.EpisodeId = strconv.FormatInt(int64(len(eps)-i), 10)
+			}
+		}
+
+		media := &danmaku.Media{
+			Id:       v.Doc.Id,
+			Type:     mediaType,
+			TypeDesc: v.VideoInfo.TypeName,
+			Desc:     v.VideoInfo.Desc,
+			Title:    v.VideoInfo.Title,
+			Episodes: eps,
+			Platform: danmaku.Tencent,
+		}
+
+		result = append(result, media)
 	}
 
 	return result, nil
-}
-
-func (v *SearchResultItem) toMedia(c *client, mediaType danmaku.MediaType, ssId int64, keyword string) (*danmaku.Media, error) {
-	seriesItems, e := c.series(v.Doc.Id)
-	if e != nil {
-		return nil, e
-	}
-
-	var eps = make([]*danmaku.MediaEpisode, 0, v.VideoInfo.SubjectDoc.VideoNum)
-	for _, ep := range seriesItems {
-		if ep.ItemParams.IsTrailer == "1" {
-			continue
-		}
-		// 有可能vid为空
-		if ep.ItemParams.VID == "" {
-			continue
-		}
-		// 如果是电影则再次比对title 有些电影是没匹配上，但是剧集里会有一些预告甚至垃圾视频
-		if ssId < 0 && ep.ItemParams.Title != keyword {
-			continue
-		}
-		eps = append(eps, &danmaku.MediaEpisode{
-			Id:        ep.ItemParams.VID,
-			EpisodeId: ep.ItemParams.Title,
-			Title:     ep.ItemParams.CTitleOutput,
-		})
-	}
-
-	// 匹配剧场版 epId 暂时使用下标作为S00的epId 最新发布的在最前面
-	if ssId == 0 {
-		for i, ep := range eps {
-			ep.EpisodeId = strconv.FormatInt(int64(len(eps)-i), 10)
-		}
-	}
-
-	media := &danmaku.Media{
-		Id:       v.Doc.Id,
-		Type:     mediaType,
-		TypeDesc: v.VideoInfo.TypeName,
-		Desc:     v.VideoInfo.Desc,
-		Title:    v.VideoInfo.Title,
-		Episodes: eps,
-		Platform: danmaku.Tencent,
-	}
-	return media, nil
 }
 
 var tencentExcludeRegex = regexp.MustCompile(`(全网搜|外站)`)
