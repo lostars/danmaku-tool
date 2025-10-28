@@ -59,7 +59,7 @@ func (c *client) Match(keyword string) ([]*danmaku.Media, error) {
 	}
 	c.setRequest(searchReq)
 
-	resp, err := c.HttpClient.Do(searchReq)
+	resp, err := c.common.HttpClient.Do(searchReq)
 	if err != nil {
 		return nil, err
 	}

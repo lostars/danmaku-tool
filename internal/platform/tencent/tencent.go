@@ -15,11 +15,7 @@ import (
 )
 
 type client struct {
-	HttpClient *http.Client
-	MaxWorker  int
-	Cookie     string
-
-	xmlPersist *danmaku.DataXMLPersist
+	common *danmaku.PlatformClient
 }
 
 func (c *client) Platform() danmaku.Platform {
@@ -51,7 +47,7 @@ func (c *client) doSeriesRequest(cid, vid string, pageId, pageContent string) (*
 		return nil, err
 	}
 	c.setRequest(seriesReq)
-	seriesResp, err := c.HttpClient.Do(seriesReq)
+	seriesResp, err := c.common.HttpClient.Do(seriesReq)
 	if err != nil {
 		return nil, err
 	}
@@ -190,7 +186,7 @@ func (c *client) Scrape(id interface{}) error {
 			title = ep.ItemParams.Title + "_"
 		}
 		filename := title + ep.ItemParams.VID
-		if e := c.xmlPersist.WriteToFile(parser, path, filename); e != nil {
+		if e := c.common.XmlPersist.WriteToFile(parser, path, filename); e != nil {
 			logger.Error(e.Error())
 		}
 
@@ -217,7 +213,7 @@ func (c *client) getDanmakuByVid(vid string) ([]*danmaku.StandardDanmaku, error)
 		return nil, err
 	}
 	c.setRequest(danmakuConfigReq)
-	resp, e := c.HttpClient.Do(danmakuConfigReq)
+	resp, e := c.common.HttpClient.Do(danmakuConfigReq)
 	if e != nil {
 		return nil, e
 	}
@@ -236,7 +232,7 @@ func (c *client) getDanmakuByVid(vid string) ([]*danmaku.StandardDanmaku, error)
 	var result []*danmaku.StandardDanmaku
 	tasks := make(chan task, segmentsLen)
 	var wg sync.WaitGroup
-	for w := 0; w < c.MaxWorker; w++ {
+	for w := 0; w < c.common.MaxWorker; w++ {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
@@ -279,7 +275,7 @@ func (c *client) scrape(vid, segment string) []*danmaku.StandardDanmaku {
 		logger.Error(err.Error())
 		return nil
 	}
-	resp, err := c.HttpClient.Do(req)
+	resp, err := c.common.HttpClient.Do(req)
 	if err != nil {
 		logger.Error(err.Error())
 		return nil
@@ -336,7 +332,7 @@ func (c *client) scrape(vid, segment string) []*danmaku.StandardDanmaku {
 }
 
 func (c *client) setRequest(req *http.Request) {
-	req.Header.Set("Cookie", c.Cookie)
+	req.Header.Set("Cookie", c.common.Cookie)
 	req.Header.Set("Origin", "https://v.qq.com/")
 	req.Header.Set("Referer", "https://v.qq.com/")
 	// 注意如果json请求不设置该请求头，则会导致部分接口异常返回400，哪怕参数全部正常。

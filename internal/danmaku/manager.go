@@ -3,8 +3,10 @@ package danmaku
 import (
 	"danmu-tool/internal/config"
 	"fmt"
+	"net/http"
 	"regexp"
 	"strings"
+	"time"
 )
 
 func PlatformError(p Platform, text string) error {
@@ -38,6 +40,48 @@ type MediaEpisode struct {
 	Title     string
 
 	Danmaku []*StandardDanmaku // 弹幕信息
+}
+
+type PlatformClient struct {
+	MaxWorker  int
+	Cookie     string
+	HttpClient *http.Client
+
+	XmlPersist *DataXMLPersist
+}
+
+func InitPlatformClient(p Platform) (*PlatformClient, error) {
+	conf := config.GetConfig().GetPlatformConfig(string(p))
+	if conf == nil || conf.Name == "" {
+		return nil, fmt.Errorf("config name is empty")
+	}
+	if conf.Priority < 0 {
+		return nil, fmt.Errorf("%s is disabled", p)
+	}
+
+	c := &PlatformClient{}
+
+	c.Cookie = conf.Cookie
+	c.MaxWorker = conf.MaxWorker
+	if c.MaxWorker <= 0 {
+		c.MaxWorker = 8
+	}
+	var timeout = conf.Timeout
+	if timeout <= 0 {
+		timeout = 60
+	}
+	c.HttpClient = &http.Client{Timeout: time.Duration(timeout * 1e9)}
+
+	// 初始化数据存储器
+	for _, p := range conf.Persists {
+		switch p.Type {
+		case XMLPersistType:
+			c.XmlPersist = &DataXMLPersist{
+				Indent: p.Indent,
+			}
+		}
+	}
+	return c, nil
 }
 
 type Scraper interface {
@@ -146,6 +190,7 @@ type Platform string
 const (
 	Bilibili = "bilibili"
 	Tencent  = "tencent"
+	Youku    = "youku"
 )
 
 type DataPersistType string

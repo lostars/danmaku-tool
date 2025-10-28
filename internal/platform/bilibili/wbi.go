@@ -20,8 +20,8 @@ func (c *client) setToken() error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Cookie", c.Cookie)
-	resp, err := c.HttpClient.Do(req)
+	req.Header.Set("Cookie", c.common.Cookie)
+	resp, err := c.common.HttpClient.Do(req)
 	if err != nil {
 		return err
 	}

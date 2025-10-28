@@ -19,14 +19,10 @@ import (
 )
 
 type client struct {
-	MaxWorker  int
-	Cookie     string
-	HttpClient *http.Client
+	common *danmaku.PlatformClient
 
 	// 接口签名token信息
 	token tokenKey
-
-	xmlParser *danmaku.DataXMLPersist
 }
 
 func (c *client) Platform() danmaku.Platform {
@@ -51,7 +47,7 @@ func (c *client) scrape(oid, pid, segmentIndex int64) []*DanmakuElem {
 
 	// 2. 【关键】设置 Accept-Encoding: gzip，告诉服务器客户端支持 Gzip 压缩
 	req.Header.Set("Accept-Encoding", "gzip")
-	req.Header.Set("Cookie", c.Cookie)
+	req.Header.Set("Cookie", c.common.Cookie)
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -176,8 +172,8 @@ func (c *client) Scrape(id interface{}) error {
 	if err != nil {
 		return danmaku.PlatformError(danmaku.Bilibili, fmt.Sprintf("create season request err: %s", err.Error()))
 	}
-	req.Header.Set("Cookie", c.Cookie)
-	resp, err := c.HttpClient.Do(req)
+	req.Header.Set("Cookie", c.common.Cookie)
+	resp, err := c.common.HttpClient.Do(req)
 	if err != nil {
 		return danmaku.PlatformError(danmaku.Bilibili, fmt.Sprintf("get season err: %s", err.Error()))
 	}
@@ -230,7 +226,7 @@ func (c *client) Scrape(id interface{}) error {
 		}
 		tasks := make(chan task, segments)
 		var wg sync.WaitGroup
-		for w := 0; w < c.MaxWorker; w++ {
+		for w := 0; w < c.common.MaxWorker; w++ {
 			wg.Add(1)
 			go func(i int) {
 				defer wg.Done()
@@ -269,7 +265,7 @@ func (c *client) Scrape(id interface{}) error {
 		wg.Wait()
 
 		filename := strconv.FormatInt(ep.EPId, 10)
-		if e := c.xmlParser.WriteToFile(parser, path, filename); e != nil {
+		if e := c.common.XmlPersist.WriteToFile(parser, path, filename); e != nil {
 			logger.Error(e.Error())
 		}
 

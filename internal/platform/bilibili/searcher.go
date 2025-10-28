@@ -231,9 +231,9 @@ func (c *client) searchByType(searchType string, keyword string) (*SearchResult,
 		return nil, err
 	}
 
-	req.Header.Set("Cookie", c.Cookie)
+	req.Header.Set("Cookie", c.common.Cookie)
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36")
-	resp, err := c.HttpClient.Do(req)
+	resp, err := c.common.HttpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -278,8 +278,8 @@ func (c *client) GetDanmaku(id string) ([]*danmaku.StandardDanmaku, error) {
 	if err != nil {
 		return nil, danmaku.PlatformError(danmaku.Bilibili, fmt.Sprintf("create season request err: %s", err.Error()))
 	}
-	req.Header.Set("Cookie", c.Cookie)
-	resp, err := c.HttpClient.Do(req)
+	req.Header.Set("Cookie", c.common.Cookie)
+	resp, err := c.common.HttpClient.Do(req)
 	if err != nil {
 		return nil, danmaku.PlatformError(danmaku.Bilibili, fmt.Sprintf("get season err: %s", err.Error()))
 	}
@@ -311,7 +311,7 @@ func (c *client) GetDanmaku(id string) ([]*danmaku.StandardDanmaku, error) {
 
 		tasks := make(chan task, segments)
 		var wg sync.WaitGroup
-		for w := 0; w < c.MaxWorker; w++ {
+		for w := 0; w < c.common.MaxWorker; w++ {
 			wg.Add(1)
 			go func(i int) {
 				defer wg.Done()
