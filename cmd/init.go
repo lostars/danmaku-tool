@@ -17,7 +17,7 @@ func Init() {
 	// initializers
 	for _, init := range danmaku.GetInitializers() {
 		if err := init.Init(config.GetConfig()); err != nil {
-			_, _ = fmt.Fprintf(os.Stdout, "initialize error: %v", err)
+			_, _ = fmt.Fprintf(os.Stdout, "initialize info: %v\n", err)
 		}
 	}
 }

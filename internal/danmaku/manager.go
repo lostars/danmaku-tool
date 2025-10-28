@@ -50,13 +50,13 @@ type PlatformClient struct {
 	XmlPersist *DataXMLPersist
 }
 
-func InitPlatformClient(p Platform) (*PlatformClient, error) {
-	conf := config.GetConfig().GetPlatformConfig(string(p))
+func InitPlatformClient(platform Platform) (*PlatformClient, error) {
+	conf := config.GetConfig().GetPlatformConfig(string(platform))
 	if conf == nil || conf.Name == "" {
-		return nil, fmt.Errorf("config name is empty")
+		return nil, fmt.Errorf("%s is not configured", platform)
 	}
 	if conf.Priority < 0 {
-		return nil, fmt.Errorf("%s is disabled", p)
+		return nil, fmt.Errorf("%s is disabled", platform)
 	}
 
 	c := &PlatformClient{}
@@ -173,16 +173,15 @@ func GetPlatforms() []string {
 	return result
 }
 
-func Register(i interface{}) {
-	if v, ok := i.(MediaSearcher); ok {
-		adapter.searchers = append(adapter.searchers, v)
-	}
-	if v, ok := i.(Scraper); ok {
-		adapter.scrapers = append(adapter.scrapers, v)
-	}
-	if v, ok := i.(Initializer); ok {
-		adapter.initializers = append(adapter.initializers, v)
-	}
+func RegisterMediaSearcher(s MediaSearcher) {
+	adapter.searchers = append(adapter.searchers, s)
+}
+func RegisterScraper(s Scraper) {
+	adapter.scrapers = append(adapter.scrapers, s)
+}
+
+func RegisterInitializer(i Initializer) {
+	adapter.initializers = append(adapter.initializers, i)
 }
 
 type Platform string

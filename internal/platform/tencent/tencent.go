@@ -14,6 +14,21 @@ import (
 	"sync"
 )
 
+func (c *client) Init(config *config.DanmakuConfig) error {
+	common, err := danmaku.InitPlatformClient(danmaku.Tencent)
+	if err != nil {
+		return err
+	}
+	c.common = common
+	danmaku.RegisterScraper(c)
+	danmaku.RegisterMediaSearcher(c)
+	return nil
+}
+
+func init() {
+	danmaku.RegisterInitializer(&client{})
+}
+
 type client struct {
 	common *danmaku.PlatformClient
 }
