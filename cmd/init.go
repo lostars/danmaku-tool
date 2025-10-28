@@ -16,7 +16,7 @@ func Init() {
 	utils.LoggerConf.InitLogger(flags.Debug)
 	// initializers
 	for _, init := range danmaku.GetInitializers() {
-		if err := init.Init(config.GetConfig()); err != nil {
+		if err := init.Init(); err != nil {
 			_, _ = fmt.Fprintf(os.Stdout, "initialize info: %v\n", err)
 		}
 	}

@@ -6,16 +6,13 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"sync"
 )
 
 type xmlParser struct {
 	danmaku        []*danmaku.StandardDanmaku
-	danmakuLock    sync.Mutex
 	epId, seasonId int64
 	// ep时长 ms
 	epDuration int64
-	platform   danmaku.Platform
 }
 
 func (c *xmlParser) Parse() (*danmaku.DataXML, error) {
@@ -39,7 +36,7 @@ func (c *xmlParser) Parse() (*danmaku.DataXML, error) {
 			strconv.FormatInt(int64(v.Mode), 10),
 			strconv.FormatInt(int64(v.FontSize), 10),
 			strconv.FormatInt(int64(v.Color), 10),
-			fmt.Sprintf("[%s]", c.platform),
+			fmt.Sprintf("[%s]", danmaku.Bilibili),
 		}
 		d := danmaku.DataXMLDanmaku{
 			Attributes: strings.Join(attr, ","),

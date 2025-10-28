@@ -56,7 +56,7 @@ func (c *client) Match(keyword string) ([]*danmaku.Media, error) {
 			if id <= 20 && id > 1 {
 				//matchSeason = true
 				keyword = strings.Join([]string{matches[1], "第", danmaku.ChineseNumberSlice[ssId-1], "季"}, "")
-				logger.Info(fmt.Sprintf("real search keyword %s", keyword))
+				c.common.Logger.Info(fmt.Sprintf("real search keyword %s", keyword))
 			}
 		}
 	}
@@ -73,7 +73,7 @@ func (c *client) Match(keyword string) ([]*danmaku.Media, error) {
 		result.Data.Result = append(result.Data.Result, result2.Data.Result...)
 	}
 	if result.Data.Result == nil {
-		logger.Info("search no result", "keyword", keyword)
+		c.common.Logger.Info("search no result", "keyword", keyword)
 		return data, nil
 	}
 
@@ -350,7 +350,7 @@ func (c *client) GetDanmaku(id string) ([]*danmaku.StandardDanmaku, error) {
 		wg.Wait()
 	}
 
-	logger.Info("get danmaku done", "size", len(result))
+	c.common.Logger.Info("get danmaku done", "size", len(result))
 
 	return result, nil
 }

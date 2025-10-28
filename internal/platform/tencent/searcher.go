@@ -31,7 +31,7 @@ func (c *client) Match(keyword string) ([]*danmaku.Media, error) {
 		}
 	}
 
-	logger.Debug(fmt.Sprintf("search keyword: %s", keyword))
+	c.common.Logger.Debug(fmt.Sprintf("search keyword: %s", keyword))
 	searchParam := SearchParam{
 		Version:    "25101301",
 		ClientType: 1,
@@ -94,7 +94,7 @@ func (c *client) Match(keyword string) ([]*danmaku.Media, error) {
 	for _, v := range itemList {
 		if tencentExcludeRegex.MatchString(v.VideoInfo.SubTitle) {
 			// 命中黑名单 则代表搜索不到
-			logger.Info("title in blacklist", "subTitle", v.VideoInfo.SubTitle)
+			c.common.Logger.Info("title in blacklist", "subTitle", v.VideoInfo.SubTitle)
 			continue
 		}
 
@@ -139,7 +139,7 @@ func (c *client) Match(keyword string) ([]*danmaku.Media, error) {
 
 		seriesItems, e := c.series(v.Doc.Id)
 		if e != nil {
-			logger.Error(e.Error())
+			c.common.Logger.Error(e.Error())
 			continue
 		}
 

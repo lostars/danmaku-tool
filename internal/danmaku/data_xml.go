@@ -1,11 +1,14 @@
 package danmaku
 
 import (
+	"danmu-tool/internal/config"
 	"danmu-tool/internal/utils"
 	"encoding/xml"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 )
 
 type DataXML struct {
@@ -71,4 +74,30 @@ func (x *DataXMLPersist) WriteToFile(parser DataXMLParser, fullPath, filename st
 
 	utils.GetComponentLogger(XMLPersistType).Info("file save success", "file", writeFile)
 	return nil
+}
+
+func NormalConvert(source []*StandardDanmaku, platform string, duration int64) []DataXMLDanmaku {
+	mergedMills := config.GetConfig().GetPlatformConfig(platform).MergeDanmakuInMills
+	if mergedMills > 0 {
+		source = MergeDanmaku(source, mergedMills, duration)
+	}
+
+	var data = make([]DataXMLDanmaku, 0, len(source))
+	// <d p="2.603,1,25,16777215,[tencent]">看看 X2</d>
+	// 第几秒/弹幕类型/字体大小/颜色
+	for _, v := range source {
+		var attr = []string{
+			strconv.FormatFloat(float64(v.Offset)/1000, 'f', 2, 64),
+			strconv.FormatInt(int64(v.Mode), 10),
+			"25", // 固定字号
+			strconv.FormatInt(int64(v.Color), 10),
+			fmt.Sprintf("[%s]", platform),
+		}
+		d := DataXMLDanmaku{
+			Attributes: strings.Join(attr, ","),
+			Content:    v.Content,
+		}
+		data = append(data, d)
+	}
+	return data
 }

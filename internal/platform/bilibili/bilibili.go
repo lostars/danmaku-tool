@@ -4,11 +4,9 @@ import (
 	"compress/gzip"
 	"danmu-tool/internal/config"
 	"danmu-tool/internal/danmaku"
-	"danmu-tool/internal/utils"
 	"encoding/json"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 	"net/url"
 	"path/filepath"
@@ -19,9 +17,8 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func (c *client) Init(config *config.DanmakuConfig) error {
+func (c *client) Init() error {
 	common, err := danmaku.InitPlatformClient(danmaku.Bilibili)
-	logger = utils.GetComponentLogger(danmaku.Bilibili)
 	if err != nil {
 		return err
 	}
@@ -58,7 +55,7 @@ func (c *client) scrape(oid, pid, segmentIndex int64) []*DanmakuElem {
 	client := &http.Client{}
 	req, err := http.NewRequest(http.MethodGet, api, nil)
 	if err != nil {
-		logger.Info(fmt.Sprintf("create request error: %s", err))
+		c.common.Logger.Info(fmt.Sprintf("create request error: %s", err))
 		return nil
 	}
 
@@ -68,13 +65,13 @@ func (c *client) scrape(oid, pid, segmentIndex int64) []*DanmakuElem {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		logger.Info(fmt.Sprintf("request failed: %s", err))
+		c.common.Logger.Info(fmt.Sprintf("request failed: %s", err))
 		return nil
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		logger.Info("request not ok", "code", resp.Status)
+		c.common.Logger.Info("request not ok", "code", resp.Status)
 		return nil
 	}
 
@@ -85,30 +82,30 @@ func (c *client) scrape(oid, pid, segmentIndex int64) []*DanmakuElem {
 			var raw = json.RawMessage{}
 			err = json.NewDecoder(resp.Body).Decode(&raw)
 			if err != nil {
-				logger.Error(err.Error())
+				c.common.Logger.Error(err.Error())
 			} else {
-				logger.Error(fmt.Sprintf("unknown error: %s", string(raw)))
+				c.common.Logger.Error(fmt.Sprintf("unknown error: %s", string(raw)))
 			}
 		} else {
-			logger.Error(fmt.Sprintf("unknown content type: %s", contentType))
+			c.common.Logger.Error(fmt.Sprintf("unknown content type: %s", contentType))
 		}
 		return nil
 	}
 
 	gzipReader, err := gzip.NewReader(resp.Body)
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to create gzip reader: %v", err))
+		c.common.Logger.Error(fmt.Sprintf("failed to create gzip reader: %v", err))
 		return nil
 	}
 	defer gzipReader.Close()
 	reply := &DmSegMobileReply{}
 	jsonBytes, err := io.ReadAll(gzipReader)
 	if err != nil {
-		logger.Error(err.Error())
+		c.common.Logger.Error(err.Error())
 		return nil
 	}
 	if err := proto.Unmarshal(jsonBytes, reply); err != nil {
-		logger.Error(err.Error())
+		c.common.Logger.Error(err.Error())
 		return nil
 	}
 	return reply.GetElems()
@@ -205,7 +202,7 @@ func (c *client) Scrape(id interface{}) error {
 		return danmaku.PlatformError(danmaku.Bilibili, fmt.Sprintf("season resp error code: %v, message: %s", series.Code, series.Message))
 	}
 
-	logger.Info("scrape start", "id", realId)
+	c.common.Logger.Info("scrape start", "id", realId)
 	// savePath/{platform}/{ssid}/{epid}.xml : ./bilibili/1234/11234
 	path := filepath.Join(config.GetConfig().SavePath, danmaku.Bilibili, strconv.FormatInt(series.Result.SeasonId, 10))
 
@@ -220,7 +217,7 @@ func (c *client) Scrape(id interface{}) error {
 
 		// 排除掉预告，b站会把预告也放入其中
 		if ep.SectionType == 1 {
-			logger.Debug("scrape skipped because of section type of 1", "epId", ep.EPId)
+			c.common.Logger.Debug("scrape skipped because of section type of 1", "epId", ep.EPId)
 			continue
 		}
 
@@ -236,12 +233,12 @@ func (c *client) Scrape(id interface{}) error {
 			epId:       ep.EPId,
 			seasonId:   series.Result.SeasonId,
 			epDuration: ep.Duration,
-			platform:   c.Platform(),
 		}
 		if isEP {
 			epTitle = ep.Title
 		}
 		tasks := make(chan task, segments)
+		lock := sync.Mutex{}
 		var wg sync.WaitGroup
 		for w := 0; w < c.common.MaxWorker; w++ {
 			wg.Add(1)
@@ -262,9 +259,9 @@ func (c *client) Scrape(id interface{}) error {
 							FontSize: d.Fontsize,
 						})
 					}
-					parser.danmakuLock.Lock()
+					lock.Lock()
 					parser.danmaku = append(parser.danmaku, standardData...)
-					parser.danmakuLock.Unlock()
+					lock.Unlock()
 				}
 			}(w)
 		}
@@ -283,22 +280,20 @@ func (c *client) Scrape(id interface{}) error {
 
 		filename := strconv.FormatInt(ep.EPId, 10)
 		if e := c.common.XmlPersist.WriteToFile(parser, path, filename); e != nil {
-			logger.Error(e.Error())
+			c.common.Logger.Error(e.Error())
 		}
 
-		logger.Info("ep scraped done", "epId", ep.EPId, "size", len(parser.danmaku))
+		c.common.Logger.Info("ep scraped done", "epId", ep.EPId, "size", len(parser.danmaku))
 	}
 
 	var t = series.Result.Title
 	if isEP {
 		t += epTitle
 	}
-	logger.Info("danmaku scraped done", "title", t)
+	c.common.Logger.Info("danmaku scraped done", "title", t)
 
 	return nil
 }
-
-var logger *slog.Logger
 
 type task struct {
 	cid     int64

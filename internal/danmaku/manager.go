@@ -2,7 +2,9 @@ package danmaku
 
 import (
 	"danmu-tool/internal/config"
+	"danmu-tool/internal/utils"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"regexp"
 	"strings"
@@ -48,6 +50,7 @@ type PlatformClient struct {
 	HttpClient *http.Client
 
 	XmlPersist *DataXMLPersist
+	Logger     *slog.Logger
 }
 
 func InitPlatformClient(platform Platform) (*PlatformClient, error) {
@@ -71,6 +74,7 @@ func InitPlatformClient(platform Platform) (*PlatformClient, error) {
 		timeout = 60
 	}
 	c.HttpClient = &http.Client{Timeout: time.Duration(timeout * 1e9)}
+	c.Logger = utils.GetPlatformLogger(string(platform))
 
 	// 初始化数据存储器
 	for _, p := range conf.Persists {
@@ -91,7 +95,7 @@ type Scraper interface {
 }
 
 type Initializer interface {
-	Init(conf *config.DanmakuConfig) error
+	Init() error
 }
 
 type MediaSearcher interface {

@@ -1,4 +1,4 @@
-package tencent
+package youku
 
 import (
 	"danmu-tool/internal/danmaku"
@@ -13,18 +13,18 @@ type xmlParser struct {
 
 func (c *xmlParser) Parse() (*danmaku.DataXML, error) {
 	if c.danmaku == nil {
-		return nil, danmaku.PlatformError(danmaku.Tencent, "danmaku is nil")
+		return nil, danmaku.PlatformError(danmaku.Youku, "danmaku is nil")
 	}
 
 	xml := danmaku.DataXML{
-		ChatServer:     "chat.v.qq.com",
+		ChatServer:     "chat.v.youku.com",
 		ChatID:         c.vid,
 		Mission:        0,
 		MaxLimit:       2000,
 		Source:         "k-v",
-		SourceProvider: danmaku.Tencent,
+		SourceProvider: danmaku.Youku,
 		DataSize:       len(c.danmaku),
-		Danmaku:        danmaku.NormalConvert(c.danmaku, danmaku.Tencent, c.duration),
+		Danmaku:        danmaku.NormalConvert(c.danmaku, danmaku.Youku, c.duration),
 	}
 
 	return &xml, nil

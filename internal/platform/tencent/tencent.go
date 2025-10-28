@@ -4,20 +4,17 @@ import (
 	"bytes"
 	"danmu-tool/internal/config"
 	"danmu-tool/internal/danmaku"
-	"danmu-tool/internal/utils"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"path/filepath"
 	"strconv"
 	"sync"
 )
 
-func (c *client) Init(config *config.DanmakuConfig) error {
+func (c *client) Init() error {
 	common, err := danmaku.InitPlatformClient(danmaku.Tencent)
-	logger = utils.GetPlatformLogger(danmaku.Tencent)
 	if err != nil {
 		return err
 	}
@@ -96,7 +93,7 @@ func (c *client) series(cid string) ([]*SeriesItem, error) {
 	// 解析剧集信息，可能会有多个tab
 	tabStr := seriesResult.Data.ModuleListData[0].ModuleData[0].ModuleParams.Tabs
 	if tabStr == "" {
-		logger.Debug("series has no tabs", "cid", cid)
+		c.common.Logger.Debug("series has no tabs", "cid", cid)
 		return eps, nil
 	}
 	var tabs []SeriesTab
@@ -112,13 +109,13 @@ func (c *client) series(cid string) ([]*SeriesItem, error) {
 
 		tabSeries, err := c.doSeriesRequest(cid, "", SeriesEPPageId, tab.PageContext)
 		if err != nil {
-			logger.Error(err.Error())
+			c.common.Logger.Error(err.Error())
 			continue
 		}
 
 		d, err := tabSeries.series()
 		if err != nil {
-			logger.Error(err.Error())
+			c.common.Logger.Error(err.Error())
 			continue
 		}
 		eps = append(eps, d...)
@@ -161,7 +158,7 @@ func (c *client) Scrape(id interface{}) error {
 	if err != nil {
 		return err
 	}
-	logger.Info("get ep done", "cid", cid, "size", len(eps))
+	c.common.Logger.Info("get ep done", "cid", cid, "size", len(eps))
 	if len(eps) <= 0 {
 		return nil
 	}
@@ -172,18 +169,18 @@ func (c *client) Scrape(id interface{}) error {
 			continue
 		}
 		if ep.ItemParams.IsTrailer == "1" {
-			logger.Info("ep skipped because of trailer type", "vid", ep.ItemParams.VID)
+			c.common.Logger.Info("ep skipped because of trailer type", "vid", ep.ItemParams.VID)
 			continue
 		}
 		// 有可能vid为空
 		if ep.ItemParams.VID == "" {
-			logger.Debug("skipped because of empty vid")
+			c.common.Logger.Debug("skipped because of empty vid")
 			continue
 		}
 
 		data, e := c.getDanmakuByVid(ep.ItemParams.VID)
 		if e != nil {
-			logger.Error(fmt.Sprintf("get danmaku by vid error: %s", e.Error()))
+			c.common.Logger.Error(fmt.Sprintf("get danmaku by vid error: %s", e.Error()))
 			continue
 		}
 		parser := &xmlParser{
@@ -194,7 +191,7 @@ func (c *client) Scrape(id interface{}) error {
 		if err == nil {
 			parser.duration = v * 1000
 		} else {
-			logger.Error("duration is not number", "vid", ep.ItemParams.VID, "duration", ep.ItemParams.Duration)
+			c.common.Logger.Error("duration is not number", "vid", ep.ItemParams.VID, "duration", ep.ItemParams.Duration)
 		}
 
 		path := filepath.Join(config.GetConfig().SavePath, danmaku.Tencent, ep.ItemParams.CID)
@@ -204,13 +201,13 @@ func (c *client) Scrape(id interface{}) error {
 		}
 		filename := title + ep.ItemParams.VID
 		if e := c.common.XmlPersist.WriteToFile(parser, path, filename); e != nil {
-			logger.Error(e.Error())
+			c.common.Logger.Error(e.Error())
 		}
 
-		logger.Info("ep scraped done", "vid", ep.ItemParams.VID, "size", len(parser.danmaku))
+		c.common.Logger.Info("ep scraped done", "vid", ep.ItemParams.VID, "size", len(parser.danmaku))
 	}
 
-	logger.Info("danmaku scraped done", "cid", cid)
+	c.common.Logger.Info("danmaku scraped done", "cid", cid)
 
 	return nil
 }
@@ -244,9 +241,10 @@ func (c *client) getDanmakuByVid(vid string) ([]*danmaku.StandardDanmaku, error)
 	if segmentResult.Data.SegmentIndex == nil || segmentsLen <= 0 {
 		return nil, fmt.Errorf("no segments vid: %s", vid)
 	}
-	logger.Debug(fmt.Sprintf("danmaku segments size: %v", segmentsLen), "vid", vid, "size", segmentsLen)
+	c.common.Logger.Debug(fmt.Sprintf("danmaku segments size: %v", segmentsLen), "vid", vid, "size", segmentsLen)
 
 	var result []*danmaku.StandardDanmaku
+	lock := sync.Mutex{}
 	tasks := make(chan task, segmentsLen)
 	var wg sync.WaitGroup
 	for w := 0; w < c.common.MaxWorker; w++ {
@@ -258,7 +256,9 @@ func (c *client) getDanmakuByVid(vid string) ([]*danmaku.StandardDanmaku, error)
 				if data == nil || len(data) <= 0 {
 					continue
 				}
+				lock.Lock()
 				result = append(result, data...)
+				lock.Unlock()
 			}
 		}(w)
 	}
@@ -289,12 +289,12 @@ func (c *client) scrape(vid, segment string) []*danmaku.StandardDanmaku {
 
 	req, err := http.NewRequest(http.MethodGet, api, nil)
 	if err != nil {
-		logger.Error(err.Error())
+		c.common.Logger.Error(err.Error())
 		return nil
 	}
 	resp, err := c.common.HttpClient.Do(req)
 	if err != nil {
-		logger.Error(err.Error())
+		c.common.Logger.Error(err.Error())
 		return nil
 	}
 	defer resp.Body.Close()
@@ -302,7 +302,7 @@ func (c *client) scrape(vid, segment string) []*danmaku.StandardDanmaku {
 	var danmakuResult DanmakuResult
 	err = json.NewDecoder(resp.Body).Decode(&danmakuResult)
 	if err != nil {
-		logger.Error(err.Error())
+		c.common.Logger.Error(err.Error())
 		return nil
 	}
 
@@ -310,7 +310,7 @@ func (c *client) scrape(vid, segment string) []*danmaku.StandardDanmaku {
 	for _, v := range danmakuResult.BarrageList {
 		offset, err := strconv.ParseInt(v.TimeOffset, 10, 64)
 		if err != nil {
-			logger.Error("invalid offset", "vid", vid, "offset", v.TimeOffset)
+			c.common.Logger.Error("invalid offset", "vid", vid, "offset", v.TimeOffset)
 			continue
 		}
 
@@ -383,5 +383,3 @@ func (s *SeriesResult) series() ([]*SeriesItem, error) {
 	}
 	return eps, nil
 }
-
-var logger *slog.Logger
