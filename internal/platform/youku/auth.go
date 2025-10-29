@@ -15,8 +15,25 @@ import (
 
 func (c *client) refreshToken() {
 	// cna https://log.mmstat.com/eg.js etag "C2CHIZvOsxUCAQAAAADMJgVh"
+	cnaUrl := "https://log.mmstat.com/eg.js"
+	cnaReq, _ := http.NewRequest(http.MethodGet, cnaUrl, nil)
+	cnaResp, e := c.common.DoReq(cnaReq)
+	if e != nil {
+		return
+	}
+	defer cnaResp.Body.Close()
+	if cnaResp.StatusCode != http.StatusOK {
+		return
+	}
+	etags := cnaResp.Header.Values("etag")
+	if etags == nil || len(etags) < 1 {
+		return
+	}
+	c.cna = etags[0]
+
 	api := "https://acs.youku.com/h5/mtop.com.youku.aplatform.weakget/1.0/?jsv=2.5.1&appKey=24679788"
 	req, _ := http.NewRequest(http.MethodGet, api, nil)
+	req.Header.Set("cookie", "cna="+c.cna)
 	resp, err := c.common.DoReq(req)
 	if err != nil {
 		return
@@ -83,8 +100,13 @@ func signPayload() (string, string) {
 	return msg, fmt.Sprintf("%x", h.Sum(nil))
 }
 
+func (c *client) setReq(req *http.Request) {
+	req.Header.Set("content-type", "application/x-www-form-urlencoded")
+	req.Header.Set("cookie", fmt.Sprintf("_m_h5_tk=%s;_m_h5_tk_enc=%s;cna=%s", c.token, c.tokenEnc, c.cna))
+}
+
 func (c *client) sign(params map[string]interface{}, api apiInfo) (url.Values, string) {
-	if c.token == "" || c.tokenEnc == "" || time.Since(c.tkLastUpdate).Hours() >= 24 {
+	if c.cna == "" || c.token == "" || c.tokenEnc == "" || time.Since(c.tkLastUpdate).Hours() >= 24 {
 		c.refreshToken()
 	}
 

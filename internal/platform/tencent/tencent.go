@@ -317,7 +317,7 @@ func (c *client) scrape(vid, segment string) []*danmaku.StandardDanmaku {
 		// 解析颜色
 		var color DanmakuColorResult
 		var mode = danmaku.RollMode
-		var colorValue = 16777215
+		var colorValue = danmaku.WhiteColor
 		if err := json.Unmarshal([]byte(v.ContentStyle), &color); err == nil {
 			switch color.Position {
 			case 2:

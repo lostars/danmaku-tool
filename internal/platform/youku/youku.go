@@ -17,9 +17,9 @@ import (
 )
 
 type client struct {
-	common          *danmaku.PlatformClient
-	token, tokenEnc string
-	tkLastUpdate    time.Time
+	common               *danmaku.PlatformClient
+	token, tokenEnc, cna string
+	tkLastUpdate         time.Time
 }
 
 func init() {
@@ -33,6 +33,7 @@ func (c *client) Init() error {
 	}
 	c.common = common
 	danmaku.RegisterScraper(c)
+	danmaku.RegisterMediaSearcher(c)
 	return nil
 }
 
@@ -94,19 +95,7 @@ func (c *client) videoInfo(vid string) (*VideoInfoFromHtml, error) {
 	return &info, nil
 }
 
-func (c *client) scrapeVideo(vid string) {
-	info, err := c.videoInfo(vid)
-	if err != nil {
-		c.common.Logger.Error(fmt.Sprintf("%s video info error", err.Error()))
-		return
-	}
-
-	duration, err := strconv.ParseFloat(info.Seconds, 64)
-	if err != nil {
-		return
-	}
-	// 1分钟分片
-	segmentsLen := int(duration/60 + 1)
+func (c *client) scrapeDanmaku(vid string, segmentsLen int) []*danmaku.StandardDanmaku {
 
 	var result []*danmaku.StandardDanmaku
 	tasks := make(chan task, segmentsLen)
@@ -145,6 +134,24 @@ func (c *client) scrapeVideo(vid string) {
 	}()
 
 	wg.Wait()
+	return result
+}
+
+func (c *client) scrapeVideo(vid string) {
+	info, err := c.videoInfo(vid)
+	if err != nil {
+		c.common.Logger.Error(fmt.Sprintf("%s video info error", err.Error()))
+		return
+	}
+
+	duration, err := strconv.ParseFloat(info.Seconds, 64)
+	if err != nil {
+		return
+	}
+	// 1分钟分片
+	segmentsLen := int(duration/60 + 1)
+
+	var result = c.scrapeDanmaku(vid, segmentsLen)
 
 	parser := &xmlParser{
 		vid:      vid,
@@ -184,8 +191,7 @@ func (c *client) scrape(vid string, segment int) ([]*danmaku.StandardDanmaku, er
 	reqBody := formData.Encode()
 
 	req, _ := http.NewRequest(http.MethodPost, fullURL, strings.NewReader(reqBody))
-	req.Header.Set("content-type", "application/x-www-form-urlencoded")
-	req.Header.Set("cookie", fmt.Sprintf("_m_h5_tk=%s;_m_h5_tk_enc=%s", c.token, c.tokenEnc))
+	c.setReq(req)
 
 	resp, err := c.common.DoReq(req)
 	if err != nil {
@@ -211,9 +217,10 @@ func (c *client) scrape(vid string, segment int) ([]*danmaku.StandardDanmaku, er
 	for _, d := range danmakuResult.Data.Result {
 		standard := &danmaku.StandardDanmaku{
 			Content:  d.Content,
-			Mode:     1,
+			Mode:     danmaku.RollMode,
 			Offset:   d.PlayAt,
 			Platform: danmaku.Youku,
+			Color:    danmaku.WhiteColor,
 		}
 		var property DanmakuPropertyResult
 		err = json.Unmarshal([]byte(d.Property), &property)

@@ -7,10 +7,46 @@ type APIResult struct {
 	Data struct {
 		// json字符串 DanmakuResult
 		Result string `json:"result"`
+		Nodes  []struct {
+			// 单个视频只有第一个 剧集则有第二个
+			Nodes []struct {
+				Nodes []struct {
+					Data NodeData `json:"data"`
+				} `json:"nodes"`
+			} `json:"nodes"`
+		} `json:"nodes"`
 	} `json:"data"`
 	TraceId string   `json:"traceId"`
 	V       string   `json:"v"`
 	Ret     []string `json:"ret"`
+}
+
+type NodeData struct {
+	// show info
+	IsYouku        int    `json:"isYouku"`    // 是否优酷平台剧集
+	SourceName     string `json:"sourceName"` // 来源 优酷/腾讯 ...
+	IsTrailer      int    `json:"isTrailer"`
+	RealShowId     string `json:"realShowId"`     // showId
+	EpisodeTotal   int    `json:"episodeTotal"`   // ep数量
+	MediaCompleted int    `json:"mediaCompleted"` // 是否完结
+	TempTitle      string `json:"tempTitle"`
+	Info           string `json:"info"`
+	Cats           string `json:"cats"` // 分类
+
+	PosterDTO struct {
+		IconCorner struct {
+			TagText string `json:"tagText"`
+			TagType int    `json:"tagType"`
+		} `json:"iconCorner"`
+	} `json:"posterDTO"`
+
+	// ep info
+	ShowVideoStage string `json:"showVideoStage"` // 1 第几集
+	Seconds        string `json:"seconds"`        // 时长 秒
+	VideoId        string `json:"videoId"`        // 视频字符串id
+	VID            string `json:"vid"`            // 视频数字id
+	Title          string `json:"title"`          // "仙剑奇侠传三 01"
+	OrderId        int    `json:"orderId"`        // 排序id
 }
 
 func (a *APIResult) success() bool {
@@ -31,7 +67,7 @@ type DanmakuResult struct {
 			Mat     int    `json:"mat"`     // 所在弹幕分片
 			PlayAt  int64  `json:"playat"`  // 弹幕毫秒数
 			// DanmakuPropertyResult 位置 颜色 大小信息
-			Property string `json:"properties"`
+			Property string `json:"propertis"`
 			Status   int    `json:"status"`
 			Type     int    `json:"type"`
 			UID      string `json:"uid"`

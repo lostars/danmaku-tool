@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+// TODO remove
+
 func PlatformError(p Platform, text string) error {
 	return fmt.Errorf("[%s] %s", p, text)
 }
@@ -140,6 +142,8 @@ type StandardDanmaku struct {
 	FontSize int32 // 字体大小
 	Platform Platform
 }
+
+const WhiteColor = 16777215
 
 const RollMode = 1
 const BottomMode = 4
