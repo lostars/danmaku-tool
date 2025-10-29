@@ -1,0 +1,95 @@
+syntax = "proto3";
+package danmu;
+option go_package = "/iqiyi";
+
+message UserInfo {
+  string senderAvatar = 1;
+  string uid = 2;
+  string udid = 3;
+  string avatarVipLevel = 4;
+  string avatarId = 5;
+  string name = 6;
+  string picL = 7;
+  string desc = 8;
+  string nameColor = 9;
+}
+
+message MinVersion {
+  string iPhone = 1;
+  string iPad = 2;
+  string GPhone = 3;
+  string GPad = 4;
+}
+
+message BulletInfo {
+  string contentId = 1;
+  // 弹幕内容
+  string content = 2;
+  string parentId = 3;
+
+  string gagEventId = 4;
+  string gagResources = 5;
+
+  // offset 秒
+  string showTime = 6;
+  // 字体大小
+  string font = 7;
+  // FFFFFF 颜色
+  string color = 8;
+  // 透明度
+  string opacity = 9;
+  // 位置 0 是默认弹幕，顶部？
+  string position = 10;
+  string background = 11;
+  string contentType = 12;
+  string isReply = 13;
+  // 点赞数
+  string likeCount = 14;
+  string plusCount = 15;
+  string dissCount = 16;
+
+  UserInfo userInfo = 17;
+  string isShowLike = 18;
+
+  MinVersion minVersion = 20;
+
+  string mentionedTvid = 21;
+  string mentionedTitle = 22;
+  string subType = 23;
+  string snsTopicId = 24;
+  string snsTopicTitle = 25;
+  string src = 26;
+  string spoiler = 27;
+  string halfScreenShow = 28;
+  string themeId = 29;
+  string themeHead = 30;
+  string themeMiddle = 31;
+  string themeTail = 32;
+  string scoreLevel = 33;
+  string songId = 34;
+  string isFirstWaterFall = 35;
+  string votePicture = 36;
+
+  string score = 49;
+
+  string spoilerGuess = 53;
+}
+
+message Entry {
+  string int = 1;
+  repeated BulletInfo bulletInfo = 2;
+}
+
+message Danmu {
+  // A00000 代表成功
+  string code = 1;
+  // 弹幕总数
+  string sum = 2;
+  // 有效弹幕数量
+  string validSum = 3;
+  // 视频时长 s
+  string duration = 4;
+  // 时间 2025-10-29 23:48:03
+  string ts = 5;
+  repeated Entry entry = 6;
+}
