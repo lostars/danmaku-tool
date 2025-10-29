@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.10
 // 	protoc        v6.33.0
-// source: bilibili.danmaku.proto
+// source: danmaku.bilibili.proto
 
 package bilibili
 
@@ -52,11 +52,11 @@ func (x DmColorfulType) String() string {
 }
 
 func (DmColorfulType) Descriptor() protoreflect.EnumDescriptor {
-	return file_bilibili_danmaku_proto_enumTypes[0].Descriptor()
+	return file_danmaku_bilibili_proto_enumTypes[0].Descriptor()
 }
 
 func (DmColorfulType) Type() protoreflect.EnumType {
-	return &file_bilibili_danmaku_proto_enumTypes[0]
+	return &file_danmaku_bilibili_proto_enumTypes[0]
 }
 
 func (x DmColorfulType) Number() protoreflect.EnumNumber {
@@ -65,7 +65,7 @@ func (x DmColorfulType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use DmColorfulType.Descriptor instead.
 func (DmColorfulType) EnumDescriptor() ([]byte, []int) {
-	return file_bilibili_danmaku_proto_rawDescGZIP(), []int{0}
+	return file_danmaku_bilibili_proto_rawDescGZIP(), []int{0}
 }
 
 type DmSegMobileReply struct {
@@ -84,7 +84,7 @@ type DmSegMobileReply struct {
 
 func (x *DmSegMobileReply) Reset() {
 	*x = DmSegMobileReply{}
-	mi := &file_bilibili_danmaku_proto_msgTypes[0]
+	mi := &file_danmaku_bilibili_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -96,7 +96,7 @@ func (x *DmSegMobileReply) String() string {
 func (*DmSegMobileReply) ProtoMessage() {}
 
 func (x *DmSegMobileReply) ProtoReflect() protoreflect.Message {
-	mi := &file_bilibili_danmaku_proto_msgTypes[0]
+	mi := &file_danmaku_bilibili_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -109,7 +109,7 @@ func (x *DmSegMobileReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DmSegMobileReply.ProtoReflect.Descriptor instead.
 func (*DmSegMobileReply) Descriptor() ([]byte, []int) {
-	return file_bilibili_danmaku_proto_rawDescGZIP(), []int{0}
+	return file_danmaku_bilibili_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *DmSegMobileReply) GetElems() []*DanmakuElem {
@@ -179,7 +179,7 @@ type DanmakuElem struct {
 
 func (x *DanmakuElem) Reset() {
 	*x = DanmakuElem{}
-	mi := &file_bilibili_danmaku_proto_msgTypes[1]
+	mi := &file_danmaku_bilibili_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -191,7 +191,7 @@ func (x *DanmakuElem) String() string {
 func (*DanmakuElem) ProtoMessage() {}
 
 func (x *DanmakuElem) ProtoReflect() protoreflect.Message {
-	mi := &file_bilibili_danmaku_proto_msgTypes[1]
+	mi := &file_danmaku_bilibili_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -204,7 +204,7 @@ func (x *DanmakuElem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DanmakuElem.ProtoReflect.Descriptor instead.
 func (*DanmakuElem) Descriptor() ([]byte, []int) {
-	return file_bilibili_danmaku_proto_rawDescGZIP(), []int{1}
+	return file_danmaku_bilibili_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *DanmakuElem) GetId() int64 {
@@ -323,7 +323,7 @@ type DanmakuAIFlag struct {
 
 func (x *DanmakuAIFlag) Reset() {
 	*x = DanmakuAIFlag{}
-	mi := &file_bilibili_danmaku_proto_msgTypes[2]
+	mi := &file_danmaku_bilibili_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -335,7 +335,7 @@ func (x *DanmakuAIFlag) String() string {
 func (*DanmakuAIFlag) ProtoMessage() {}
 
 func (x *DanmakuAIFlag) ProtoReflect() protoreflect.Message {
-	mi := &file_bilibili_danmaku_proto_msgTypes[2]
+	mi := &file_danmaku_bilibili_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -348,7 +348,7 @@ func (x *DanmakuAIFlag) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DanmakuAIFlag.ProtoReflect.Descriptor instead.
 func (*DanmakuAIFlag) Descriptor() ([]byte, []int) {
-	return file_bilibili_danmaku_proto_rawDescGZIP(), []int{2}
+	return file_danmaku_bilibili_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *DanmakuAIFlag) GetDmFlags() []*DanmakuFlag {
@@ -371,7 +371,7 @@ type DanmakuFlag struct {
 
 func (x *DanmakuFlag) Reset() {
 	*x = DanmakuFlag{}
-	mi := &file_bilibili_danmaku_proto_msgTypes[3]
+	mi := &file_danmaku_bilibili_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -383,7 +383,7 @@ func (x *DanmakuFlag) String() string {
 func (*DanmakuFlag) ProtoMessage() {}
 
 func (x *DanmakuFlag) ProtoReflect() protoreflect.Message {
-	mi := &file_bilibili_danmaku_proto_msgTypes[3]
+	mi := &file_danmaku_bilibili_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -396,7 +396,7 @@ func (x *DanmakuFlag) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DanmakuFlag.ProtoReflect.Descriptor instead.
 func (*DanmakuFlag) Descriptor() ([]byte, []int) {
-	return file_bilibili_danmaku_proto_rawDescGZIP(), []int{3}
+	return file_danmaku_bilibili_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *DanmakuFlag) GetDmid() int64 {
@@ -424,7 +424,7 @@ type DmColorful struct {
 
 func (x *DmColorful) Reset() {
 	*x = DmColorful{}
-	mi := &file_bilibili_danmaku_proto_msgTypes[4]
+	mi := &file_danmaku_bilibili_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -436,7 +436,7 @@ func (x *DmColorful) String() string {
 func (*DmColorful) ProtoMessage() {}
 
 func (x *DmColorful) ProtoReflect() protoreflect.Message {
-	mi := &file_bilibili_danmaku_proto_msgTypes[4]
+	mi := &file_danmaku_bilibili_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -449,7 +449,7 @@ func (x *DmColorful) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DmColorful.ProtoReflect.Descriptor instead.
 func (*DmColorful) Descriptor() ([]byte, []int) {
-	return file_bilibili_danmaku_proto_rawDescGZIP(), []int{4}
+	return file_danmaku_bilibili_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *DmColorful) GetType() DmColorfulType {
@@ -466,11 +466,11 @@ func (x *DmColorful) GetSrc() string {
 	return ""
 }
 
-var File_bilibili_danmaku_proto protoreflect.FileDescriptor
+var File_danmaku_bilibili_proto protoreflect.FileDescriptor
 
-const file_bilibili_danmaku_proto_rawDesc = "" +
+const file_danmaku_bilibili_proto_rawDesc = "" +
 	"\n" +
-	"\x16bilibili.danmaku.proto\x12 bilibili.community.service.dm.v1\"\x87\x02\n" +
+	"\x16danmaku.bilibili.proto\x12 bilibili.community.service.dm.v1\"\x87\x02\n" +
 	"\x10DmSegMobileReply\x12C\n" +
 	"\x05elems\x18\x01 \x03(\v2-.bilibili.community.service.dm.v1.DanmakuElemR\x05elems\x12\x14\n" +
 	"\x05state\x18\x02 \x01(\x05R\x05state\x12H\n" +
@@ -507,20 +507,20 @@ const file_bilibili_danmaku_proto_rawDesc = "" +
 	"\x0fVipGradualColor\x10\xe1\xd4\x03B\vZ\t/bilibilib\x06proto3"
 
 var (
-	file_bilibili_danmaku_proto_rawDescOnce sync.Once
-	file_bilibili_danmaku_proto_rawDescData []byte
+	file_danmaku_bilibili_proto_rawDescOnce sync.Once
+	file_danmaku_bilibili_proto_rawDescData []byte
 )
 
-func file_bilibili_danmaku_proto_rawDescGZIP() []byte {
-	file_bilibili_danmaku_proto_rawDescOnce.Do(func() {
-		file_bilibili_danmaku_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_bilibili_danmaku_proto_rawDesc), len(file_bilibili_danmaku_proto_rawDesc)))
+func file_danmaku_bilibili_proto_rawDescGZIP() []byte {
+	file_danmaku_bilibili_proto_rawDescOnce.Do(func() {
+		file_danmaku_bilibili_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_danmaku_bilibili_proto_rawDesc), len(file_danmaku_bilibili_proto_rawDesc)))
 	})
-	return file_bilibili_danmaku_proto_rawDescData
+	return file_danmaku_bilibili_proto_rawDescData
 }
 
-var file_bilibili_danmaku_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_bilibili_danmaku_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
-var file_bilibili_danmaku_proto_goTypes = []any{
+var file_danmaku_bilibili_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_danmaku_bilibili_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_danmaku_bilibili_proto_goTypes = []any{
 	(DmColorfulType)(0),      // 0: bilibili.community.service.dm.v1.DmColorfulType
 	(*DmSegMobileReply)(nil), // 1: bilibili.community.service.dm.v1.DmSegMobileReply
 	(*DanmakuElem)(nil),      // 2: bilibili.community.service.dm.v1.DanmakuElem
@@ -528,7 +528,7 @@ var file_bilibili_danmaku_proto_goTypes = []any{
 	(*DanmakuFlag)(nil),      // 4: bilibili.community.service.dm.v1.DanmakuFlag
 	(*DmColorful)(nil),       // 5: bilibili.community.service.dm.v1.DmColorful
 }
-var file_bilibili_danmaku_proto_depIdxs = []int32{
+var file_danmaku_bilibili_proto_depIdxs = []int32{
 	2, // 0: bilibili.community.service.dm.v1.DmSegMobileReply.elems:type_name -> bilibili.community.service.dm.v1.DanmakuElem
 	3, // 1: bilibili.community.service.dm.v1.DmSegMobileReply.ai_flag:type_name -> bilibili.community.service.dm.v1.DanmakuAIFlag
 	5, // 2: bilibili.community.service.dm.v1.DmSegMobileReply.colorfulSrc:type_name -> bilibili.community.service.dm.v1.DmColorful
@@ -542,27 +542,27 @@ var file_bilibili_danmaku_proto_depIdxs = []int32{
 	0, // [0:6] is the sub-list for field type_name
 }
 
-func init() { file_bilibili_danmaku_proto_init() }
-func file_bilibili_danmaku_proto_init() {
-	if File_bilibili_danmaku_proto != nil {
+func init() { file_danmaku_bilibili_proto_init() }
+func file_danmaku_bilibili_proto_init() {
+	if File_danmaku_bilibili_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bilibili_danmaku_proto_rawDesc), len(file_bilibili_danmaku_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_danmaku_bilibili_proto_rawDesc), len(file_danmaku_bilibili_proto_rawDesc)),
 			NumEnums:      1,
 			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_bilibili_danmaku_proto_goTypes,
-		DependencyIndexes: file_bilibili_danmaku_proto_depIdxs,
-		EnumInfos:         file_bilibili_danmaku_proto_enumTypes,
-		MessageInfos:      file_bilibili_danmaku_proto_msgTypes,
+		GoTypes:           file_danmaku_bilibili_proto_goTypes,
+		DependencyIndexes: file_danmaku_bilibili_proto_depIdxs,
+		EnumInfos:         file_danmaku_bilibili_proto_enumTypes,
+		MessageInfos:      file_danmaku_bilibili_proto_msgTypes,
 	}.Build()
-	File_bilibili_danmaku_proto = out.File
-	file_bilibili_danmaku_proto_goTypes = nil
-	file_bilibili_danmaku_proto_depIdxs = nil
+	File_danmaku_bilibili_proto = out.File
+	file_danmaku_bilibili_proto_goTypes = nil
+	file_danmaku_bilibili_proto_depIdxs = nil
 }

@@ -76,10 +76,10 @@ func (x *DataXMLPersist) WriteToFile(parser DataXMLParser, fullPath, filename st
 	return nil
 }
 
-func NormalConvert(source []*StandardDanmaku, platform string, duration int64) []DataXMLDanmaku {
+func NormalConvert(source []*StandardDanmaku, platform string, durationInMills int64) []DataXMLDanmaku {
 	mergedMills := config.GetConfig().GetPlatformConfig(platform).MergeDanmakuInMills
 	if mergedMills > 0 {
-		source = MergeDanmaku(source, mergedMills, duration)
+		source = MergeDanmaku(source, mergedMills, durationInMills)
 	}
 
 	var data = make([]DataXMLDanmaku, 0, len(source))

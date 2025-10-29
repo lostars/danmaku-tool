@@ -208,6 +208,7 @@ const (
 	Bilibili = "bilibili"
 	Tencent  = "tencent"
 	Youku    = "youku"
+	Iqiyi    = "iqiyi"
 )
 
 type DataPersistType string

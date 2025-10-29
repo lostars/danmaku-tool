@@ -189,7 +189,7 @@ func (c *client) Scrape(id interface{}) error {
 		}
 		v, err := strconv.ParseInt(ep.ItemParams.Duration, 10, 64)
 		if err == nil {
-			parser.duration = v * 1000
+			parser.durationInMills = v * 1000
 		} else {
 			c.common.Logger.Error("duration is not number", "vid", ep.ItemParams.VID, "duration", ep.ItemParams.Duration)
 		}

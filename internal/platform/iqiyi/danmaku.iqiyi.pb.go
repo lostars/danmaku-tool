@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.10
 // 	protoc        v6.33.0
-// source: iqiyi.danmaku.proto
+// source: danmaku.iqiyi.proto
 
 package iqiyi
 
@@ -38,7 +38,7 @@ type UserInfo struct {
 
 func (x *UserInfo) Reset() {
 	*x = UserInfo{}
-	mi := &file_iqiyi_danmaku_proto_msgTypes[0]
+	mi := &file_danmaku_iqiyi_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -50,7 +50,7 @@ func (x *UserInfo) String() string {
 func (*UserInfo) ProtoMessage() {}
 
 func (x *UserInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_iqiyi_danmaku_proto_msgTypes[0]
+	mi := &file_danmaku_iqiyi_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -63,7 +63,7 @@ func (x *UserInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserInfo.ProtoReflect.Descriptor instead.
 func (*UserInfo) Descriptor() ([]byte, []int) {
-	return file_iqiyi_danmaku_proto_rawDescGZIP(), []int{0}
+	return file_danmaku_iqiyi_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *UserInfo) GetSenderAvatar() string {
@@ -141,7 +141,7 @@ type MinVersion struct {
 
 func (x *MinVersion) Reset() {
 	*x = MinVersion{}
-	mi := &file_iqiyi_danmaku_proto_msgTypes[1]
+	mi := &file_danmaku_iqiyi_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -153,7 +153,7 @@ func (x *MinVersion) String() string {
 func (*MinVersion) ProtoMessage() {}
 
 func (x *MinVersion) ProtoReflect() protoreflect.Message {
-	mi := &file_iqiyi_danmaku_proto_msgTypes[1]
+	mi := &file_danmaku_iqiyi_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -166,7 +166,7 @@ func (x *MinVersion) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MinVersion.ProtoReflect.Descriptor instead.
 func (*MinVersion) Descriptor() ([]byte, []int) {
-	return file_iqiyi_danmaku_proto_rawDescGZIP(), []int{1}
+	return file_danmaku_iqiyi_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *MinVersion) GetIPhone() string {
@@ -249,7 +249,7 @@ type BulletInfo struct {
 
 func (x *BulletInfo) Reset() {
 	*x = BulletInfo{}
-	mi := &file_iqiyi_danmaku_proto_msgTypes[2]
+	mi := &file_danmaku_iqiyi_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -261,7 +261,7 @@ func (x *BulletInfo) String() string {
 func (*BulletInfo) ProtoMessage() {}
 
 func (x *BulletInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_iqiyi_danmaku_proto_msgTypes[2]
+	mi := &file_danmaku_iqiyi_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -274,7 +274,7 @@ func (x *BulletInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BulletInfo.ProtoReflect.Descriptor instead.
 func (*BulletInfo) Descriptor() ([]byte, []int) {
-	return file_iqiyi_danmaku_proto_rawDescGZIP(), []int{2}
+	return file_danmaku_iqiyi_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *BulletInfo) GetContentId() string {
@@ -546,7 +546,7 @@ type Entry struct {
 
 func (x *Entry) Reset() {
 	*x = Entry{}
-	mi := &file_iqiyi_danmaku_proto_msgTypes[3]
+	mi := &file_danmaku_iqiyi_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -558,7 +558,7 @@ func (x *Entry) String() string {
 func (*Entry) ProtoMessage() {}
 
 func (x *Entry) ProtoReflect() protoreflect.Message {
-	mi := &file_iqiyi_danmaku_proto_msgTypes[3]
+	mi := &file_danmaku_iqiyi_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -571,7 +571,7 @@ func (x *Entry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Entry.ProtoReflect.Descriptor instead.
 func (*Entry) Descriptor() ([]byte, []int) {
-	return file_iqiyi_danmaku_proto_rawDescGZIP(), []int{3}
+	return file_danmaku_iqiyi_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *Entry) GetInt() string {
@@ -607,7 +607,7 @@ type Danmu struct {
 
 func (x *Danmu) Reset() {
 	*x = Danmu{}
-	mi := &file_iqiyi_danmaku_proto_msgTypes[4]
+	mi := &file_danmaku_iqiyi_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -619,7 +619,7 @@ func (x *Danmu) String() string {
 func (*Danmu) ProtoMessage() {}
 
 func (x *Danmu) ProtoReflect() protoreflect.Message {
-	mi := &file_iqiyi_danmaku_proto_msgTypes[4]
+	mi := &file_danmaku_iqiyi_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -632,7 +632,7 @@ func (x *Danmu) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Danmu.ProtoReflect.Descriptor instead.
 func (*Danmu) Descriptor() ([]byte, []int) {
-	return file_iqiyi_danmaku_proto_rawDescGZIP(), []int{4}
+	return file_danmaku_iqiyi_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *Danmu) GetCode() string {
@@ -677,11 +677,11 @@ func (x *Danmu) GetEntry() []*Entry {
 	return nil
 }
 
-var File_iqiyi_danmaku_proto protoreflect.FileDescriptor
+var File_danmaku_iqiyi_proto protoreflect.FileDescriptor
 
-const file_iqiyi_danmaku_proto_rawDesc = "" +
+const file_danmaku_iqiyi_proto_rawDesc = "" +
 	"\n" +
-	"\x13iqiyi.danmaku.proto\x12\x05danmu\"\xf2\x01\n" +
+	"\x13danmaku.iqiyi.proto\x12\x05danmu\"\xf2\x01\n" +
 	"\bUserInfo\x12\"\n" +
 	"\fsenderAvatar\x18\x01 \x01(\tR\fsenderAvatar\x12\x10\n" +
 	"\x03uid\x18\x02 \x01(\tR\x03uid\x12\x12\n" +
@@ -764,26 +764,26 @@ const file_iqiyi_danmaku_proto_rawDesc = "" +
 	"\x05entry\x18\x06 \x03(\v2\f.danmu.EntryR\x05entryB\bZ\x06/iqiyib\x06proto3"
 
 var (
-	file_iqiyi_danmaku_proto_rawDescOnce sync.Once
-	file_iqiyi_danmaku_proto_rawDescData []byte
+	file_danmaku_iqiyi_proto_rawDescOnce sync.Once
+	file_danmaku_iqiyi_proto_rawDescData []byte
 )
 
-func file_iqiyi_danmaku_proto_rawDescGZIP() []byte {
-	file_iqiyi_danmaku_proto_rawDescOnce.Do(func() {
-		file_iqiyi_danmaku_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_iqiyi_danmaku_proto_rawDesc), len(file_iqiyi_danmaku_proto_rawDesc)))
+func file_danmaku_iqiyi_proto_rawDescGZIP() []byte {
+	file_danmaku_iqiyi_proto_rawDescOnce.Do(func() {
+		file_danmaku_iqiyi_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_danmaku_iqiyi_proto_rawDesc), len(file_danmaku_iqiyi_proto_rawDesc)))
 	})
-	return file_iqiyi_danmaku_proto_rawDescData
+	return file_danmaku_iqiyi_proto_rawDescData
 }
 
-var file_iqiyi_danmaku_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
-var file_iqiyi_danmaku_proto_goTypes = []any{
+var file_danmaku_iqiyi_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_danmaku_iqiyi_proto_goTypes = []any{
 	(*UserInfo)(nil),   // 0: danmu.UserInfo
 	(*MinVersion)(nil), // 1: danmu.MinVersion
 	(*BulletInfo)(nil), // 2: danmu.BulletInfo
 	(*Entry)(nil),      // 3: danmu.Entry
 	(*Danmu)(nil),      // 4: danmu.Danmu
 }
-var file_iqiyi_danmaku_proto_depIdxs = []int32{
+var file_danmaku_iqiyi_proto_depIdxs = []int32{
 	0, // 0: danmu.BulletInfo.userInfo:type_name -> danmu.UserInfo
 	1, // 1: danmu.BulletInfo.minVersion:type_name -> danmu.MinVersion
 	2, // 2: danmu.Entry.bulletInfo:type_name -> danmu.BulletInfo
@@ -795,26 +795,26 @@ var file_iqiyi_danmaku_proto_depIdxs = []int32{
 	0, // [0:4] is the sub-list for field type_name
 }
 
-func init() { file_iqiyi_danmaku_proto_init() }
-func file_iqiyi_danmaku_proto_init() {
-	if File_iqiyi_danmaku_proto != nil {
+func init() { file_danmaku_iqiyi_proto_init() }
+func file_danmaku_iqiyi_proto_init() {
+	if File_danmaku_iqiyi_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_iqiyi_danmaku_proto_rawDesc), len(file_iqiyi_danmaku_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_danmaku_iqiyi_proto_rawDesc), len(file_danmaku_iqiyi_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_iqiyi_danmaku_proto_goTypes,
-		DependencyIndexes: file_iqiyi_danmaku_proto_depIdxs,
-		MessageInfos:      file_iqiyi_danmaku_proto_msgTypes,
+		GoTypes:           file_danmaku_iqiyi_proto_goTypes,
+		DependencyIndexes: file_danmaku_iqiyi_proto_depIdxs,
+		MessageInfos:      file_danmaku_iqiyi_proto_msgTypes,
 	}.Build()
-	File_iqiyi_danmaku_proto = out.File
-	file_iqiyi_danmaku_proto_goTypes = nil
-	file_iqiyi_danmaku_proto_depIdxs = nil
+	File_danmaku_iqiyi_proto = out.File
+	file_danmaku_iqiyi_proto_goTypes = nil
+	file_danmaku_iqiyi_proto_depIdxs = nil
 }

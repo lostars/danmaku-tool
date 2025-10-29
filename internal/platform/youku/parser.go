@@ -6,9 +6,9 @@ import (
 
 type xmlParser struct {
 	// 弹幕数据
-	danmaku  []*danmaku.StandardDanmaku
-	vid      string
-	duration int64
+	danmaku           []*danmaku.StandardDanmaku
+	vid               string
+	durationInSeconds int64
 }
 
 func (c *xmlParser) Parse() (*danmaku.DataXML, error) {
@@ -24,7 +24,7 @@ func (c *xmlParser) Parse() (*danmaku.DataXML, error) {
 		Source:         "k-v",
 		SourceProvider: danmaku.Youku,
 		DataSize:       len(c.danmaku),
-		Danmaku:        danmaku.NormalConvert(c.danmaku, danmaku.Youku, c.duration),
+		Danmaku:        danmaku.NormalConvert(c.danmaku, danmaku.Youku, c.durationInSeconds*1000),
 	}
 
 	return &xml, nil

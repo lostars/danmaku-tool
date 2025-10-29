@@ -144,19 +144,19 @@ func (c *client) scrapeVideo(vid string) {
 		return
 	}
 
-	duration, err := strconv.ParseFloat(info.Seconds, 64)
+	durationInSeconds, err := strconv.ParseFloat(info.Seconds, 64)
 	if err != nil {
 		return
 	}
 	// 1分钟分片
-	segmentsLen := int(duration/60 + 1)
+	segmentsLen := int(durationInSeconds/60 + 1)
 
 	var result = c.scrapeDanmaku(vid, segmentsLen)
 
 	parser := &xmlParser{
-		vid:      vid,
-		danmaku:  result,
-		duration: int64(duration) + 1,
+		vid:               vid,
+		danmaku:           result,
+		durationInSeconds: int64(durationInSeconds) + 1,
 	}
 
 	path := filepath.Join(config.GetConfig().SavePath, danmaku.Youku, info.ShowId)
