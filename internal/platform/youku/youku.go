@@ -44,7 +44,7 @@ func (c *client) Platform() danmaku.Platform {
 	优酷的视频url格式  链接中带视频vid
 	https://v.youku.com/v_show/id_XMTA3MDAzODEy.html?s=cc07361a962411de83b1
 	XMTA3MDAzODEy 是vid, cc07361a962411de83b1 则是 show_id
-	show_id则是从视频页面 window.__INITIAL_DATA__ 获取，是一个json结构
+	show_id则是从视频页面 window.__PAGE_CONF__ 获取，是一个json结构
 */
 
 // var videoRegex = regexp.MustCompile(`<script>window\.__INITIAL_DATA__\s=(\{.*});</script>`)
@@ -70,7 +70,7 @@ func (c *client) videoInfo(vid string) (*VideoInfoFromHtml, error) {
 	if err != nil {
 		return nil, err
 	}
-	resp, err := c.common.HttpClient.Do(req)
+	resp, err := c.common.DoReq(req)
 	if err != nil {
 		return nil, err
 	}
@@ -187,7 +187,7 @@ func (c *client) scrape(vid string, segment int) ([]*danmaku.StandardDanmaku, er
 	req.Header.Set("content-type", "application/x-www-form-urlencoded")
 	req.Header.Set("cookie", fmt.Sprintf("_m_h5_tk=%s;_m_h5_tk_enc=%s", c.token, c.tokenEnc))
 
-	resp, err := c.common.HttpClient.Do(req)
+	resp, err := c.common.DoReq(req)
 	if err != nil {
 		return nil, err
 	}

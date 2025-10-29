@@ -76,6 +76,7 @@ type DanmakuConfig struct {
 	SavePath      string           `yaml:"save-path"`
 	DandanMode    string           `yaml:"dandan-mode"`
 	DandanTimeout int              `yaml:"dandan-timeout"`
+	UA            string           `yaml:"ua"`
 	Platforms     []PlatformConfig `yaml:"platforms"`
 	Server        ServerConfig     `yaml:"server"`
 }

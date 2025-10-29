@@ -53,6 +53,17 @@ type PlatformClient struct {
 	Logger     *slog.Logger
 }
 
+const defaultUA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+
+func (p *PlatformClient) DoReq(req *http.Request) (*http.Response, error) {
+	ua := config.GetConfig().UA
+	if ua == "" {
+		ua = defaultUA
+	}
+	req.Header.Set("User-Agent", ua)
+	return p.HttpClient.Do(req)
+}
+
 func InitPlatformClient(platform Platform) (*PlatformClient, error) {
 	conf := config.GetConfig().GetPlatformConfig(string(platform))
 	if conf == nil || conf.Name == "" {
@@ -76,13 +87,12 @@ func InitPlatformClient(platform Platform) (*PlatformClient, error) {
 	c.HttpClient = &http.Client{Timeout: time.Duration(timeout * 1e9)}
 	c.Logger = utils.GetPlatformLogger(string(platform))
 
+	c.XmlPersist = &DataXMLPersist{}
 	// 初始化数据存储器
 	for _, p := range conf.Persists {
 		switch p.Type {
 		case XMLPersistType:
-			c.XmlPersist = &DataXMLPersist{
-				Indent: p.Indent,
-			}
+			c.XmlPersist.Indent = p.Indent
 		}
 	}
 	return c, nil

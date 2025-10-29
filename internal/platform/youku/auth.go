@@ -17,7 +17,7 @@ func (c *client) refreshToken() {
 	// cna https://log.mmstat.com/eg.js etag "C2CHIZvOsxUCAQAAAADMJgVh"
 	api := "https://acs.youku.com/h5/mtop.com.youku.aplatform.weakget/1.0/?jsv=2.5.1&appKey=24679788"
 	req, _ := http.NewRequest(http.MethodGet, api, nil)
-	resp, err := c.common.HttpClient.Do(req)
+	resp, err := c.common.DoReq(req)
 	if err != nil {
 		return
 	}

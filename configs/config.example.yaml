@@ -5,6 +5,7 @@ save-path: ""
 # database sqlite数据库
 dandan-mode: "real_time"
 dandan-timeout: 60 # dandan api timeout in seconds
+ua: "" # 请求ua 可不配置
 server:
 #  dandan api token 配置
   tokens:
