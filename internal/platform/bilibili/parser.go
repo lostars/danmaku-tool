@@ -32,7 +32,7 @@ func (c *xmlParser) Parse() (*danmaku.DataXML, error) {
 	// 第几秒/弹幕类型/字体大小/颜色
 	for i, v := range source {
 		var attr = []string{
-			strconv.FormatFloat(float64(v.Offset)/1000, 'f', 2, 64),
+			strconv.FormatFloat(float64(v.OffsetMills)/1000, 'f', 2, 64),
 			strconv.FormatInt(int64(v.Mode), 10),
 			strconv.FormatInt(int64(v.FontSize), 10),
 			strconv.FormatInt(int64(v.Color), 10),

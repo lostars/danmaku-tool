@@ -336,11 +336,11 @@ func (c *client) scrape(vid, segment string) []*danmaku.StandardDanmaku {
 		}
 
 		r := &danmaku.StandardDanmaku{
-			Content:  v.Content,
-			Offset:   offset,
-			Mode:     mode,
-			Color:    colorValue,
-			Platform: danmaku.Tencent,
+			Content:     v.Content,
+			OffsetMills: offset,
+			Mode:        mode,
+			Color:       colorValue,
+			Platform:    danmaku.Tencent,
 		}
 		result = append(result, r)
 	}

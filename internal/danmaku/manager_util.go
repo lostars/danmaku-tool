@@ -26,7 +26,7 @@ func MergeDanmaku(dms []*StandardDanmaku, mergedInMills int64, durationInMills i
 	var result = make([]*StandardDanmaku, 0, len(dms))
 
 	for _, d := range dms {
-		bid := d.Offset / mergedInMills // 所属时间桶
+		bid := d.OffsetMills / mergedInMills // 所属时间桶
 
 		if _, ok := buckets[bid]; !ok {
 			// 预估长度
@@ -49,7 +49,7 @@ func MergeDanmaku(dms []*StandardDanmaku, mergedInMills int64, durationInMills i
 
 func (d *StandardDanmaku) GenDandanAttribute(text ...string) string {
 	var attr = []string{
-		strconv.FormatFloat(float64(d.Offset)/1000, 'f', 2, 64),
+		strconv.FormatFloat(float64(d.OffsetMills)/1000, 'f', 2, 64),
 		strconv.FormatInt(int64(d.Mode), 10),
 		strconv.FormatInt(int64(d.Color), 10),
 		// 该字段在dandan api中为用户id，注意SenPlayer中该字段必须返回，且为int

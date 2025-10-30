@@ -111,48 +111,6 @@ func (c *client) scrape(oid, pid, segmentIndex int64) []*DanmakuElem {
 	return reply.GetElems()
 }
 
-type SeriesInfo struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
-	Result  struct {
-		Cover string `json:"cover"`
-		// 当前EP所在Season所有EPs
-		Episodes []struct { // 0 第一集 1 第二集 预告可能也会在里面
-			AId         int64  `json:"aid"`
-			BVId        string `json:"bvid"`
-			CId         int64  `json:"cid"`
-			Duration    int64  `json:"duration"` // in Millisecond
-			EPId        int64  `json:"ep_id"`
-			SectionType int    `json:"section_type"` // 1 是预告之类的 0是正常剧集？？
-			Link        string `json:"link"`
-			Title       string `json:"title"`
-			PubTime     int64  `json:"pub_time"`
-		} `json:"episodes"`
-		// 同系列所有季信息
-		Seasons []struct {
-			MediaId     int64  `json:"media_id"`
-			SeasonId    int64  `json:"season_id"`
-			SeasonType  int    `json:"season_type"`
-			SeasonTitle string `json:"season_title"`
-			Cover       string `json:"cover"`
-		} `json:"seasons"`
-		Evaluate    string   `json:"evaluate"`
-		Link        string   `json:"link"`
-		MediaId     int64    `json:"media_id"`
-		SeasonId    int64    `json:"season_id"`
-		SeasonTitle string   `json:"season_title"`
-		NewEP       struct { // 最新一集信息
-			Id    int64  `json:"id"`     // 最新一集epid
-			IsNew int    `json:"is_new"` // 0否 1是
-			Title string `json:"title"`
-		} `json:"new_ep"`
-		Title    string `json:"title"`
-		SubTitle string `json:"subtitle"`
-		Total    int    `json:"total"` // 未完结：大多为-1 已完结：正整数
-		Type     int    `json:"type"`  // 1：番剧 2：电影 3：纪录片 4：国创 5：电视剧 7：综艺
-	} `json:"result"`
-}
-
 func (c *client) Scrape(id interface{}) error {
 	if id == nil {
 		return danmaku.PlatformError(danmaku.Bilibili, "nil params")
@@ -168,38 +126,23 @@ func (c *client) Scrape(id interface{}) error {
 
 	// 比如 悠哉日常大王 第三季 就是一个单独的剧集 md28231846:ss36204
 	//https://api.bilibili.com/pgc/view/web/season?ep_id=2231363 or season_id=12334
-	params := url.Values{}
 	var isEP bool
+	epId := ""
+	ssId := ""
 	if strings.HasPrefix(realId, "ep") {
 		isEP = true
-		params.Add("ep_id", strings.Replace(realId, "ep", "", 1))
+		epId = strings.Replace(realId, "ep", "", 1)
 	}
 	if strings.HasPrefix(realId, "ss") {
-		params.Add("season_id", strings.Replace(realId, "ss", "", 1))
+		ssId = strings.Replace(realId, "ss", "", 1)
 	}
-	if len(params) == 0 {
-		return danmaku.PlatformError(danmaku.Bilibili, "only support epid or ssid")
+	if epId == "" && ssId == "" {
+		return fmt.Errorf("only support epid or ssid")
 	}
 
-	api := "https://api.bilibili.com/pgc/view/web/season?" + params.Encode()
-	req, err := http.NewRequest(http.MethodGet, api, nil)
+	series, err := c.baseInfo(epId, ssId)
 	if err != nil {
-		return danmaku.PlatformError(danmaku.Bilibili, fmt.Sprintf("create season request err: %s", err.Error()))
-	}
-	req.Header.Set("Cookie", c.common.Cookie)
-	resp, err := c.common.HttpClient.Do(req)
-	if err != nil {
-		return danmaku.PlatformError(danmaku.Bilibili, fmt.Sprintf("get season err: %s", err.Error()))
-	}
-	defer resp.Body.Close()
-
-	var series SeriesInfo
-	err = json.NewDecoder(resp.Body).Decode(&series)
-	if err != nil {
-		return danmaku.PlatformError(danmaku.Bilibili, fmt.Sprintf("decode season resp err: %s", err.Error()))
-	}
-	if series.Code != 0 {
-		return danmaku.PlatformError(danmaku.Bilibili, fmt.Sprintf("season resp error code: %v, message: %s", series.Code, series.Message))
+		return err
 	}
 
 	c.common.Logger.Info("scrape start", "id", realId)
@@ -252,11 +195,11 @@ func (c *client) Scrape(id interface{}) error {
 					var standardData = make([]*danmaku.StandardDanmaku, 0, len(data))
 					for _, d := range data {
 						standardData = append(standardData, &danmaku.StandardDanmaku{
-							Content:  d.Content,
-							Offset:   int64(d.Progress),
-							Mode:     int(d.Mode),
-							Color:    int(d.Color),
-							FontSize: d.Fontsize,
+							Content:     d.Content,
+							OffsetMills: int64(d.Progress),
+							Mode:        int(d.Mode),
+							Color:       int(d.Color),
+							FontSize:    d.Fontsize,
 						})
 					}
 					lock.Lock()

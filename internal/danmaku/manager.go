@@ -112,7 +112,7 @@ type Initializer interface {
 
 type MediaSearcher interface {
 	// Match 匹配剧集信息，如果是剧集，会获取ep信息同时返回 关键字格式是 'xxx S01E01'
-	Match(keyword string) ([]*Media, error)
+	Match(param MatchParam) ([]*Media, error)
 	// GetDanmaku 实时获取平台弹幕 id: [platform]_[id]_[id]
 	GetDanmaku(id string) ([]*StandardDanmaku, error)
 	SearcherType() Platform
@@ -131,9 +131,9 @@ var MatchKeyword = regexp.MustCompile(`<em class="keyword">(.*?)</em>`)
 // p 出现时间,模式,颜色,用户ID
 
 type StandardDanmaku struct {
-	Offset int64 // 偏移量 ms 注意dandan中保存的是秒，保留2位小数，这里为了精度使用ms，在API返回或者写入时才进行转换
-	Mode   int   // 1滚动 4底部 5顶部
-	Color  int   // 颜色 数字格式 16777215
+	OffsetMills int64 // 偏移量 ms 注意dandan中保存的是秒，保留2位小数，这里为了精度使用ms，在API返回或者写入时才进行转换
+	Mode        int   // 1滚动 4底部 5顶部
+	Color       int   // 颜色 数字格式 16777215
 	// 以上三个字段按照顺序兼容dandan API p字段
 
 	Content string // dandan API m字段
@@ -141,6 +141,14 @@ type StandardDanmaku struct {
 	// 以下字段用于其他记录
 	FontSize int32 // 字体大小
 	Platform Platform
+}
+
+type MatchParam struct {
+	FileName        string `json:"fileName"`
+	FileSize        int64  `json:"fileSize"`
+	MatchMod        string `json:"matchMod"` // fileNameOnly
+	DurationSeconds int64  `json:"videoDuration"`
+	FileHash        string `json:"fileHash"`
 }
 
 const WhiteColor = 16777215

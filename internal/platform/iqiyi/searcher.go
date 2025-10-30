@@ -9,9 +9,12 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/lithammer/fuzzysearch/fuzzy"
 )
 
-func (c *client) Match(keyword string) ([]*danmaku.Media, error) {
+func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
+	keyword := param.FileName
 	ssId := int64(-1)
 	var err error
 	matches := danmaku.SeriesRegex.FindStringSubmatch(keyword)
@@ -57,6 +60,12 @@ func (c *client) Match(keyword string) ([]*danmaku.Media, error) {
 	for _, t := range result.Data.Templates {
 		// 过滤非iqiyi平台数据
 		if t.AlbumInfo.SiteId != "iqiyi" {
+			continue
+		}
+
+		match := fuzzy.Match(t.AlbumInfo.Title, keyword)
+		c.common.Logger.Debug(fmt.Sprintf("%s match %s: %v", t.AlbumInfo.Title, keyword, match))
+		if !match {
 			continue
 		}
 

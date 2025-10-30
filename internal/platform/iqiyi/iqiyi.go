@@ -188,10 +188,10 @@ func (c *client) scrape(tvId int64, segment int) ([]*danmaku.StandardDanmaku, er
 				colorValue = int(value)
 			}
 			result = append(result, &danmaku.StandardDanmaku{
-				Content: info.Content,
-				Color:   colorValue,
-				Offset:  int64(offsetInSeconds * 1000),
-				Mode:    danmaku.RollMode,
+				Content:     info.Content,
+				Color:       colorValue,
+				OffsetMills: int64(offsetInSeconds * 1000),
+				Mode:        danmaku.RollMode,
 			})
 		}
 	}

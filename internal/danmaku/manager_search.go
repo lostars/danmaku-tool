@@ -7,7 +7,7 @@ import (
 	"sync"
 )
 
-func MatchMedia(keyword string) []*Media {
+func MatchMedia(param MatchParam) []*Media {
 
 	searchers := adapter.searchers
 
@@ -21,12 +21,12 @@ func MatchMedia(keyword string) []*Media {
 	for _, s := range searchers {
 		go func(searcher MediaSearcher) {
 			defer wg.Done()
-			media, err := searcher.Match(keyword)
+			media, err := searcher.Match(param)
 			if err != nil {
-				logger.Error(err.Error(), "searchType", searcher.SearcherType(), "title", keyword)
+				logger.Error(err.Error(), "searchType", searcher.SearcherType(), "title", param.FileName)
 				return
 			}
-			logger.Debug("search success", "size", len(media), "searchType", searcher.SearcherType(), "title", keyword)
+			logger.Debug("search success", "size", len(media), "searchType", searcher.SearcherType(), "title", param.FileName)
 
 			lock.Lock()
 			result = append(result, media...)

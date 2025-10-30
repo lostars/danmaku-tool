@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"net/url"
 	"path"
@@ -14,34 +15,8 @@ import (
 	"sync"
 )
 
-type SearchResult struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
-	Data    struct {
-		Result []struct {
-			// 5=真人剧集 2=电影 4=动画剧集 1=番剧 3=纪录片
-			// 5和2 都是media_ft 4是media_bangumi 用分类接口不好一次性搜索
-			MediaType      int    `json:"media_type"`
-			Type           string `json:"type"`             // 这个字段难以区真人剧集和电影，都算作media_ft
-			MediaId        int64  `json:"media_id"`         // md id
-			SeasonId       int64  `json:"season_id"`        // ss id
-			Cover          string `json:"cover"`            // 封面url
-			SeasonTypeName string `json:"season_type_name"` // 国创/电影
-			Title          string `json:"title"`            // 注意有html标签 <em class=\"keyword\">凡人</em>修仙传
-			Url            string `json:"url"`              // 该字段保存的是剧集链接或者ep链接，电影可以从该url解析epid
-			Desc           string `json:"desc"`
-			EPSize         int    `json:"ep_size"`
-			EPs            []struct {
-				Id         int64  `json:"id"`
-				Title      string `json:"title"`       // 第几集 13
-				IndexTitle string `json:"index_title"` // 和 title 一样？
-				LongTitle  string `json:"long_title"`  // 初入星海11
-			} `json:"eps"` // 完整数据
-		} `json:"result"`
-	} `json:"data"`
-}
-
-func (c *client) Match(keyword string) ([]*danmaku.Media, error) {
+func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
+	keyword := param.FileName
 	// b站是无法搜索 S01 季节的，只能转成中文数字才能匹配
 	matches := danmaku.SeriesRegex.FindStringSubmatch(keyword)
 	// 是否需要匹配第几季 >1季 才转换成汉语数字进行匹配
@@ -133,6 +108,17 @@ func (c *client) Match(keyword string) ([]*danmaku.Media, error) {
 				if ssId > 1 {
 					if !strings.Contains(clearTitle, "第"+danmaku.ChineseNumberSlice[ssId-1]+"季") {
 						continue
+					}
+				}
+				// 获取第一集检查时长
+				if param.DurationSeconds > 0 {
+					ss, err := c.baseInfo(strconv.FormatInt(bangumi.EPs[0].Id, 10), "")
+					if err == nil && ss.Result.Episodes != nil {
+						durationMills := ss.Result.Episodes[0].Duration
+						if math.Abs(float64(durationMills/1000-param.DurationSeconds)) > 300 {
+							c.common.Logger.Info("1111")
+							continue
+						}
 					}
 				}
 
@@ -254,6 +240,38 @@ func (c *client) searchByType(searchType string, keyword string) (*SearchResult,
 	return &result, nil
 }
 
+func (c *client) baseInfo(epId string, ssId string) (*SeriesInfo, error) {
+	params := url.Values{}
+	if epId != "" {
+		params.Add("ep_id", epId)
+	}
+	if ssId != "" {
+		params.Add("season_id", epId)
+	}
+
+	api := "https://api.bilibili.com/pgc/view/web/season?" + params.Encode()
+	req, err := http.NewRequest(http.MethodGet, api, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create season request err: %s", err.Error())
+	}
+	req.Header.Set("Cookie", c.common.Cookie)
+	resp, err := c.common.HttpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("get season err: %s", err.Error())
+	}
+	defer resp.Body.Close()
+
+	var series SeriesInfo
+	err = json.NewDecoder(resp.Body).Decode(&series)
+	if err != nil {
+		return nil, fmt.Errorf("decode season resp err: %s", err.Error())
+	}
+	if series.Code != 0 {
+		return nil, fmt.Errorf("season resp error code: %v, message: %s", series.Code, series.Message)
+	}
+	return &series, nil
+}
+
 func (c *client) GetDanmaku(id string) ([]*danmaku.StandardDanmaku, error) {
 	s := strings.Split(id, "_")
 	if len(s) != 3 {
@@ -269,29 +287,10 @@ func (c *client) GetDanmaku(id string) ([]*danmaku.StandardDanmaku, error) {
 	}
 
 	var realId = s[2]
-	params := url.Values{
-		"ep_id": {realId},
-	}
 
-	api := "https://api.bilibili.com/pgc/view/web/season?" + params.Encode()
-	req, err := http.NewRequest(http.MethodGet, api, nil)
+	series, err := c.baseInfo(realId, "")
 	if err != nil {
-		return nil, danmaku.PlatformError(danmaku.Bilibili, fmt.Sprintf("create season request err: %s", err.Error()))
-	}
-	req.Header.Set("Cookie", c.common.Cookie)
-	resp, err := c.common.HttpClient.Do(req)
-	if err != nil {
-		return nil, danmaku.PlatformError(danmaku.Bilibili, fmt.Sprintf("get season err: %s", err.Error()))
-	}
-	defer resp.Body.Close()
-
-	var series SeriesInfo
-	err = json.NewDecoder(resp.Body).Decode(&series)
-	if err != nil {
-		return nil, danmaku.PlatformError(danmaku.Bilibili, fmt.Sprintf("decode season resp err: %s", err.Error()))
-	}
-	if series.Code != 0 {
-		return nil, danmaku.PlatformError(danmaku.Bilibili, fmt.Sprintf("season resp error code: %v, message: %s", series.Code, series.Message))
+		return nil, err
 	}
 
 	var result = make([]*danmaku.StandardDanmaku, 0, 40000)
@@ -323,11 +322,11 @@ func (c *client) GetDanmaku(id string) ([]*danmaku.StandardDanmaku, error) {
 					var standardData = make([]*danmaku.StandardDanmaku, 0, len(data))
 					for _, d := range data {
 						standardData = append(standardData, &danmaku.StandardDanmaku{
-							Content:  d.Content,
-							Offset:   int64(d.Progress),
-							Mode:     int(d.Mode),
-							Color:    int(d.Color),
-							FontSize: d.Fontsize,
+							Content:     d.Content,
+							OffsetMills: int64(d.Progress),
+							Mode:        int(d.Mode),
+							Color:       int(d.Color),
+							FontSize:    d.Fontsize,
 						})
 					}
 					lock.Lock()

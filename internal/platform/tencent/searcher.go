@@ -12,7 +12,8 @@ import (
 	"strings"
 )
 
-func (c *client) Match(keyword string) ([]*danmaku.Media, error) {
+func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
+	keyword := param.FileName
 	ssId := int64(-1)
 	var err error
 	matches := danmaku.SeriesRegex.FindStringSubmatch(keyword)

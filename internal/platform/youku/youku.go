@@ -216,11 +216,11 @@ func (c *client) scrape(vid string, segment int) ([]*danmaku.StandardDanmaku, er
 	var result = make([]*danmaku.StandardDanmaku, 0, len(danmakuResult.Data.Result))
 	for _, d := range danmakuResult.Data.Result {
 		standard := &danmaku.StandardDanmaku{
-			Content:  d.Content,
-			Mode:     danmaku.RollMode,
-			Offset:   d.PlayAt,
-			Platform: danmaku.Youku,
-			Color:    danmaku.WhiteColor,
+			Content:     d.Content,
+			Mode:        danmaku.RollMode,
+			OffsetMills: d.PlayAt,
+			Platform:    danmaku.Youku,
+			Color:       danmaku.WhiteColor,
 		}
 		var property DanmakuPropertyResult
 		err = json.Unmarshal([]byte(d.Property), &property)

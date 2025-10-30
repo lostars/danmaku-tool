@@ -24,7 +24,7 @@ func GetDandanSourceMode() DandanSourceMode {
 
 // DandanSourceMode dandan api 数据源接口
 type DandanSourceMode interface {
-	Match(param MatchParam) (*MatchResult, error)
+	Match(param danmaku.MatchParam) (*MatchResult, error)
 	GetDanmaku(param CommentParam) (*CommentResult, error)
 	Mode() Mode
 }
@@ -41,14 +41,6 @@ type CommentParam struct {
 	WithRelated bool
 	Convert     bool
 	Id          int64
-}
-
-type MatchParam struct {
-	FileName      string `json:"fileName"`
-	FileSize      int64  `json:"fileSize"`
-	MatchMod      string `json:"matchMod"` // fileNameOnly
-	VideoDuration int64  `json:"videoDuration"`
-	FileHash      string `json:"fileHash"`
 }
 
 type MatchResult struct {

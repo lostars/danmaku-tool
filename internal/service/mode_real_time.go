@@ -26,7 +26,7 @@ import (
 	memory_cache 指的是 episodeId 和 实际剧集信息的映射关系，并不是指缓存弹幕数据或者剧集信息本身。
 */
 
-func (c *realTimeData) Match(param MatchParam) (*MatchResult, error) {
+func (c *realTimeData) Match(param danmaku.MatchParam) (*MatchResult, error) {
 
 	strs := strings.Split(param.FileName, " ")
 	if strs[0] == "" {
@@ -57,7 +57,7 @@ func (c *realTimeData) Match(param MatchParam) (*MatchResult, error) {
 		Success: true,
 	}
 
-	media := danmaku.MatchMedia(searchTitle)
+	media := danmaku.MatchMedia(param)
 	for _, m := range media {
 		if m.Episodes == nil || len(m.Episodes) == 0 {
 			continue
