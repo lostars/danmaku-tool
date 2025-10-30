@@ -18,6 +18,7 @@ emby:
   url: ""
   user: ""
   token: ""
+#  目前可选 bilibili tencent youku iqiyi 配置均通用
 platforms:
   - name: "bilibili"
   #  优先级 用于控制剧集搜索结果 越小则排的更靠前(int) <0 则禁用该平台

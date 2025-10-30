@@ -1,18 +1,41 @@
 ## A new danmaku scraper developed by Go
 
+You can run as CLI to scrape danmaku locally and save as xml file.
+Or run as a web server to provide DanDanPlay API and enjoy with your compatible player.
+
+Matching may not so precisely and waiting for optimization.
+But basically usable.
+
+My goal is **Building a lightweight and stateless(real-time) danmaku server.**
+
 ### Milestone
 
 #### Phase 1: offering a danmaku scraper through CLI
-- [x] **bilibili** basically usable
-- [ ] **iqiyi**
-- [x] **tencent** not fully tested
-- [ ] ...
 
-#### Phase 2: offering a web server and APIs
+The following 4 platforms are not fully tested.
+No special season matching support by now.
 
-#### Phase 3: supporting DanDanPlay API
+Get a better match with Emby API enabled.
+
+- [ ] complete danmaku scrage CLI
+  - [ ] scrape by BV id of Bilibili
+  - [ ] save as ASS file
+  - [ ] scrape by album of iqiyi
+  - [ ] scrape by show of youku
+- [x] **bilibili** scrape and DanDan API match 
+- [x] **iqiyi** scrape and DanDan API match
+- [x] **youku** scrape and DanDan API match
+- [x] **tencent** scrape and DanDan API match
+- [ ] other platforms...
+
+#### Phase 2: supporting DanDanPlay API
 - [x] `/match`
 - [x] `/comment/{id}`
+- [ ] media search
+
+#### Phase 3: offering management APIs and web UI
+
+Priority is low.
 
 ### Installation
 
@@ -64,6 +87,13 @@ danmaku scrape <id> --platform=bilibili
     https://v.qq.com/x/cover/znda81ms78okdwd/e00242bvw06.html
     `znda81ms78okdwd` is cid, `e00242bvw06` is vid
     `danmaku d znda81ms78okdwd/e00242bvw06 --platform=tencent`
+
+* youku video url looks like: https://v.youku.com/v_show/id_XMTA3MDAzODEy.html?s=cc07361a962411de83b1
+    id_xxxx xxxx is vid. s=xxxx xxxx is showId
+
+
+* iqiyi video url looks like: https://www.iqiyi.com/v_19rrk2gwkw.html v_xxx xxx is tvId; https://www.iqiyi.com/a_19rrk2hct9.html a_xxx xxx is albumId
+
 
 #### WebServer
 
