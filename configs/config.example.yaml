@@ -13,6 +13,11 @@ server:
     - "aaa"
   timeout: 10
   port: 8089
+#  emby 配置，用于更加精准的搜索。注意token权限，系统使用用户API进行搜索，不要给管理员TOKEN
+emby:
+  url: ""
+  user: ""
+  token: ""
 platforms:
   - name: "bilibili"
   #  优先级 用于控制剧集搜索结果 越小则排的更靠前(int) <0 则禁用该平台

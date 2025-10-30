@@ -17,10 +17,6 @@ func PlatformError(p Platform, text string) error {
 	return fmt.Errorf("[%s] %s", p, text)
 }
 
-func DataPersistError(d DataPersistType, text string) error {
-	return fmt.Errorf("[%s] %s", d, text)
-}
-
 type MediaType string
 
 const (
@@ -111,7 +107,7 @@ type Initializer interface {
 }
 
 type MediaSearcher interface {
-	// Match 匹配剧集信息，如果是剧集，会获取ep信息同时返回 关键字格式是 'xxx S01E01'
+	// Match 匹配剧集信息，如果是剧集，会获取ep信息同时返回
 	Match(param MatchParam) ([]*Media, error)
 	// GetDanmaku 实时获取平台弹幕 id: [platform]_[id]_[id]
 	GetDanmaku(id string) ([]*StandardDanmaku, error)
@@ -149,6 +145,25 @@ type MatchParam struct {
 	MatchMod        string `json:"matchMod"` // fileNameOnly
 	DurationSeconds int64  `json:"videoDuration"`
 	FileHash        string `json:"fileHash"`
+	// Emby 内部搜索参数 反查Emby用于更加精准的搜索
+	Emby struct {
+		// 年份数字（2025） 匹配时 判断年份是否在年份闭区间内
+		// 电影开始结束将会一样，剧集则会根据剧集状态修改结束时间，如果一直更新则会将结束年份设置为一个很大的值保证匹配
+		ProductionYear, ProductionYearEnd int
+		// 剧集或者电影名称 这个和dandan api搜索的应该一致
+		Name string
+		// 类型: "Movie" "Series"
+		Type string
+		// emby 内部 id 503357 保留
+		ItemId string
+	}
+}
+
+func (p MatchParam) MatchYear(year int) bool {
+	if p.Emby.ProductionYear > 0 && p.Emby.ProductionYearEnd > 0 {
+		return year <= p.Emby.ProductionYearEnd && year >= p.Emby.ProductionYear
+	}
+	return true
 }
 
 const WhiteColor = 16777215

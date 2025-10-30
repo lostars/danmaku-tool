@@ -12,9 +12,14 @@ type APIResult struct {
 			Nodes []struct {
 				Nodes []struct {
 					Data NodeData `json:"data"`
+					// 层级 用于调试
+					Level int `json:"level"`
 				} `json:"nodes"`
+				Level int `json:"level"`
 			} `json:"nodes"`
+			Level int `json:"level"`
 		} `json:"nodes"`
+		Level int `json:"level"`
 	} `json:"data"`
 	TraceId string   `json:"traceId"`
 	V       string   `json:"v"`
@@ -39,6 +44,11 @@ type NodeData struct {
 			TagType int    `json:"tagType"`
 		} `json:"iconCorner"`
 	} `json:"posterDTO"`
+
+	FeatureDTO struct {
+		// 电视剧 · 2009 · 中国
+		Text string `json:"text"`
+	} `json:"featureDTO"`
 
 	// ep info
 	ShowVideoStage string `json:"showVideoStage"` // 1 第几集

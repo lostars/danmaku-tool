@@ -57,9 +57,11 @@ type SearchResult struct {
 			SeasonTypeName string `json:"season_type_name"` // 国创/电影
 			Title          string `json:"title"`            // 注意有html标签 <em class=\"keyword\">凡人</em>修仙传
 			Url            string `json:"url"`              // 该字段保存的是剧集链接或者ep链接，电影可以从该url解析epid
-			Desc           string `json:"desc"`
-			EPSize         int    `json:"ep_size"`
-			EPs            []struct {
+			// 发布日期 in seconds
+			PubTime int64  `json:"pubtime"`
+			Desc    string `json:"desc"`
+			EPSize  int    `json:"ep_size"`
+			EPs     []struct {
 				Id         int64  `json:"id"`
 				Title      string `json:"title"`       // 第几集 13
 				IndexTitle string `json:"index_title"` // 和 title 一样？

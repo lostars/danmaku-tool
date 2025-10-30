@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
@@ -60,6 +61,9 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 		}
 		matchedKeyword := keys[1]
 		if !strings.Contains(keyword, strings.ReplaceAll(matchedKeyword, " ", "")) {
+			continue
+		}
+		if !param.MatchYear(time.Unix(bangumi.PubTime, 0).Year()) {
 			continue
 		}
 
@@ -116,7 +120,6 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 					if err == nil && ss.Result.Episodes != nil {
 						durationMills := ss.Result.Episodes[0].Duration
 						if math.Abs(float64(durationMills/1000-param.DurationSeconds)) > 300 {
-							c.common.Logger.Info("1111")
 							continue
 						}
 					}

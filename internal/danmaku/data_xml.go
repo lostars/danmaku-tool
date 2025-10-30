@@ -42,16 +42,16 @@ type DataXMLPersist struct {
 
 func (x *DataXMLPersist) WriteToFile(parser DataXMLParser, fullPath, filename string) error {
 	if parser == nil {
-		return DataPersistError(XMLPersistType, "parser is nil")
+		return fmt.Errorf("%s parser is nil", XMLPersistType)
 	}
 
 	if e := checkPersistPath(fullPath, filename); e != nil {
-		return DataPersistError(XMLPersistType, fmt.Sprintf("%s", e.Error()))
+		return e
 	}
 
 	var data, err = parser.Parse()
 	if err != nil {
-		return DataPersistError(XMLPersistType, fmt.Sprintf("parse data err: %v", err.Error()))
+		return err
 	}
 	var xmlData []byte
 	if x.Indent {
@@ -60,7 +60,7 @@ func (x *DataXMLPersist) WriteToFile(parser DataXMLParser, fullPath, filename st
 		xmlData, err = xml.Marshal(data)
 	}
 	if err != nil {
-		return DataPersistError(XMLPersistType, fmt.Sprintf("marshal error: %v", err))
+		return err
 	}
 
 	// 注意：xml.Marshal 不会自动添加声明头，需要手动添加。
@@ -69,7 +69,7 @@ func (x *DataXMLPersist) WriteToFile(parser DataXMLParser, fullPath, filename st
 	writeFile := filepath.Join(fullPath, filename+".xml")
 	err = os.WriteFile(writeFile, finalXml, 0644)
 	if err != nil {
-		return DataPersistError(XMLPersistType, fmt.Sprintf("%s write fail: %v", writeFile, err))
+		return err
 	}
 
 	utils.GetComponentLogger(XMLPersistType).Info("file save success", "file", writeFile)

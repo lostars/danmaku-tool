@@ -34,6 +34,9 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 		"appScene":   "mobile_multi",
 		// 只搜索 影视 分类
 		"categories": "2007",
+		// 重要 不同版本返回了不同字段 注意调试时候和浏览器环境保持一致
+		"sdkver":       313,
+		"pcKuFlixMode": 1,
 	}
 
 	urlParams, _ := c.sign(params, search)
@@ -79,6 +82,16 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 		tag := mediaInfo.PosterDTO.IconCorner.TagText
 		if blackListRegex.MatchString(tag) {
 			continue
+		}
+		// 过滤年份
+		yearMatches := yearMatchRegex.FindStringSubmatch(mediaInfo.FeatureDTO.Text)
+		if len(yearMatches) < 2 {
+			continue
+		} else {
+			year, _ := strconv.ParseInt(yearMatches[1], 10, 64)
+			if !param.MatchYear(int(year)) {
+				continue
+			}
 		}
 
 		media := &danmaku.Media{
@@ -179,6 +192,7 @@ func (c *client) GetDanmaku(id string) ([]*danmaku.StandardDanmaku, error) {
 }
 
 var blackListRegex = regexp.MustCompile(`短剧`)
+var yearMatchRegex = regexp.MustCompile(`\s(\d{4})\s·`)
 
 func (c *client) SearcherType() danmaku.Platform {
 	return danmaku.Youku

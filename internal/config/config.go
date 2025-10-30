@@ -78,7 +78,18 @@ type DanmakuConfig struct {
 	DandanTimeout int              `yaml:"dandan-timeout"`
 	UA            string           `yaml:"ua"`
 	Platforms     []PlatformConfig `yaml:"platforms"`
+	Emby          EmbyConfig       `yaml:"emby"`
 	Server        ServerConfig     `yaml:"server"`
+}
+
+type EmbyConfig struct {
+	Url   string `yaml:"url"`
+	User  string `yaml:"user"`
+	Token string `yaml:"token"`
+}
+
+func (c *DanmakuConfig) EmbyEnabled() bool {
+	return c.Emby.User != "" && c.Emby.Url != "" && c.Emby.Token != ""
 }
 
 type ServerConfig struct {

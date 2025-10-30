@@ -62,6 +62,14 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 		if t.AlbumInfo.SiteId != "iqiyi" {
 			continue
 		}
+		// Subtitle 是年份
+		year, err := strconv.ParseInt(t.AlbumInfo.Subtitle, 10, 64)
+		if err != nil {
+			continue
+		}
+		if !param.MatchYear(int(year)) {
+			continue
+		}
 
 		match := fuzzy.Match(t.AlbumInfo.Title, keyword)
 		c.common.Logger.Debug(fmt.Sprintf("%s match %s: %v", t.AlbumInfo.Title, keyword, match))

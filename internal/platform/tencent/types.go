@@ -125,9 +125,11 @@ type SearchResultItem struct {
 		Id string `json:"id"` // civ 重要数据 用于获取vid
 	} `json:"doc"`
 	VideoInfo struct {
-		VideoType  int    `json:"videoType"` // 上面定义的Type
-		Desc       string `json:"descrip"`
-		TypeName   string `json:"typeName"` // 电视剧/电影
+		VideoType int    `json:"videoType"` // 上面定义的Type
+		Desc      string `json:"descrip"`
+		TypeName  string `json:"typeName"` // 电视剧/电影
+		// 年份
+		Year       int    `json:"year"`
 		Title      string `json:"title"`    // 标题 可能包含第几季
 		SubTitle   string `json:"subTitle"` // 包含 全网搜 关键字则代表匹配失败
 		Status     int    `json:"status"`   // 可能是完结或者已开播的意思？ 1=未开播 0=正常
