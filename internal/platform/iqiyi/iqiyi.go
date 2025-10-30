@@ -1,7 +1,6 @@
 package iqiyi
 
 import (
-	"crypto/md5"
 	"danmu-tool/internal/config"
 	"danmu-tool/internal/danmaku"
 	"encoding/json"
@@ -115,7 +114,7 @@ func (c *client) scrapeDanmaku(baseInfo *VideoBaseInfoResult, tvId int64) []*dan
 		go func(i int) {
 			defer wg.Done()
 			for t := range tasks {
-				data, err := c.scrape(t.tvId, 40)
+				data, err := c.scrape(t.tvId, t.segment)
 				if err != nil {
 					c.common.Logger.Error(fmt.Sprintf("%d scrape segment %d error: %s", tvId, t.segment, err.Error()))
 					continue
@@ -150,34 +149,6 @@ type task struct {
 	segment int
 }
 
-func buildSegmentUrl(tvId int64, segment int) string {
-	// https://cmts.iqiyi.com/bullet/11/00/103411100_60_1_d5a87c30.br
-
-	// build path
-	path1 := "00"
-	path2 := "00"
-	tvIdStr := strconv.FormatInt(tvId, 10)
-	l := len(tvIdStr)
-	if l >= 4 {
-		path1 = tvIdStr[l-4 : l-2]
-	}
-	if l >= 2 {
-		path2 = tvIdStr[l-2:]
-	}
-
-	// build hash
-	input := fmt.Sprintf("%s_%d_%d%s", tvIdStr, segmentInterval, segment, segmentSalt)
-	sum := md5.Sum([]byte(input))
-	hash := fmt.Sprintf("%x", sum)
-	if len(hash) >= 8 {
-		hash = hash[len(hash)-8:]
-	}
-	segmentStr := strconv.FormatInt(int64(segment), 10)
-	api := fmt.Sprintf("https://cmts.iqiyi.com/bullet/%s/%s/%s_%d_%s_%s.br", path1, path2, tvIdStr, segmentInterval, segmentStr, hash)
-
-	return api
-}
-
 func (c *client) scrape(tvId int64, segment int) ([]*danmaku.StandardDanmaku, error) {
 	req, _ := http.NewRequest(http.MethodGet, buildSegmentUrl(tvId, segment), nil)
 	resp, err := c.common.HttpClient.Do(req)
@@ -197,13 +168,17 @@ func (c *client) scrape(tvId int64, segment int) ([]*danmaku.StandardDanmaku, er
 	if e := proto.Unmarshal(body, danmu); e != nil {
 		return nil, e
 	}
+	if danmu.Code != "A00000" {
+		return nil, fmt.Errorf("tvId: %d scrape fail, segment: %d", tvId, segment)
+	}
+
 	var result = make([]*danmaku.StandardDanmaku, 0, len(danmu.Entry))
 	for _, b := range danmu.Entry {
 		if b.BulletInfo == nil {
 			continue
 		}
 		for _, info := range b.BulletInfo {
-			offset, err := strconv.ParseInt(info.ShowTime, 10, 64)
+			offsetInSeconds, err := strconv.ParseFloat(info.ShowTime, 64)
 			if err != nil {
 				continue
 			}
@@ -215,7 +190,7 @@ func (c *client) scrape(tvId int64, segment int) ([]*danmaku.StandardDanmaku, er
 			result = append(result, &danmaku.StandardDanmaku{
 				Content: info.Content,
 				Color:   colorValue,
-				Offset:  offset,
+				Offset:  int64(offsetInSeconds * 1000),
 				Mode:    danmaku.RollMode,
 			})
 		}

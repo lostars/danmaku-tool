@@ -1,6 +1,10 @@
 package iqiyi
 
-import "strconv"
+import (
+	"crypto/md5"
+	"fmt"
+	"strconv"
+)
 
 const xorKey = 0x75706971676c
 const segmentInterval = 60
@@ -64,4 +68,32 @@ func reverseBytes(b []byte) []byte {
 		b[i], b[j] = b[j], b[i]
 	}
 	return b
+}
+
+func buildSegmentUrl(tvId int64, segment int) string {
+	// https://cmts.iqiyi.com/bullet/11/00/103411100_60_1_d5a87c30.br
+
+	// build path
+	path1 := "00"
+	path2 := "00"
+	tvIdStr := strconv.FormatInt(tvId, 10)
+	l := len(tvIdStr)
+	if l >= 4 {
+		path1 = tvIdStr[l-4 : l-2]
+	}
+	if l >= 2 {
+		path2 = tvIdStr[l-2:]
+	}
+
+	// build hash
+	input := fmt.Sprintf("%s_%d_%d%s", tvIdStr, segmentInterval, segment, segmentSalt)
+	sum := md5.Sum([]byte(input))
+	hash := fmt.Sprintf("%x", sum)
+	if len(hash) >= 8 {
+		hash = hash[len(hash)-8:]
+	}
+	segmentStr := strconv.FormatInt(int64(segment), 10)
+	api := fmt.Sprintf("https://cmts.iqiyi.com/bullet/%s/%s/%s_%d_%s_%s.br", path1, path2, tvIdStr, segmentInterval, segmentStr, hash)
+
+	return api
 }
