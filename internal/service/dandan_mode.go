@@ -8,10 +8,10 @@ import (
 
 func init() {
 	realTimeMode := &realTimeData{
-		platform: danmaku.GetPlatforms(),
-		season:   make([]string, 0),
-		episode:  make([]string, 0),
-		lock:     sync.Mutex{},
+		forwardMap:  make(map[string]int64, 1000),
+		reverseMap:  make(map[int64]string, 1000),
+		idAllocator: int64(1),
+		lock:        sync.RWMutex{},
 	}
 	sourceModes = map[string]DandanSourceMode{string(realTimeMode.Mode()): realTimeMode}
 }

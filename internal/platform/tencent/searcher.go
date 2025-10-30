@@ -193,12 +193,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 var tencentExcludeRegex = regexp.MustCompile(`(全网搜|外站)`)
 
 func (c *client) GetDanmaku(id string) ([]*danmaku.StandardDanmaku, error) {
-	// [platform]_[id]_[id]
-	s := strings.Split(id, "_")
-	if len(s) != 3 {
-		return nil, danmaku.PlatformError(danmaku.Tencent, "invalid id")
-	}
-	return c.getDanmakuByVid(s[2])
+	return c.getDanmakuByVid(id)
 }
 
 func (c *client) SearcherType() danmaku.Platform {

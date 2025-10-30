@@ -14,10 +14,9 @@ import (
 
 /*
 	dandan api 实时模式，将dandan api的 episodeId 通过规则映射在内存中
-	episodeId -> memory_cache -> [platform]_[id]_[id] -> platform scraper
+	episodeId -> memory_cache -> [platform]\x00[id]\x00[id] -> platform scraper
 
-	最终用于获取弹幕的都是最后的 拼接 字符串，用于多平台，同时抓取弹幕的保存结构也是如此。
-	方便后续服务以无状态运行。
+	最终用于获取弹幕的都是各平台视频id字符串，方便后续服务以无状态运行。
 
 	唯一的问题就是每次重启服务会导致同一集的 episodeId 发生变化，因为这个完全是按照请求的次序来编码id的。
 	同时依赖于api /match /comment/{id} 的成对调用，match命中后缓存映射关系，然后返回映射好的 episodeId。
@@ -65,7 +64,7 @@ func (c *realTimeData) Match(param danmaku.MatchParam) (*MatchResult, error) {
 		if searchMovies {
 			result.IsMatched = true
 			result.Matches = append(result.Matches, Match{
-				EpisodeId:    c.genEpisodeId(m.Platform, m.Id, m.Episodes[0].Id),
+				EpisodeId:    c.getGlobalID(string(m.Platform), m.Id, m.Episodes[0].Id),
 				AnimeTitle:   m.Title + " [" + string(m.Platform) + "]",
 				EpisodeTitle: m.Episodes[0].Title,
 			})
@@ -76,7 +75,7 @@ func (c *realTimeData) Match(param danmaku.MatchParam) (*MatchResult, error) {
 					logger.Info("ep match success", "searchType", m.Platform, "title", searchTitle, "ep", ep.EpisodeId)
 					result.IsMatched = true
 					result.Matches = append(result.Matches, Match{
-						EpisodeId:    c.genEpisodeId(m.Platform, m.Id, ep.Id),
+						EpisodeId:    c.getGlobalID(string(m.Platform), m.Id, ep.Id),
 						AnimeTitle:   m.Title + " [" + string(m.Platform) + "]",
 						EpisodeTitle: ep.EpisodeId,
 					})
@@ -90,17 +89,15 @@ func (c *realTimeData) Match(param danmaku.MatchParam) (*MatchResult, error) {
 }
 
 func (c *realTimeData) GetDanmaku(param CommentParam) (*CommentResult, error) {
-	id := c.decodeEpisodeId(param.Id)
-
-	ids := strings.Split(id, "_")
-	if len(ids) != 3 {
-		return nil, errors.New("invalid param")
+	platform, epId, found := c.decodeGlobalID(param.Id)
+	if !found {
+		return nil, fmt.Errorf("invalid param")
 	}
-	var searcher = danmaku.GetSearcher(ids[0])
+	var searcher = danmaku.GetSearcher(platform)
 	if searcher == nil {
 		return nil, errors.New("invalid param")
 	}
-	data, err := searcher.GetDanmaku(id)
+	data, err := searcher.GetDanmaku(epId)
 	if err != nil {
 		return nil, err
 	}
@@ -130,111 +127,60 @@ func (c *realTimeData) Mode() Mode {
 	return realTime
 }
 
-// 25（2位） + animeid（6位）+ 源顺序（2位）+ 集编号（4位）
-
 type realTimeData struct {
-	season   []string // platform_ss 作key
-	platform []string
-	episode  []string // platform_ss_ep 作key
-	lock     sync.Mutex
+	forwardMap  map[string]int64
+	reverseMap  map[int64]string
+	idAllocator int64
+	lock        sync.RWMutex
 }
 
-func (c *realTimeData) decodeEpisodeId(id int64) string {
-	str := strconv.FormatInt(id, 10)
-	if len(str) != 14 {
-		return ""
+func combineKey(platform, ssID, epID string) string {
+	// ASCII 0
+	return platform + "\x00" + ssID + "\x00" + epID
+}
+
+func (c *realTimeData) getGlobalID(platform, ssID, epID string) int64 {
+	key := combineKey(platform, ssID, epID)
+
+	// 使用读锁快速检查是否已存在
+	c.lock.RLock()
+	if id, ok := c.forwardMap[key]; ok {
+		c.lock.RUnlock()
+		return id
 	}
-	ss, err := strconv.ParseInt(str[2:8], 10, 64)
-	if err != nil {
-		return ""
-	}
-	platform, err := strconv.ParseInt(str[8:10], 10, 64)
-	if err != nil {
-		return ""
-	}
-	ep, err := strconv.ParseInt(str[10:14], 10, 64)
-	if err != nil {
-		return ""
-	}
+	c.lock.RUnlock()
 
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
-	if int(ss-1) >= len(c.season) {
-		return ""
-	}
-	if int(platform-1) >= len(c.platform) {
-		return ""
-	}
-	if int(ep-1) >= len(c.episode) {
-		return ""
+	if id, ok := c.forwardMap[key]; ok {
+		return id
 	}
 
-	return c.episode[ep-1]
+	newID := c.idAllocator
+	c.idAllocator++
+
+	c.forwardMap[key] = newID
+	c.reverseMap[newID] = key
+
+	if newID >= c.idAllocator {
+		c.idAllocator = newID + 1
+	}
+
+	return newID
 }
 
-func (c *realTimeData) genEpisodeId(p danmaku.Platform, ss string, ep string) int64 {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+func (c *realTimeData) decodeGlobalID(globalID int64) (platform string, vid string, found bool) {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
 
-	ep = string(p) + "_" + ss + "_" + ep
-	ss = string(p) + "_" + ss
-
-	var seasonId int
-	var seasonE bool
-	for i, v := range c.season {
-		if v == ss {
-			seasonId = i + 1
-			seasonE = true
-			break
-		}
+	key, found := c.reverseMap[globalID]
+	if !found {
+		return "", "", false
 	}
-	if !seasonE {
-		c.season = append(c.season, ss)
-		seasonId = len(c.season)
+	parts := strings.Split(key, "\x00")
+	if len(parts) == 3 {
+		return parts[0], parts[2], true
 	}
-
-	var pId int
-	var pE bool
-	for i, v := range c.platform {
-		if v == string(p) {
-			pId = i + 1
-			pE = true
-			break
-		}
-	}
-	if !pE {
-		c.platform = append(c.platform, string(p))
-		pId = len(c.platform)
-	}
-
-	var epId int
-	var epE bool
-	for i, v := range c.episode {
-		if v == ep {
-			epId = i + 1
-			epE = true
-			break
-		}
-	}
-	if !epE {
-		c.episode = append(c.episode, ep)
-		epId = len(c.episode)
-	}
-
-	var season = fmt.Sprintf("%0*d", 6, seasonId)
-	var platform = fmt.Sprintf("%0*d", 2, pId)
-	var episode = fmt.Sprintf("%0*d", 4, epId)
-
-	idStr := strings.Join([]string{"25", season, platform, episode}, "")
-	result, err := strconv.ParseInt(idStr, 10, 64)
-	logger := utils.GetComponentLogger("manager")
-	if err != nil {
-		logger.Error("gen episode id err", "id", idStr)
-		return 0
-	}
-
-	logger.Debug(fmt.Sprintf("episode id cache %v", c))
-
-	return result
+	return "", "", false
 }

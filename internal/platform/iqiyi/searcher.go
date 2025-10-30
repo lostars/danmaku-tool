@@ -149,12 +149,7 @@ var tvIdRegex = regexp.MustCompile(`^qips://tvid=(\d+);`)
 var albumRegex = regexp.MustCompile(`albumid=(\d+);$`)
 
 func (c *client) GetDanmaku(id string) ([]*danmaku.StandardDanmaku, error) {
-	// [platform]_[id]_[id]
-	s := strings.Split(id, "_")
-	if len(s) != 3 {
-		return nil, danmaku.PlatformError(danmaku.Iqiyi, "invalid id")
-	}
-	tvId, err := strconv.ParseInt(s[2], 10, 64)
+	tvId, err := strconv.ParseInt(id, 10, 64)
 	baseInfo, err := c.videoBaseInfo(tvId)
 	if err != nil {
 		return nil, err

@@ -109,7 +109,7 @@ type Initializer interface {
 type MediaSearcher interface {
 	// Match 匹配剧集信息，如果是剧集，会获取ep信息同时返回
 	Match(param MatchParam) ([]*Media, error)
-	// GetDanmaku 实时获取平台弹幕 id: [platform]_[id]_[id]
+	// GetDanmaku 实时获取平台弹幕 id是各自平台的视频id
 	GetDanmaku(id string) ([]*StandardDanmaku, error)
 	SearcherType() Platform
 }

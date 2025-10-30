@@ -171,13 +171,8 @@ func (c *client) getVID(showId string) string {
 var matchVIDRegex = regexp.MustCompile(`/v_show/id_([a-zA-Z0-9=]+)\.html`)
 
 func (c *client) GetDanmaku(id string) ([]*danmaku.StandardDanmaku, error) {
-	// [platform]_[id]_[id]
-	s := strings.Split(id, "_")
-	if len(s) != 3 {
-		return nil, danmaku.PlatformError(danmaku.Youku, "invalid id")
-	}
 
-	info, err := c.videoInfo(s[2])
+	info, err := c.videoInfo(id)
 	if err != nil {
 		c.common.Logger.Error(fmt.Sprintf("%s video info error", err.Error()))
 		return nil, err
@@ -188,7 +183,7 @@ func (c *client) GetDanmaku(id string) ([]*danmaku.StandardDanmaku, error) {
 		return nil, err
 	}
 
-	return c.scrapeDanmaku(s[2], int(duration/60+1)), nil
+	return c.scrapeDanmaku(id, int(duration/60+1)), nil
 }
 
 var blackListRegex = regexp.MustCompile(`短剧`)

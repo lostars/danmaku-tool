@@ -275,22 +275,7 @@ func (c *client) baseInfo(epId string, ssId string) (*SeriesInfo, error) {
 	return &series, nil
 }
 
-func (c *client) GetDanmaku(id string) ([]*danmaku.StandardDanmaku, error) {
-	s := strings.Split(id, "_")
-	if len(s) != 3 {
-		return nil, danmaku.PlatformError(danmaku.Bilibili, "invalid id")
-	}
-	_, err := strconv.ParseInt(s[1], 10, 64)
-	if err != nil {
-		return nil, danmaku.PlatformError(danmaku.Bilibili, "invalid id")
-	}
-	_, err = strconv.ParseInt(s[2], 10, 64)
-	if err != nil {
-		return nil, danmaku.PlatformError(danmaku.Bilibili, "invalid id")
-	}
-
-	var realId = s[2]
-
+func (c *client) GetDanmaku(realId string) ([]*danmaku.StandardDanmaku, error) {
 	series, err := c.baseInfo(realId, "")
 	if err != nil {
 		return nil, err
