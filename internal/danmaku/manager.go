@@ -120,7 +120,7 @@ var ChineseNumberSlice = strings.Split(ChineseNumber, "|")
 var MarkRegex = regexp.MustCompile(`[\p{P}\p{S}]`)
 var SeasonTitleMatch = regexp.MustCompile(`第(\d{1,2})季`)
 var MatchFirstSeason = regexp.MustCompile(`第[一1]季`)
-var MatchLanguage = regexp.MustCompile(`(普通话|粤配|中配|中文|英文|粤语)版`)
+var MatchLanguage = regexp.MustCompile(`(日语|普通话|粤配|中配|中文|英文|粤语)版`)
 var MatchKeyword = regexp.MustCompile(`<em class="keyword">(.*?)</em>`)
 
 // https://api.dandanplay.net/swagger/index.html#/%E5%BC%B9%E5%B9%95/Comment_GetComment

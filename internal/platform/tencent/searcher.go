@@ -158,7 +158,9 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 			}
 
 			// 如果是电影则再次比对title 有些电影是没匹配上，但是剧集里会有一些预告甚至垃圾视频
-			if ssId < 0 && ep.ItemParams.Title != keyword {
+			language := danmaku.MatchLanguage.ReplaceAllLiteralString(ep.ItemParams.Title, "")
+			language = danmaku.MarkRegex.ReplaceAllLiteralString(language, "")
+			if ssId < 0 && language != keyword {
 				continue
 			}
 			eps = append(eps, &danmaku.MediaEpisode{
