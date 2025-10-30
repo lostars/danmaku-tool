@@ -37,11 +37,15 @@ func (c *client) Scrape(id interface{}) error {
 		return danmaku.PlatformError(danmaku.Iqiyi, "invalid params")
 	}
 
-	baseInfo, err := c.videoBaseInfo(idStr)
+	tvId := parseToNumberId(idStr)
+	if tvId <= 0 {
+		return nil
+	}
+	baseInfo, err := c.videoBaseInfo(tvId)
 	if err != nil {
 		return err
 	}
-	result := c.scrapeDanmaku(baseInfo, idStr)
+	result := c.scrapeDanmaku(baseInfo, tvId)
 
 	parser := &xmlParser{
 		tvId:              idStr,
@@ -72,15 +76,11 @@ func (c *client) Scrape(id interface{}) error {
 	同时保存弹幕文件使用的是数字id
 */
 
-func (c *client) videoBaseInfo(tvId string) (*VideoBaseInfoResult, error) {
+func (c *client) videoBaseInfo(tvId int64) (*VideoBaseInfoResult, error) {
 	// https://cmts.iqiyi.com/bullet/11/00/103411100_60_1_d5a87c30.br
 	// https://pcw-api.iqiyi.com/video/video/baseinfo/103411100 视频信息
-	id := parseToNumberId(tvId)
-	if id <= 0 {
-		return nil, fmt.Errorf("wrong format tvId: %s", tvId)
-	}
 
-	baseInfoAPI := "https://pcw-api.iqiyi.com/video/video/baseinfo/" + strconv.FormatInt(id, 10)
+	baseInfoAPI := "https://pcw-api.iqiyi.com/video/video/baseinfo/" + strconv.FormatInt(tvId, 10)
 	req, _ := http.NewRequest(http.MethodGet, baseInfoAPI, nil)
 	resp, err := c.common.HttpClient.Do(req)
 	if err != nil {
@@ -100,7 +100,7 @@ func (c *client) videoBaseInfo(tvId string) (*VideoBaseInfoResult, error) {
 	return &baseInfo, nil
 }
 
-func (c *client) scrapeDanmaku(baseInfo *VideoBaseInfoResult, tvId string) []*danmaku.StandardDanmaku {
+func (c *client) scrapeDanmaku(baseInfo *VideoBaseInfoResult, tvId int64) []*danmaku.StandardDanmaku {
 
 	duration := baseInfo.Data.DurationSec
 	segmentsLen := duration/segmentInterval + 1
@@ -117,7 +117,7 @@ func (c *client) scrapeDanmaku(baseInfo *VideoBaseInfoResult, tvId string) []*da
 			for t := range tasks {
 				data, err := c.scrape(t.tvId, 40)
 				if err != nil {
-					c.common.Logger.Error(fmt.Sprintf("%s scrape segment %d error: %s", tvId, t.segment, err.Error()))
+					c.common.Logger.Error(fmt.Sprintf("%d scrape segment %d error: %s", tvId, t.segment, err.Error()))
 					continue
 				}
 				if data == nil || len(data) <= 0 {
@@ -231,7 +231,7 @@ func (c *client) Init() error {
 	}
 	c.common = common
 	danmaku.RegisterScraper(c)
-	//danmaku.RegisterMediaSearcher(c)
+	danmaku.RegisterMediaSearcher(c)
 	return nil
 }
 
