@@ -24,7 +24,7 @@ func GetDandanSourceMode() DandanSourceMode {
 
 // DandanSourceMode dandan api 数据源接口
 type DandanSourceMode interface {
-	Match(param danmaku.MatchParam) (*MatchResult, error)
+	Match(param danmaku.MatchParam) (*DanDanResult, error)
 	GetDanmaku(param CommentParam) (*CommentResult, error)
 	Mode() Mode
 }
@@ -43,12 +43,28 @@ type CommentParam struct {
 	Id          int64
 }
 
-type MatchResult struct {
-	Success      bool    `json:"success"`
-	ErrorCode    int     `json:"errorCode"`
-	ErrorMessage string  `json:"errorMessage"`
-	IsMatched    bool    `json:"isMatched"`
-	Matches      []Match `json:"matches"`
+type DanDanResult struct {
+	Success      bool   `json:"success"`
+	ErrorCode    int    `json:"errorCode"`
+	ErrorMessage string `json:"errorMessage"`
+	// match result
+	IsMatched bool    `json:"isMatched"`
+	Matches   []Match `json:"matches"`
+	// search result
+	Anime []AnimeResult `json:"animes"`
+}
+
+type AnimeResult struct {
+	AnimeId      int64  `json:"animeId"`
+	BangumiId    string `json:"bangumiId"`
+	AnimeTitle   string `json:"animeTitle"`
+	Type         string `json:"type"`
+	TypeDesc     string `json:"typeDescription"`
+	ImageUrl     string `json:"imageUrl"`
+	StartDate    string `json:"startDate"` // 2025-10-31T02:45:58.049Z
+	EpisodeCount int    `json:"episodeCount"`
+	Rating       int    `json:"rating"`
+	Favorite     bool   `json:"isFavorited"`
 }
 
 type Match struct {

@@ -10,6 +10,9 @@ import (
 func ResponseJSON(w http.ResponseWriter, status int, result interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
+	if result == nil {
+		result = map[string]interface{}{"status": status}
+	}
 	err := json.NewEncoder(w).Encode(result)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("encode json error: %s", err), http.StatusInternalServerError)

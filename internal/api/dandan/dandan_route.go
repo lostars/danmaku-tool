@@ -26,16 +26,16 @@ func RegisterRoute(route *chi.Mux) {
 		d.Use(middleware.Timeout(time.Duration(1e9 * timeout)))
 		d.Use(CacheMiddleware)
 	})
-	dandanRoute.Route("/api/v1/{token}/api/v2", func(r chi.Router) {
+	dandanRoute.Route("/api/v1/{token}/api/v2", apiRoute())
+	dandanRoute.Route("/api/v1/{token}", apiRoute())
+}
+
+func apiRoute() func(r chi.Router) {
+	return func(r chi.Router) {
 		r.Use(TokenValidatorMiddleware)
 		r.Get("/comment/{id}", CommentHandler)
 		r.Post("/match", MatchHandler)
-	})
-	dandanRoute.Route("/api/v1/{token}", func(r chi.Router) {
-		r.Use(TokenValidatorMiddleware)
-		r.Get("/comment/{id}", CommentHandler)
-		r.Post("/match", MatchHandler)
-	})
+	}
 }
 
 func TokenValidatorMiddleware(next http.Handler) http.Handler {

@@ -25,7 +25,7 @@ import (
 	memory_cache 指的是 episodeId 和 实际剧集信息的映射关系，并不是指缓存弹幕数据或者剧集信息本身。
 */
 
-func (c *realTimeData) Match(param danmaku.MatchParam) (*MatchResult, error) {
+func (c *realTimeData) Match(param danmaku.MatchParam) (*DanDanResult, error) {
 
 	strs := strings.Split(param.FileName, " ")
 	if strs[0] == "" {
@@ -51,7 +51,7 @@ func (c *realTimeData) Match(param danmaku.MatchParam) (*MatchResult, error) {
 		epId = value
 	}
 
-	var result = &MatchResult{
+	var result = &DanDanResult{
 		Matches: make([]Match, 0, 10),
 		Success: true,
 	}
