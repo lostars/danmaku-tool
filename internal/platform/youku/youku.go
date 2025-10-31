@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -33,7 +32,6 @@ func (c *client) Init() error {
 	}
 	c.common = common
 	danmaku.RegisterScraper(c)
-	danmaku.RegisterMediaSearcher(c)
 	return nil
 }
 
@@ -47,23 +45,6 @@ func (c *client) Platform() danmaku.Platform {
 	XMTA3MDAzODEy 是vid, cc07361a962411de83b1 则是 show_id
 	show_id则是从视频页面 window.__PAGE_CONF__ 获取，是一个json结构
 */
-
-// var videoRegex = regexp.MustCompile(`<script>window\.__INITIAL_DATA__\s=(\{.*});</script>`)
-var pageRegex = regexp.MustCompile(`<script>window\.__PAGE_CONF__\s=(\{.*});`)
-
-func (c *client) Scrape(id interface{}) error {
-	if id == nil {
-		return danmaku.PlatformError(danmaku.Youku, "invalid params")
-	}
-	idStr, ok := id.(string)
-	if !ok {
-		return danmaku.PlatformError(danmaku.Youku, "invalid params")
-	}
-
-	c.scrapeVideo(idStr)
-
-	return nil
-}
 
 func (c *client) videoInfo(vid string) (*VideoInfoFromHtml, error) {
 	videoUrl := fmt.Sprintf("https://v.youku.com/v_show/id_%s.html", vid)
@@ -233,4 +214,24 @@ func (c *client) scrape(vid string, segment int) ([]*danmaku.StandardDanmaku, er
 	}
 
 	return result, nil
+}
+
+func (c *client) getVID(showId string) string {
+	//	https://v.youku.com/video?s=ecba3364afbe46aaa122 会 302 到视频地址
+	req, _ := http.NewRequest(http.MethodGet, "https://v.youku.com/video?s="+showId, nil)
+	c.common.HttpClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		return http.ErrUseLastResponse
+	}
+	resp, err := c.common.DoReq(req)
+	if err != nil {
+		return ""
+	}
+	defer resp.Body.Close()
+	location := resp.Header.Get("Location")
+	// /v_show/id_XNjM2OTM4MjY0NA==.html?s=ecba3364afbe46aaa122
+	matches := matchVIDRegex.FindStringSubmatch(location)
+	if len(matches) > 1 {
+		return matches[1]
+	}
+	return ""
 }

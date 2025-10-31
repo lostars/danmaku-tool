@@ -2,34 +2,28 @@ package tencent
 
 import (
 	"bytes"
+	"danmu-tool/internal/config"
 	"danmu-tool/internal/danmaku"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
-	"regexp"
+	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/lithammer/fuzzysearch/fuzzy"
 )
 
 func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 	keyword := param.FileName
-	ssId := int64(-1)
-	var err error
-	matches := danmaku.SeriesRegex.FindStringSubmatch(keyword)
-	original := keyword
-	if len(matches) > 3 {
-		ssId, err = strconv.ParseInt(matches[2], 10, 64)
-		if err == nil {
-			original = matches[1]
-			if ssId > 0 && ssId <= 20 {
-				// 腾讯视频带上第几季搜索更精确 第一季也是 但是命中则不会显示 xx第一季
-				keyword = strings.Join([]string{matches[1], "第", danmaku.ChineseNumberSlice[ssId-1], "季"}, "")
-			} else if ssId == 0 {
-				// S00
-				keyword = matches[1] + "剧场版"
-			}
-		}
+	ssId := int64(param.SeasonId)
+	if ssId > 0 && ssId <= 20 {
+		// 腾讯视频带上第几季搜索更精确 第一季也是 但是命中则不会显示 xx第一季
+		keyword = strings.Join([]string{keyword, "第", danmaku.ChineseNumberSlice[ssId-1], "季"}, "")
+	} else if ssId == 0 {
+		// S00
+		keyword = keyword + "剧场版"
 	}
 
 	c.common.Logger.Debug(fmt.Sprintf("search keyword: %s", keyword))
@@ -60,7 +54,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 	}
 	c.setRequest(searchReq)
 
-	resp, err := c.common.HttpClient.Do(searchReq)
+	resp, err := c.common.DoReq(searchReq)
 	if err != nil {
 		return nil, err
 	}
@@ -102,38 +96,17 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 			continue
 		}
 
+		clearTitle := danmaku.ClearTitle(v.VideoInfo.Title)
+		match := fuzzy.Match(clearTitle, keyword)
+		c.common.Logger.Debug(fmt.Sprintf("[%s] match [%s]: %v", clearTitle, keyword, match))
+		if !match {
+			continue
+		}
+
 		var mediaType danmaku.MediaType
 		if ssId < 0 {
-			// 去掉标点之后 直接比较
-			plainTitle := danmaku.MarkRegex.ReplaceAllLiteralString(v.VideoInfo.Title, "")
-			plainKeyword := danmaku.MarkRegex.ReplaceAllLiteralString(keyword, "")
-			if plainTitle != plainKeyword {
-				continue
-			}
 			mediaType = danmaku.Movie
 		} else {
-			// 匹配标题 搜出来即是命中
-			checkFirstSeason := false
-			if ssId == 1 && original != v.VideoInfo.Title {
-				checkFirstSeason = true
-			}
-			if ssId > 1 || checkFirstSeason {
-				clearTitle := strings.ReplaceAll(v.VideoInfo.Title, " ", "")
-				match := danmaku.SeasonTitleMatch.FindStringSubmatch(clearTitle)
-				// 匹配到 第5季
-				if len(match) > 1 {
-					id, _ := strconv.ParseInt(match[1], 10, 64)
-					clearTitle = danmaku.SeasonTitleMatch.ReplaceAllString(clearTitle, "第"+danmaku.ChineseNumberSlice[id-1]+"季")
-					if clearTitle != keyword {
-						continue
-					}
-				} else {
-					// 没匹配到 也可能是中文 第五季
-					if clearTitle != keyword {
-						continue
-					}
-				}
-			}
 			if v.VideoInfo.SubjectDoc.VideoNum <= 0 {
 				// 没有集数信息
 				continue
@@ -154,13 +127,6 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 			}
 			// 有可能vid为空
 			if ep.ItemParams.VID == "" {
-				continue
-			}
-
-			// 如果是电影则再次比对title 有些电影是没匹配上，但是剧集里会有一些预告甚至垃圾视频
-			language := danmaku.MatchLanguage.ReplaceAllLiteralString(ep.ItemParams.Title, "")
-			language = danmaku.MarkRegex.ReplaceAllLiteralString(language, "")
-			if ssId < 0 && language != keyword {
 				continue
 			}
 			eps = append(eps, &danmaku.MediaEpisode{
@@ -192,12 +158,87 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 	return result, nil
 }
 
-var tencentExcludeRegex = regexp.MustCompile(`(全网搜|外站)`)
-
 func (c *client) GetDanmaku(id string) ([]*danmaku.StandardDanmaku, error) {
 	return c.getDanmakuByVid(id)
 }
 
-func (c *client) SearcherType() danmaku.Platform {
-	return danmaku.Tencent
+func (c *client) Scrape(idStr string) error {
+	var isVID = len(idStr) == 11
+	var cid = idStr
+	// 是否只查询单集 如果是vid且获取到对应的cid，则只查询该ep
+	var onlyCurrentVID = false
+	if isVID {
+		// 反查cid 然后再继续查询剧集
+		series, err := c.doSeriesRequest("", idStr, SeriesInfoPageId, "")
+		if err != nil {
+			return err
+		}
+		infos, err := series.series()
+		if err != nil {
+			return err
+		}
+		epCID := infos[0].ItemParams.ReportCID
+		if epCID == "" {
+			return fmt.Errorf("%s has no cid", idStr)
+		}
+		cid = epCID
+		onlyCurrentVID = true
+	}
+
+	eps, err := c.series(cid)
+	if err != nil {
+		return err
+	}
+	c.common.Logger.Info("get ep done", "cid", cid, "size", len(eps))
+	if len(eps) <= 0 {
+		return nil
+	}
+
+	for _, ep := range eps {
+		// 只获取对应ep数据
+		if onlyCurrentVID && ep.ItemParams.VID != idStr {
+			continue
+		}
+		if ep.ItemParams.IsTrailer == "1" {
+			c.common.Logger.Info("ep skipped because of trailer type", "vid", ep.ItemParams.VID)
+			continue
+		}
+		// 有可能vid为空
+		if ep.ItemParams.VID == "" {
+			c.common.Logger.Debug("skipped because of empty vid")
+			continue
+		}
+
+		data, e := c.getDanmakuByVid(ep.ItemParams.VID)
+		if e != nil {
+			c.common.Logger.Error(fmt.Sprintf("get danmaku by vid error: %s", e.Error()))
+			continue
+		}
+		parser := &xmlParser{
+			vid:     ep.ItemParams.VID,
+			danmaku: data,
+		}
+		v, err := strconv.ParseInt(ep.ItemParams.Duration, 10, 64)
+		if err == nil {
+			parser.durationInMills = v * 1000
+		} else {
+			c.common.Logger.Error("duration is not number", "vid", ep.ItemParams.VID, "duration", ep.ItemParams.Duration)
+		}
+
+		path := filepath.Join(config.GetConfig().SavePath, danmaku.Tencent, ep.ItemParams.CID)
+		title := ""
+		if _, err := strconv.ParseInt(ep.ItemParams.Title, 10, 64); err == nil {
+			title = ep.ItemParams.Title + "_"
+		}
+		filename := title + ep.ItemParams.VID
+		if e := c.common.XmlPersist.WriteToFile(parser, path, filename); e != nil {
+			c.common.Logger.Error(e.Error())
+		}
+
+		c.common.Logger.Info("ep scraped done", "vid", ep.ItemParams.VID, "size", len(parser.danmaku))
+	}
+
+	c.common.Logger.Info("danmaku scraped done", "cid", cid)
+
+	return nil
 }

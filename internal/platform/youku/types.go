@@ -1,6 +1,16 @@
 package youku
 
-import "strings"
+import (
+	"regexp"
+	"strings"
+)
+
+// var videoRegex = regexp.MustCompile(`<script>window\.__INITIAL_DATA__\s=(\{.*});</script>`)
+var pageRegex = regexp.MustCompile(`<script>window\.__PAGE_CONF__\s=(\{.*});`)
+var matchVIDRegex = regexp.MustCompile(`/v_show/id_([a-zA-Z0-9=]+)\.html`)
+
+var blackListRegex = regexp.MustCompile(`短剧`)
+var yearMatchRegex = regexp.MustCompile(`\s(\d{4})\s·`)
 
 type APIResult struct {
 	API  string `json:"api"`

@@ -26,30 +26,21 @@ import (
 */
 
 func (c *realTimeData) Match(param danmaku.MatchParam) (*DanDanResult, error) {
+	matches := danmaku.SeriesRegex.FindStringSubmatch(param.FileName)
+	epId := int64(-1)
+	searchMovies := true
+	// 兼容搜索标题为 "xxxx S01E01" 格式
+	// 如果无法匹配则默认匹配电影
+	if len(matches) > 3 {
+		ssId, _ := strconv.ParseInt(matches[2], 10, 64)
+		epId, _ = strconv.ParseInt(matches[3], 10, 64)
+		param.FileName = matches[1]
+		param.SeasonId = int(ssId)
+		param.EpisodeId = int(epId)
+		searchMovies = false
+	}
 
-	strs := strings.Split(param.FileName, " ")
-	if strs[0] == "" {
-		return nil, errors.New("invalid param")
-	}
-	// 不能截取 后面包含季信息用于搜索
-	searchTitle := param.FileName
-	searchMovies := false
-	if len(strs) == 1 || strs[1] == "" {
-		searchMovies = true
-	}
-	var epId int64
 	logger := utils.GetComponentLogger("real_time_service")
-	if len(strs) > 1 && strs[1] != "" {
-		sStrs := strings.Split(strs[1], "E")
-		if len(sStrs) <= 1 {
-			return nil, errors.New("invalid param")
-		}
-		value, err := strconv.ParseInt(sStrs[1], 10, 64)
-		if err != nil {
-			return nil, errors.New("invalid param")
-		}
-		epId = value
-	}
 
 	var result = &DanDanResult{
 		Matches: make([]Match, 0, 10),
@@ -57,6 +48,8 @@ func (c *realTimeData) Match(param danmaku.MatchParam) (*DanDanResult, error) {
 	}
 
 	media := danmaku.MatchMedia(param)
+	// 匹配到第一个即结束 客户端也只会使用第一个结果
+mediaLoop:
 	for _, m := range media {
 		if m.Episodes == nil || len(m.Episodes) == 0 {
 			continue
@@ -68,18 +61,20 @@ func (c *realTimeData) Match(param danmaku.MatchParam) (*DanDanResult, error) {
 				AnimeTitle:   m.Title + " [" + string(m.Platform) + "]",
 				EpisodeTitle: m.Episodes[0].Title,
 			})
+			logger.Info("movie match success", "platform", m.Platform, "title", param.FileName)
+			break mediaLoop
 		} else {
 			for _, ep := range m.Episodes {
 				epStr := strconv.FormatInt(epId, 10)
 				if ep.EpisodeId == epStr {
-					logger.Info("ep match success", "searchType", m.Platform, "title", searchTitle, "ep", ep.EpisodeId)
+					logger.Info("ep match success", "platform", m.Platform, "title", param.FileName, "ep", ep.EpisodeId)
 					result.IsMatched = true
 					result.Matches = append(result.Matches, Match{
 						EpisodeId:    c.getGlobalID(string(m.Platform), m.Id, ep.Id),
 						AnimeTitle:   m.Title + " [" + string(m.Platform) + "]",
 						EpisodeTitle: ep.EpisodeId,
 					})
-					break
+					break mediaLoop
 				}
 			}
 		}
@@ -93,17 +88,17 @@ func (c *realTimeData) GetDanmaku(param CommentParam) (*CommentResult, error) {
 	if !found {
 		return nil, fmt.Errorf("invalid param")
 	}
-	var searcher = danmaku.GetSearcher(platform)
-	if searcher == nil {
+	var scraper = danmaku.GetScraper(platform)
+	if scraper == nil {
 		return nil, errors.New("invalid param")
 	}
-	data, err := searcher.GetDanmaku(epId)
+	data, err := scraper.GetDanmaku(epId)
 	if err != nil {
 		return nil, err
 	}
 
 	// merge danmaku
-	mergeMills := config.GetConfig().GetPlatformConfig(string(searcher.SearcherType())).MergeDanmakuInMills
+	mergeMills := config.GetConfig().GetPlatformConfig(string(scraper.Platform())).MergeDanmakuInMills
 	if mergeMills > 0 {
 		data = danmaku.MergeDanmaku(data, mergeMills, 0)
 	}

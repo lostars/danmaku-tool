@@ -2,6 +2,7 @@ package youku
 
 import (
 	"danmu-tool/internal/danmaku"
+	"fmt"
 )
 
 type xmlParser struct {
@@ -13,7 +14,7 @@ type xmlParser struct {
 
 func (c *xmlParser) Parse() (*danmaku.DataXML, error) {
 	if c.danmaku == nil {
-		return nil, danmaku.PlatformError(danmaku.Youku, "danmaku is nil")
+		return nil, fmt.Errorf("danmaku is nil")
 	}
 
 	xml := danmaku.DataXML{

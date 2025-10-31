@@ -43,8 +43,7 @@ func GetComponentLogger(component string) *slog.Logger {
 
 func GetPlatformLogger(platform string) *slog.Logger {
 	m := map[string]string{
-		"platform":  platform,
-		"component": "scraper",
+		"platform": platform,
 	}
 	return getLogger(m)
 }

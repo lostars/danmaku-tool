@@ -1,5 +1,12 @@
 package tencent
 
+import "regexp"
+
+var tencentExcludeRegex = regexp.MustCompile(`(全网搜|外站)`)
+
+const SeriesEPPageId = "vsite_episode_list"
+const SeriesInfoPageId = "detail_page_introduction"
+
 type SeriesTab struct {
 	Begin       int    `json:"begin"`
 	End         int    `json:"end"`
@@ -8,9 +15,6 @@ type SeriesTab struct {
 	PageNum     string `json:"page_num"`
 	PageSize    string `json:"page_size"`
 }
-
-const SeriesEPPageId = "vsite_episode_list"
-const SeriesInfoPageId = "detail_page_introduction"
 
 type SeriesItem struct {
 	ItemId     string `json:"item_id"`

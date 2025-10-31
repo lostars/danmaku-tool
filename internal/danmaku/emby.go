@@ -29,9 +29,9 @@ var embyClient = http.Client{
 	Timeout: time.Second * 10,
 }
 
-func SearchEmby(fileName string) (*EmbySearchResult, error) {
+func SearchEmby(fileName string, ssId int) (*EmbySearchResult, error) {
 	types := "Movie"
-	if SeriesRegex.MatchString(fileName) {
+	if ssId >= 0 {
 		types = "Series"
 	}
 	params := url.Values{

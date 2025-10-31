@@ -1,7 +1,10 @@
 package danmaku
 
 import (
+	"danmu-tool/internal/config"
 	"danmu-tool/internal/utils"
+	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -58,4 +61,63 @@ func (d *StandardDanmaku) GenDandanAttribute(text ...string) string {
 	}
 	attr = append(attr, text...)
 	return strings.Join(attr, ",")
+}
+
+const defaultUA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+
+func (p *PlatformClient) DoReq(req *http.Request) (*http.Response, error) {
+	ua := config.GetConfig().UA
+	if ua == "" {
+		ua = defaultUA
+	}
+	req.Header.Set("User-Agent", ua)
+	return p.HttpClient.Do(req)
+}
+
+func ClearTitle(title string) string {
+	var clearTitle = utils.StripHTMLTags(title)
+	clearTitle = strings.ReplaceAll(clearTitle, " ", "")
+	clearTitle = MarkRegex.ReplaceAllLiteralString(clearTitle, "")
+	seasonMatches := SeasonTitleMatch.FindStringSubmatch(clearTitle)
+	if len(seasonMatches) > 1 {
+		s, err := strconv.ParseInt(seasonMatches[1], 10, 64)
+		if err == nil && int(s) < len(ChineseNumberSlice) && s >= 1 {
+			clearTitle = SeasonTitleMatch.ReplaceAllLiteralString(clearTitle, ChineseNumberSlice[s-1])
+		}
+	}
+	return clearTitle
+}
+
+func InitPlatformClient(platform Platform) (*PlatformClient, error) {
+	conf := config.GetConfig().GetPlatformConfig(string(platform))
+	if conf == nil || conf.Name == "" {
+		return nil, fmt.Errorf("%s is not configured", platform)
+	}
+	if conf.Priority < 0 {
+		return nil, fmt.Errorf("%s is disabled", platform)
+	}
+
+	c := &PlatformClient{}
+
+	c.Cookie = conf.Cookie
+	c.MaxWorker = conf.MaxWorker
+	if c.MaxWorker <= 0 {
+		c.MaxWorker = 8
+	}
+	var timeout = conf.Timeout
+	if timeout <= 0 {
+		timeout = 60
+	}
+	c.HttpClient = &http.Client{Timeout: time.Duration(timeout * 1e9)}
+	c.Logger = utils.GetPlatformLogger(string(platform))
+
+	c.XmlPersist = &DataXMLPersist{}
+	// 初始化数据存储器
+	for _, p := range conf.Persists {
+		switch p.Type {
+		case XMLPersistType:
+			c.XmlPersist.Indent = p.Indent
+		}
+	}
+	return c, nil
 }

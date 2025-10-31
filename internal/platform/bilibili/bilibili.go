@@ -2,35 +2,17 @@ package bilibili
 
 import (
 	"compress/gzip"
-	"danmu-tool/internal/config"
 	"danmu-tool/internal/danmaku"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
-	"path/filepath"
 	"strconv"
-	"strings"
-	"sync"
 
 	"google.golang.org/protobuf/proto"
 )
-
-func (c *client) Init() error {
-	common, err := danmaku.InitPlatformClient(danmaku.Bilibili)
-	if err != nil {
-		return err
-	}
-	c.common = common
-	danmaku.RegisterScraper(c)
-	danmaku.RegisterMediaSearcher(c)
-	return nil
-}
-
-func init() {
-	danmaku.RegisterInitializer(&client{})
-}
 
 type client struct {
 	common *danmaku.PlatformClient
@@ -39,8 +21,95 @@ type client struct {
 	token tokenKey
 }
 
+func (c *client) Init() error {
+	common, err := danmaku.InitPlatformClient(danmaku.Bilibili)
+	if err != nil {
+		return err
+	}
+	c.common = common
+	danmaku.RegisterScraper(c)
+	return nil
+}
+
+func init() {
+	danmaku.RegisterInitializer(&client{})
+}
+
 func (c *client) Platform() danmaku.Platform {
 	return danmaku.Bilibili
+}
+
+func (c *client) searchByType(searchType string, keyword string) (*SearchResult, error) {
+	api := "https://api.bilibili.com/x/web-interface/wbi/search/type?"
+	params := url.Values{
+		"search_type": {searchType},
+		"page":        {"1"},
+		"page_size":   {"30"},
+		"platform":    {"pc"},
+		"highlight":   {"1"},
+		"keyword":     {keyword},
+	}
+	params, err := c.sign(params)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequest(http.MethodGet, api+params.Encode(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Cookie", c.common.Cookie)
+	resp, err := c.common.DoReq(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.New(fmt.Sprintf("http status: %s", resp.Status))
+	}
+
+	var result SearchResult
+	err = json.NewDecoder(resp.Body).Decode(&result)
+	if err != nil {
+		return nil, err
+	}
+	if result.Code != 0 {
+		return nil, errors.New(fmt.Sprintf("http result code: %v %s", result.Code, result.Message))
+	}
+
+	return &result, nil
+}
+
+func (c *client) baseInfo(epId string, ssId string) (*SeriesInfo, error) {
+	params := url.Values{}
+	if epId != "" {
+		params.Add("ep_id", epId)
+	}
+	if ssId != "" {
+		params.Add("season_id", epId)
+	}
+
+	api := "https://api.bilibili.com/pgc/view/web/season?" + params.Encode()
+	req, err := http.NewRequest(http.MethodGet, api, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create season request err: %s", err.Error())
+	}
+	req.Header.Set("Cookie", c.common.Cookie)
+	resp, err := c.common.DoReq(req)
+	if err != nil {
+		return nil, fmt.Errorf("get season err: %s", err.Error())
+	}
+	defer resp.Body.Close()
+
+	var series SeriesInfo
+	err = json.NewDecoder(resp.Body).Decode(&series)
+	if err != nil {
+		return nil, fmt.Errorf("decode season resp err: %s", err.Error())
+	}
+	if series.Code != 0 {
+		return nil, fmt.Errorf("season resp error code: %v, message: %s", series.Code, series.Message)
+	}
+	return &series, nil
 }
 
 func (c *client) scrape(oid, pid, segmentIndex int64) []*DanmakuElem {
@@ -52,7 +121,6 @@ func (c *client) scrape(oid, pid, segmentIndex int64) []*DanmakuElem {
 	}
 	api := "https://api.bilibili.com/x/v2/dm/web/seg.so?" + params.Encode()
 
-	client := &http.Client{}
 	req, err := http.NewRequest(http.MethodGet, api, nil)
 	if err != nil {
 		c.common.Logger.Info(fmt.Sprintf("create request error: %s", err))
@@ -63,7 +131,7 @@ func (c *client) scrape(oid, pid, segmentIndex int64) []*DanmakuElem {
 	req.Header.Set("Accept-Encoding", "gzip")
 	req.Header.Set("Cookie", c.common.Cookie)
 
-	resp, err := client.Do(req)
+	resp, err := c.common.DoReq(req)
 	if err != nil {
 		c.common.Logger.Info(fmt.Sprintf("request failed: %s", err))
 		return nil
@@ -109,133 +177,6 @@ func (c *client) scrape(oid, pid, segmentIndex int64) []*DanmakuElem {
 		return nil
 	}
 	return reply.GetElems()
-}
-
-func (c *client) Scrape(id interface{}) error {
-	if id == nil {
-		return danmaku.PlatformError(danmaku.Bilibili, "nil params")
-	}
-	v, ok := id.(string)
-	if !ok {
-		return danmaku.PlatformError(danmaku.Bilibili, "invalid params")
-	}
-	realId := strings.TrimSpace(v)
-	if realId == "" {
-		return danmaku.PlatformError(danmaku.Bilibili, "invalid params")
-	}
-
-	// 比如 悠哉日常大王 第三季 就是一个单独的剧集 md28231846:ss36204
-	//https://api.bilibili.com/pgc/view/web/season?ep_id=2231363 or season_id=12334
-	var isEP bool
-	epId := ""
-	ssId := ""
-	if strings.HasPrefix(realId, "ep") {
-		isEP = true
-		epId = strings.Replace(realId, "ep", "", 1)
-	}
-	if strings.HasPrefix(realId, "ss") {
-		ssId = strings.Replace(realId, "ss", "", 1)
-	}
-	if epId == "" && ssId == "" {
-		return fmt.Errorf("only support epid or ssid")
-	}
-
-	series, err := c.baseInfo(epId, ssId)
-	if err != nil {
-		return err
-	}
-
-	c.common.Logger.Info("scrape start", "id", realId)
-	// savePath/{platform}/{ssid}/{epid}.xml : ./bilibili/1234/11234
-	path := filepath.Join(config.GetConfig().SavePath, danmaku.Bilibili, strconv.FormatInt(series.Result.SeasonId, 10))
-
-	// 顺序抓取每个ep的弹幕，并发抓取每个ep弹幕
-	var epTitle string
-	for _, ep := range series.Result.Episodes {
-
-		// 如果是ep则只抓取对应一集弹幕
-		if isEP && "ep"+strconv.FormatInt(ep.EPId, 10) != realId {
-			continue
-		}
-
-		// 排除掉预告，b站会把预告也放入其中
-		if ep.SectionType == 1 {
-			c.common.Logger.Debug("scrape skipped because of section type of 1", "epId", ep.EPId)
-			continue
-		}
-
-		var videoDuration = ep.Duration/1000 + 1 // in seconds
-		var segments int64
-		if videoDuration%360 == 0 {
-			segments = videoDuration / 360
-		} else {
-			segments = videoDuration/360 + 1
-		}
-
-		parser := &xmlParser{
-			epId:       ep.EPId,
-			seasonId:   series.Result.SeasonId,
-			epDuration: ep.Duration,
-		}
-		if isEP {
-			epTitle = ep.Title
-		}
-		tasks := make(chan task, segments)
-		lock := sync.Mutex{}
-		var wg sync.WaitGroup
-		for w := 0; w < c.common.MaxWorker; w++ {
-			wg.Add(1)
-			go func(i int) {
-				defer wg.Done()
-				for t := range tasks {
-					data := c.scrape(t.cid, 0, t.segment)
-					if data == nil {
-						continue
-					}
-					var standardData = make([]*danmaku.StandardDanmaku, 0, len(data))
-					for _, d := range data {
-						standardData = append(standardData, &danmaku.StandardDanmaku{
-							Content:     d.Content,
-							OffsetMills: int64(d.Progress),
-							Mode:        int(d.Mode),
-							Color:       int(d.Color),
-							FontSize:    d.Fontsize,
-						})
-					}
-					lock.Lock()
-					parser.danmaku = append(parser.danmaku, standardData...)
-					lock.Unlock()
-				}
-			}(w)
-		}
-
-		go func() {
-			for seg := int64(1); seg <= segments; seg++ {
-				tasks <- task{
-					cid:     ep.CId,
-					segment: seg,
-				}
-			}
-			close(tasks)
-		}()
-
-		wg.Wait()
-
-		filename := strconv.FormatInt(ep.EPId, 10)
-		if e := c.common.XmlPersist.WriteToFile(parser, path, filename); e != nil {
-			c.common.Logger.Error(e.Error())
-		}
-
-		c.common.Logger.Info("ep scraped done", "epId", ep.EPId, "size", len(parser.danmaku))
-	}
-
-	var t = series.Result.Title
-	if isEP {
-		t += epTitle
-	}
-	c.common.Logger.Info("danmaku scraped done", "title", t)
-
-	return nil
 }
 
 type task struct {

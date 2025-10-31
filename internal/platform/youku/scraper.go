@@ -5,24 +5,24 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/lithammer/fuzzysearch/fuzzy"
 )
+
+func (c *client) Scrape(id string) error {
+
+	c.scrapeVideo(id)
+
+	return nil
+}
 
 func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 	keyword := param.FileName
-	ssId := int64(-1)
-	var err error
-	matches := danmaku.SeriesRegex.FindStringSubmatch(keyword)
-	if len(matches) > 3 {
-		keyword = matches[1]
-		ssId, err = strconv.ParseInt(matches[2], 10, 64)
-		if err == nil {
-			if ssId > 1 && ssId <= 20 {
-				keyword = strings.Join([]string{matches[1], "第", danmaku.ChineseNumberSlice[ssId-1], "季"}, "")
-			}
-		}
+	ssId := int64(param.SeasonId)
+	if ssId > 1 && ssId <= 20 {
+		keyword = strings.Join([]string{keyword, "第", danmaku.ChineseNumberSlice[ssId-1], "季"}, "")
 	}
 
 	params := map[string]interface{}{
@@ -93,6 +93,12 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 				continue
 			}
 		}
+		clearTitle := danmaku.ClearTitle(mediaInfo.TempTitle)
+		match := fuzzy.Match(clearTitle, keyword)
+		c.common.Logger.Debug(fmt.Sprintf("[%s] match [%s]: %v", clearTitle, keyword, match))
+		if !match {
+			continue
+		}
 
 		media := &danmaku.Media{
 			Id:       mediaInfo.RealShowId,
@@ -148,28 +154,6 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 	return result, nil
 }
 
-func (c *client) getVID(showId string) string {
-	//	https://v.youku.com/video?s=ecba3364afbe46aaa122 会 302 到视频地址
-	req, _ := http.NewRequest(http.MethodGet, "https://v.youku.com/video?s="+showId, nil)
-	c.common.HttpClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-		return http.ErrUseLastResponse
-	}
-	resp, err := c.common.DoReq(req)
-	if err != nil {
-		return ""
-	}
-	defer resp.Body.Close()
-	location := resp.Header.Get("Location")
-	// /v_show/id_XNjM2OTM4MjY0NA==.html?s=ecba3364afbe46aaa122
-	matches := matchVIDRegex.FindStringSubmatch(location)
-	if len(matches) > 1 {
-		return matches[1]
-	}
-	return ""
-}
-
-var matchVIDRegex = regexp.MustCompile(`/v_show/id_([a-zA-Z0-9=]+)\.html`)
-
 func (c *client) GetDanmaku(id string) ([]*danmaku.StandardDanmaku, error) {
 
 	info, err := c.videoInfo(id)
@@ -184,11 +168,4 @@ func (c *client) GetDanmaku(id string) ([]*danmaku.StandardDanmaku, error) {
 	}
 
 	return c.scrapeDanmaku(id, int(duration/60+1)), nil
-}
-
-var blackListRegex = regexp.MustCompile(`短剧`)
-var yearMatchRegex = regexp.MustCompile(`\s(\d{4})\s·`)
-
-func (c *client) SearcherType() danmaku.Platform {
-	return danmaku.Youku
 }

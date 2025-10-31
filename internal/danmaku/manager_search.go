@@ -11,7 +11,7 @@ import (
 func MatchMedia(param MatchParam) []*Media {
 
 	if config.GetConfig().EmbyEnabled() {
-		search, err := SearchEmby(param.FileName)
+		search, err := SearchEmby(param.FileName, param.SeasonId)
 		if err == nil && search.Items != nil && len(search.Items) > 0 {
 			// 默认取第一个
 			item := search.Items[0]
@@ -34,7 +34,7 @@ func MatchMedia(param MatchParam) []*Media {
 		}
 	}
 
-	searchers := adapter.searchers
+	scrapers := adapter.scrapers
 
 	logger := utils.GetComponentLogger("search-media")
 
@@ -42,16 +42,15 @@ func MatchMedia(param MatchParam) []*Media {
 
 	lock := sync.Mutex{}
 	wg := sync.WaitGroup{}
-	wg.Add(len(searchers))
-	for _, s := range searchers {
-		go func(searcher MediaSearcher) {
+	wg.Add(len(scrapers))
+	for _, s := range scrapers {
+		go func(scraper Scraper) {
 			defer wg.Done()
-			media, err := searcher.Match(param)
+			media, err := scraper.Match(param)
 			if err != nil {
-				logger.Error(err.Error(), "searchType", searcher.SearcherType(), "title", param.FileName)
+				logger.Error(err.Error(), "platform", scraper.Platform(), "title", param.FileName)
 				return
 			}
-			logger.Debug("search success", "size", len(media), "searchType", searcher.SearcherType(), "title", param.FileName)
 
 			lock.Lock()
 			result = append(result, media...)

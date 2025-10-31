@@ -17,7 +17,7 @@ type xmlParser struct {
 
 func (c *xmlParser) Parse() (*danmaku.DataXML, error) {
 	if c.danmaku == nil {
-		return nil, danmaku.PlatformError(danmaku.Bilibili, fmt.Sprintf("ep%v danmaku is nil", c.epId))
+		return nil, fmt.Errorf("ep%v danmaku is nil", c.epId)
 	}
 
 	// 合并重复弹幕

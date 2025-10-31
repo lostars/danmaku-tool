@@ -1,21 +1,11 @@
 package danmaku
 
 import (
-	"danmu-tool/internal/config"
-	"danmu-tool/internal/utils"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"regexp"
 	"strings"
-	"time"
 )
-
-// TODO remove
-
-func PlatformError(p Platform, text string) error {
-	return fmt.Errorf("[%s] %s", p, text)
-}
 
 type MediaType string
 
@@ -51,67 +41,19 @@ type PlatformClient struct {
 	Logger     *slog.Logger
 }
 
-const defaultUA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
-
-func (p *PlatformClient) DoReq(req *http.Request) (*http.Response, error) {
-	ua := config.GetConfig().UA
-	if ua == "" {
-		ua = defaultUA
-	}
-	req.Header.Set("User-Agent", ua)
-	return p.HttpClient.Do(req)
-}
-
-func InitPlatformClient(platform Platform) (*PlatformClient, error) {
-	conf := config.GetConfig().GetPlatformConfig(string(platform))
-	if conf == nil || conf.Name == "" {
-		return nil, fmt.Errorf("%s is not configured", platform)
-	}
-	if conf.Priority < 0 {
-		return nil, fmt.Errorf("%s is disabled", platform)
-	}
-
-	c := &PlatformClient{}
-
-	c.Cookie = conf.Cookie
-	c.MaxWorker = conf.MaxWorker
-	if c.MaxWorker <= 0 {
-		c.MaxWorker = 8
-	}
-	var timeout = conf.Timeout
-	if timeout <= 0 {
-		timeout = 60
-	}
-	c.HttpClient = &http.Client{Timeout: time.Duration(timeout * 1e9)}
-	c.Logger = utils.GetPlatformLogger(string(platform))
-
-	c.XmlPersist = &DataXMLPersist{}
-	// 初始化数据存储器
-	for _, p := range conf.Persists {
-		switch p.Type {
-		case XMLPersistType:
-			c.XmlPersist.Indent = p.Indent
-		}
-	}
-	return c, nil
-}
-
 type Scraper interface {
-	Platform() Platform
-	// Scrape 抓取并保存弹幕
-	Scrape(id interface{}) error
-}
-
-type Initializer interface {
-	Init() error
-}
-
-type MediaSearcher interface {
-	// Match 匹配剧集信息，如果是剧集，会获取ep信息同时返回
-	Match(param MatchParam) ([]*Media, error)
+	PlatformInitializer
+	// Scrape 抓取并保存弹幕 各个平台视频id/剧集id 看各自实现
+	Scrape(id string) error
 	// GetDanmaku 实时获取平台弹幕 id是各自平台的视频id
 	GetDanmaku(id string) ([]*StandardDanmaku, error)
-	SearcherType() Platform
+	// Match 匹配剧集信息，如果是剧集，会获取ep信息同时返回
+	Match(param MatchParam) ([]*Media, error)
+}
+
+type PlatformInitializer interface {
+	Init() error
+	Platform() Platform
 }
 
 var SeriesRegex = regexp.MustCompile("(.*)\\sS(\\d{1,3})E(\\d{1,3})$")
@@ -140,11 +82,12 @@ type StandardDanmaku struct {
 }
 
 type MatchParam struct {
-	FileName        string `json:"fileName"`
-	FileSize        int64  `json:"fileSize"`
-	MatchMod        string `json:"matchMod"` // fileNameOnly
-	DurationSeconds int64  `json:"videoDuration"`
-	FileHash        string `json:"fileHash"`
+	FileName            string `json:"fileName"`
+	FileSize            int64  `json:"fileSize"`
+	MatchMod            string `json:"matchMod"` // fileNameOnly
+	DurationSeconds     int64  `json:"videoDuration"`
+	FileHash            string `json:"fileHash"`
+	SeasonId, EpisodeId int
 	// Emby 内部搜索参数 反查Emby用于更加精准的搜索
 	Emby struct {
 		// 年份数字（2025） 匹配时 判断年份是否在年份闭区间内
@@ -174,14 +117,12 @@ const TopMode = 5
 
 type manager struct {
 	scrapers     []Scraper
-	searchers    []MediaSearcher
-	initializers []Initializer
+	initializers []PlatformInitializer
 }
 
 var adapter = &manager{
 	scrapers:     []Scraper{},
-	searchers:    []MediaSearcher{},
-	initializers: []Initializer{},
+	initializers: []PlatformInitializer{},
 }
 
 func GetScraper(platform string) Scraper {
@@ -193,16 +134,7 @@ func GetScraper(platform string) Scraper {
 	return nil
 }
 
-func GetSearcher(platform string) MediaSearcher {
-	for _, v := range adapter.searchers {
-		if string(v.SearcherType()) == platform {
-			return v
-		}
-	}
-	return nil
-}
-
-func GetInitializers() []Initializer {
+func GetInitializers() []PlatformInitializer {
 	return adapter.initializers
 }
 
@@ -214,14 +146,11 @@ func GetPlatforms() []string {
 	return result
 }
 
-func RegisterMediaSearcher(s MediaSearcher) {
-	adapter.searchers = append(adapter.searchers, s)
-}
 func RegisterScraper(s Scraper) {
 	adapter.scrapers = append(adapter.scrapers, s)
 }
 
-func RegisterInitializer(i Initializer) {
+func RegisterInitializer(i PlatformInitializer) {
 	adapter.initializers = append(adapter.initializers, i)
 }
 

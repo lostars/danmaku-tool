@@ -1,5 +1,10 @@
 package iqiyi
 
+import "regexp"
+
+var tvIdRegex = regexp.MustCompile(`^qips://tvid=(\d+);`)
+var albumRegex = regexp.MustCompile(`albumid=(\d+);$`)
+
 type VideoBaseInfoResult struct {
 	Code string `json:"code"` // A00000 成功
 	Data struct {

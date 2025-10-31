@@ -1,12 +1,13 @@
 package iqiyi
 
 import (
+	"danmu-tool/internal/config"
 	"danmu-tool/internal/danmaku"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
-	"regexp"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -15,17 +16,9 @@ import (
 
 func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 	keyword := param.FileName
-	ssId := int64(-1)
-	var err error
-	matches := danmaku.SeriesRegex.FindStringSubmatch(keyword)
-	if len(matches) > 3 {
-		keyword = matches[1]
-		ssId, err = strconv.ParseInt(matches[2], 10, 64)
-		if err == nil {
-			if ssId > 1 && ssId <= 20 {
-				keyword = strings.Join([]string{matches[1], "第", danmaku.ChineseNumberSlice[ssId-1], "季"}, "")
-			}
-		}
+	ssId := int64(param.SeasonId)
+	if ssId > 1 && ssId <= 20 {
+		keyword = strings.Join([]string{keyword, "第", danmaku.ChineseNumberSlice[ssId-1], "季"}, "")
 	}
 
 	api := "https://mesh.if.iqiyi.com/portal/lw/search/homePageV3?"
@@ -57,9 +50,12 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 	}
 
 	var media = make([]*danmaku.Media, 0, len(result.Data.Templates))
-	for _, t := range result.Data.Templates {
+	for i, t := range result.Data.Templates {
 		// 过滤非iqiyi平台数据
 		if t.AlbumInfo.SiteId != "iqiyi" {
+			continue
+		}
+		if t.Template != 101 && t.Template != 103 {
 			continue
 		}
 		// Subtitle 是年份
@@ -71,8 +67,9 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 			continue
 		}
 
-		match := fuzzy.Match(t.AlbumInfo.Title, keyword)
-		c.common.Logger.Debug(fmt.Sprintf("%s match %s: %v", t.AlbumInfo.Title, keyword, match))
+		clearTitle := danmaku.ClearTitle(t.AlbumInfo.Title)
+		match := fuzzy.Match(clearTitle, keyword)
+		c.common.Logger.Debug(fmt.Sprintf("[%s] match [%s]: %v index: %d", clearTitle, keyword, match, i))
 		if !match {
 			continue
 		}
@@ -126,8 +123,6 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 				Title:     t.AlbumInfo.Title,
 			})
 
-		} else {
-			continue
 		}
 
 		m := &danmaku.Media{
@@ -145,9 +140,6 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 	return media, nil
 }
 
-var tvIdRegex = regexp.MustCompile(`^qips://tvid=(\d+);`)
-var albumRegex = regexp.MustCompile(`albumid=(\d+);$`)
-
 func (c *client) GetDanmaku(id string) ([]*danmaku.StandardDanmaku, error) {
 	tvId, err := strconv.ParseInt(id, 10, 64)
 	baseInfo, err := c.videoBaseInfo(tvId)
@@ -158,6 +150,32 @@ func (c *client) GetDanmaku(id string) ([]*danmaku.StandardDanmaku, error) {
 	return result, nil
 }
 
-func (c *client) SearcherType() danmaku.Platform {
-	return danmaku.Iqiyi
+func (c *client) Scrape(idStr string) error {
+	tvId := parseToNumberId(idStr)
+	if tvId <= 0 {
+		return nil
+	}
+	baseInfo, err := c.videoBaseInfo(tvId)
+	if err != nil {
+		return err
+	}
+	result := c.scrapeDanmaku(baseInfo, tvId)
+
+	parser := &xmlParser{
+		tvId:              idStr,
+		danmaku:           result,
+		durationInSeconds: int64(baseInfo.Data.DurationSec),
+	}
+
+	path := filepath.Join(config.GetConfig().SavePath, danmaku.Iqiyi, strconv.FormatInt(baseInfo.Data.AlbumId, 10))
+	title := ""
+	if baseInfo.Data.Order > 0 {
+		title = strconv.FormatInt(int64(baseInfo.Data.Order), 10) + "_"
+	}
+	filename := title + strconv.FormatInt(baseInfo.Data.TVId, 10)
+	if e := c.common.XmlPersist.WriteToFile(parser, path, filename); e != nil {
+		return e
+	}
+
+	return nil
 }

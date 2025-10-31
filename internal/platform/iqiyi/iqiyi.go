@@ -1,13 +1,11 @@
 package iqiyi
 
 import (
-	"danmu-tool/internal/config"
 	"danmu-tool/internal/danmaku"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-	"path/filepath"
 	"strconv"
 	"sync"
 
@@ -15,54 +13,26 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func init() {
-	danmaku.RegisterInitializer(&client{})
-}
-
 type client struct {
 	common *danmaku.PlatformClient
 }
 
-func (c *client) Platform() danmaku.Platform {
-	return danmaku.Iqiyi
+func init() {
+	danmaku.RegisterInitializer(&client{})
 }
 
-func (c *client) Scrape(id interface{}) error {
-	if id == nil {
-		return danmaku.PlatformError(danmaku.Iqiyi, "invalid params")
-	}
-	idStr, ok := id.(string)
-	if !ok {
-		return danmaku.PlatformError(danmaku.Iqiyi, "invalid params")
-	}
-
-	tvId := parseToNumberId(idStr)
-	if tvId <= 0 {
-		return nil
-	}
-	baseInfo, err := c.videoBaseInfo(tvId)
+func (c *client) Init() error {
+	common, err := danmaku.InitPlatformClient(danmaku.Iqiyi)
 	if err != nil {
 		return err
 	}
-	result := c.scrapeDanmaku(baseInfo, tvId)
-
-	parser := &xmlParser{
-		tvId:              idStr,
-		danmaku:           result,
-		durationInSeconds: int64(baseInfo.Data.DurationSec),
-	}
-
-	path := filepath.Join(config.GetConfig().SavePath, danmaku.Iqiyi, strconv.FormatInt(baseInfo.Data.AlbumId, 10))
-	title := ""
-	if baseInfo.Data.Order > 0 {
-		title = strconv.FormatInt(int64(baseInfo.Data.Order), 10) + "_"
-	}
-	filename := title + strconv.FormatInt(baseInfo.Data.TVId, 10)
-	if e := c.common.XmlPersist.WriteToFile(parser, path, filename); e != nil {
-		return e
-	}
-
+	c.common = common
+	danmaku.RegisterScraper(c)
 	return nil
+}
+
+func (c *client) Platform() danmaku.Platform {
+	return danmaku.Iqiyi
 }
 
 /*
@@ -81,7 +51,7 @@ func (c *client) videoBaseInfo(tvId int64) (*VideoBaseInfoResult, error) {
 
 	baseInfoAPI := "https://pcw-api.iqiyi.com/video/video/baseinfo/" + strconv.FormatInt(tvId, 10)
 	req, _ := http.NewRequest(http.MethodGet, baseInfoAPI, nil)
-	resp, err := c.common.HttpClient.Do(req)
+	resp, err := c.common.DoReq(req)
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +121,7 @@ type task struct {
 
 func (c *client) scrape(tvId int64, segment int) ([]*danmaku.StandardDanmaku, error) {
 	req, _ := http.NewRequest(http.MethodGet, buildSegmentUrl(tvId, segment), nil)
-	resp, err := c.common.HttpClient.Do(req)
+	resp, err := c.common.DoReq(req)
 	if err != nil {
 		return nil, err
 	}
@@ -199,17 +169,6 @@ func (c *client) scrape(tvId int64, segment int) ([]*danmaku.StandardDanmaku, er
 	return result, nil
 }
 
-func (c *client) Init() error {
-	common, err := danmaku.InitPlatformClient(danmaku.Iqiyi)
-	if err != nil {
-		return err
-	}
-	c.common = common
-	danmaku.RegisterScraper(c)
-	danmaku.RegisterMediaSearcher(c)
-	return nil
-}
-
 type xmlParser struct {
 	// 弹幕数据
 	danmaku           []*danmaku.StandardDanmaku
@@ -219,7 +178,7 @@ type xmlParser struct {
 
 func (c *xmlParser) Parse() (*danmaku.DataXML, error) {
 	if c.danmaku == nil {
-		return nil, danmaku.PlatformError(danmaku.Iqiyi, "danmaku is nil")
+		return nil, fmt.Errorf("danmaku is nil")
 	}
 
 	xml := danmaku.DataXML{
