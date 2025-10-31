@@ -1,13 +1,18 @@
 package cmd
 
 import (
+	"context"
 	"danmu-tool/internal/api"
 	"danmu-tool/internal/api/dandan"
 	"danmu-tool/internal/config"
 	"danmu-tool/internal/utils"
+	"errors"
 	"log/slog"
 	"net/http"
+	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -46,11 +51,33 @@ func serverCmd() *cobra.Command {
 		// dandan api
 		dandan.RegisterRoute(r)
 
-		utils.GetComponentLogger("web-server").Info("web server started", "port", port)
-		err := http.ListenAndServe(":"+strconv.FormatInt(int64(port), 10), r)
-		if err != nil {
-			return err
+		srv := &http.Server{
+			Addr:         ":" + strconv.FormatInt(int64(port), 10),
+			Handler:      r,
+			IdleTimeout:  120 * time.Second,
+			ReadTimeout:  10 * time.Second,
+			WriteTimeout: 10 * time.Second,
 		}
+
+		quit := make(chan os.Signal, 1)
+		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+		go func() {
+			utils.GetComponentLogger("web-server").Info("web server started", "port", port)
+			if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+				httpLogger.Error("server failed to start", "error", err)
+				quit <- syscall.SIGTERM
+			}
+		}()
+		<-quit
+
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		if err := srv.Shutdown(ctx); err != nil {
+			httpLogger.Error("server forced to shutdown", "error", err)
+		}
+
+		Release()
 
 		return nil
 	}

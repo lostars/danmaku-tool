@@ -7,13 +7,11 @@ import (
 )
 
 func init() {
-	realTimeMode := &realTimeData{
-		forwardMap:  make(map[string]int64, 1000),
-		reverseMap:  make(map[int64]string, 1000),
-		idAllocator: int64(1),
-		lock:        sync.RWMutex{},
+	cacheMapper := &realTimeData{
+		lock: sync.RWMutex{},
 	}
-	sourceModes = map[string]DandanSourceMode{string(realTimeMode.Mode()): realTimeMode}
+	danmaku.RegisterInitializer(cacheMapper)
+	sourceModes = map[string]DandanSourceMode{string(cacheMapper.Mode()): cacheMapper}
 }
 
 var sourceModes map[string]DandanSourceMode
@@ -27,6 +25,10 @@ type DandanSourceMode interface {
 	Match(param danmaku.MatchParam) (*DanDanResult, error)
 	GetDanmaku(param CommentParam) (*CommentResult, error)
 	Mode() Mode
+}
+
+type SourceRelease interface {
+	ReleaseSource() error
 }
 
 type Mode string

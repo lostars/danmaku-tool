@@ -49,11 +49,11 @@ type Scraper interface {
 	GetDanmaku(id string) ([]*StandardDanmaku, error)
 	// Match 匹配剧集信息，如果是剧集，会获取ep信息同时返回
 	Match(param MatchParam) ([]*Media, error)
+	Platform() Platform
 }
 
 type PlatformInitializer interface {
 	Init() error
-	Platform() Platform
 }
 
 var SeriesRegex = regexp.MustCompile("(.*)\\sS(\\d{1,3})E(\\d{1,3})$")

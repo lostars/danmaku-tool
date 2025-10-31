@@ -4,8 +4,12 @@ import (
 	"danmu-tool/internal/config"
 	"danmu-tool/internal/danmaku"
 	"danmu-tool/internal/utils"
+	"encoding/gob"
 	"errors"
 	"fmt"
+	"log/slog"
+	"os"
+	"path"
 	"strconv"
 	"strings"
 	"sync"
@@ -25,6 +29,66 @@ import (
 	memory_cache 指的是 episodeId 和 实际剧集信息的映射关系，并不是指缓存弹幕数据或者剧集信息本身。
 */
 
+var (
+	//cacheMapper *realTimeData
+	fileName = "data.gob"
+)
+
+func (c *realTimeData) ReleaseSource() error {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
+	p := path.Join(strings.ReplaceAll(config.ConfPath, path.Base(config.ConfPath), ""), fileName)
+	file, err := os.Create(p)
+	if err != nil {
+		return fmt.Errorf("failed to create data file: %w", err)
+	}
+	defer file.Close()
+
+	encoder := gob.NewEncoder(file)
+
+	if err := encoder.Encode(c); err != nil {
+		return fmt.Errorf("failed to encode data: %w", err)
+	}
+
+	c.logger.Info("save map info to file success")
+
+	return nil
+}
+
+func (c *realTimeData) Load() (bool, error) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	p := path.Join(strings.ReplaceAll(config.ConfPath, path.Base(config.ConfPath), ""), fileName)
+	file, err := os.Open(p)
+	if err != nil {
+		c.ForwardMap = make(map[string]int64, 1000)
+		c.ReverseMap = make(map[int64]string, 1000)
+		c.IdAllocator = int64(1)
+		return false, err
+	}
+	defer file.Close()
+
+	if err := gob.NewDecoder(file).Decode(c); err != nil {
+		return false, fmt.Errorf("failed to decode data: %w", err)
+	}
+
+	return true, nil
+}
+
+func (c *realTimeData) Init() error {
+	c.logger = utils.GetComponentLogger("real_time_service")
+	success, err := c.Load()
+	if err != nil {
+		return err
+	}
+	if success {
+		c.logger.Info("restore data from file success")
+	}
+	return nil
+}
+
 func (c *realTimeData) Match(param danmaku.MatchParam) (*DanDanResult, error) {
 	matches := danmaku.SeriesRegex.FindStringSubmatch(param.FileName)
 	epId := int64(-1)
@@ -39,8 +103,6 @@ func (c *realTimeData) Match(param danmaku.MatchParam) (*DanDanResult, error) {
 		param.EpisodeId = int(epId)
 		searchMovies = false
 	}
-
-	logger := utils.GetComponentLogger("real_time_service")
 
 	var result = &DanDanResult{
 		Matches: make([]Match, 0, 10),
@@ -61,13 +123,13 @@ mediaLoop:
 				AnimeTitle:   m.Title + " [" + string(m.Platform) + "]",
 				EpisodeTitle: m.Episodes[0].Title,
 			})
-			logger.Info("movie match success", "platform", m.Platform, "title", param.FileName)
+			c.logger.Info("movie match success", "platform", m.Platform, "title", param.FileName)
 			break mediaLoop
 		} else {
 			for _, ep := range m.Episodes {
 				epStr := strconv.FormatInt(epId, 10)
 				if ep.EpisodeId == epStr {
-					logger.Info("ep match success", "platform", m.Platform, "title", param.FileName, "ep", ep.EpisodeId)
+					c.logger.Info("ep match success", "platform", m.Platform, "title", param.FileName, "ep", ep.EpisodeId)
 					result.IsMatched = true
 					result.Matches = append(result.Matches, Match{
 						EpisodeId:    c.getGlobalID(string(m.Platform), m.Id, ep.Id),
@@ -123,10 +185,11 @@ func (c *realTimeData) Mode() Mode {
 }
 
 type realTimeData struct {
-	forwardMap  map[string]int64
-	reverseMap  map[int64]string
-	idAllocator int64
+	ForwardMap  map[string]int64
+	ReverseMap  map[int64]string
+	IdAllocator int64
 	lock        sync.RWMutex
+	logger      *slog.Logger
 }
 
 func combineKey(platform, ssID, epID string) string {
@@ -139,7 +202,7 @@ func (c *realTimeData) getGlobalID(platform, ssID, epID string) int64 {
 
 	// 使用读锁快速检查是否已存在
 	c.lock.RLock()
-	if id, ok := c.forwardMap[key]; ok {
+	if id, ok := c.ForwardMap[key]; ok {
 		c.lock.RUnlock()
 		return id
 	}
@@ -148,18 +211,18 @@ func (c *realTimeData) getGlobalID(platform, ssID, epID string) int64 {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
-	if id, ok := c.forwardMap[key]; ok {
+	if id, ok := c.ForwardMap[key]; ok {
 		return id
 	}
 
-	newID := c.idAllocator
-	c.idAllocator++
+	newID := c.IdAllocator
+	c.IdAllocator++
 
-	c.forwardMap[key] = newID
-	c.reverseMap[newID] = key
+	c.ForwardMap[key] = newID
+	c.ReverseMap[newID] = key
 
-	if newID >= c.idAllocator {
-		c.idAllocator = newID + 1
+	if newID >= c.IdAllocator {
+		c.IdAllocator = newID + 1
 	}
 
 	return newID
@@ -169,7 +232,7 @@ func (c *realTimeData) decodeGlobalID(globalID int64) (platform string, vid stri
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 
-	key, found := c.reverseMap[globalID]
+	key, found := c.ReverseMap[globalID]
 	if !found {
 		return "", "", false
 	}

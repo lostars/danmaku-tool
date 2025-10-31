@@ -8,7 +8,8 @@ import (
 )
 
 var (
-	Version string
+	Version  string
+	ConfPath string
 )
 
 var danmakuConfig *DanmakuConfig
@@ -38,6 +39,7 @@ func loadFromPath(path string) []byte {
 	if err != nil {
 		panic(err)
 	}
+	ConfPath = path
 	return file
 }
 
