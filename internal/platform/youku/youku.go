@@ -198,17 +198,22 @@ func (c *client) scrape(vid string, segment int) ([]*danmaku.StandardDanmaku, er
 	for _, d := range danmakuResult.Data.Result {
 		standard := &danmaku.StandardDanmaku{
 			Content:     d.Content,
-			Mode:        danmaku.RollMode,
+			Mode:        danmaku.NormalMode,
 			OffsetMills: d.PlayAt,
 			Platform:    danmaku.Youku,
 			Color:       danmaku.WhiteColor,
+			FontSize:    25,
 		}
 		var property DanmakuPropertyResult
 		err = json.Unmarshal([]byte(d.Property), &property)
 		if err == nil {
 			standard.Color = property.Color
-			//standard.Mode = property.Pos
-			//standard.FontSize = int32(property.Size)
+			switch property.Pos {
+			case 1:
+				standard.Mode = danmaku.TopMode
+			case 2:
+				standard.Mode = danmaku.BottomMode
+			}
 		}
 		result = append(result, standard)
 	}

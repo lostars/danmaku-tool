@@ -30,7 +30,6 @@ import (
 */
 
 var (
-	//cacheMapper *realTimeData
 	fileName = "data.gob"
 )
 

@@ -70,7 +70,7 @@ var MatchKeyword = regexp.MustCompile(`<em class="keyword">(.*?)</em>`)
 
 type StandardDanmaku struct {
 	OffsetMills int64 // 偏移量 ms 注意dandan中保存的是秒，保留2位小数，这里为了精度使用ms，在API返回或者写入时才进行转换
-	Mode        int   // 1滚动 4底部 5顶部
+	Mode        int   // 1普通 4底部 5顶部
 	Color       int   // 颜色 数字格式 16777215
 	// 以上三个字段按照顺序兼容dandan API p字段
 
@@ -111,7 +111,7 @@ func (p MatchParam) MatchYear(year int) bool {
 
 const WhiteColor = 16777215
 
-const RollMode = 1
+const NormalMode = 1
 const BottomMode = 4
 const TopMode = 5
 

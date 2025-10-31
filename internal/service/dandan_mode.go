@@ -35,7 +35,6 @@ type Mode string
 
 const (
 	realTime = "real_time"
-	database = "database"
 )
 
 type CommentParam struct {

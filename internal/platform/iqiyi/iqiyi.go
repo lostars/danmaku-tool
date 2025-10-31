@@ -161,7 +161,7 @@ func (c *client) scrape(tvId int64, segment int) ([]*danmaku.StandardDanmaku, er
 				Content:     info.Content,
 				Color:       colorValue,
 				OffsetMills: int64(offsetInSeconds * 1000),
-				Mode:        danmaku.RollMode,
+				Mode:        danmaku.NormalMode,
 			})
 		}
 	}

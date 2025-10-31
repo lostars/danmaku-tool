@@ -86,10 +86,14 @@ func NormalConvert(source []*StandardDanmaku, platform string, durationInMills i
 	// <d p="2.603,1,25,16777215,[tencent]">看看 X2</d>
 	// 第几秒/弹幕类型/字体大小/颜色
 	for _, v := range source {
+		fontSize := "25"
+		if v.FontSize > 0 {
+			fontSize = strconv.FormatInt(int64(v.FontSize), 10)
+		}
 		var attr = []string{
 			strconv.FormatFloat(float64(v.OffsetMills)/1000, 'f', 2, 64),
 			strconv.FormatInt(int64(v.Mode), 10),
-			"25", // 固定字号
+			fontSize,
 			strconv.FormatInt(int64(v.Color), 10),
 			fmt.Sprintf("[%s]", platform),
 		}

@@ -29,10 +29,6 @@ func CommentHandler(w http.ResponseWriter, r *http.Request) {
 	query.Get("withRelated") // bool
 	query.Get("chConvert")   // bool
 
-	param := service.CommentParam{
-		Id: numId,
-	}
-
 	dandanLogger := utils.GetComponentLogger("dandan-api")
 	dandanLogger.Info("comment api requested", "token", token, "id", id)
 
@@ -43,7 +39,9 @@ func CommentHandler(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	comment, err := mode.GetDanmaku(param)
+	comment, err := mode.GetDanmaku(service.CommentParam{
+		Id: numId,
+	})
 	if err != nil {
 		api.ResponseJSON(w, http.StatusBadRequest, map[string]string{
 			"message": err.Error(),

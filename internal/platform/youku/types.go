@@ -100,7 +100,7 @@ type DanmakuResult struct {
 type DanmakuPropertyResult struct {
 	Size       int `json:"size"`
 	Alpha      int `json:"alpha"`
-	Pos        int `json:"pos"` // 3=顶部
+	Pos        int `json:"pos"`
 	MarkSource int `json:"markSource"`
 	Color      int `json:"color"` // int颜色
 }
