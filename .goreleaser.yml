@@ -11,7 +11,7 @@ builds:
   - main: main.go
     binary: danmaku
     env:
-      - CGO_ENABLED=0
+      - CGO_ENABLED=1
     targets:
       - linux_amd64
       - linux_arm64
