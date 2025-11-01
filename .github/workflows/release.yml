@@ -11,7 +11,7 @@ env:
 jobs:
 
   build-linux:
-    name: Build and publish binaries
+    name: Build Linux Binaries
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -22,6 +22,10 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Install modern ARM64 toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
       -
         name: Set up Go
         uses: actions/setup-go@v5
@@ -64,7 +68,7 @@ jobs:
         uses: goreleaser/goreleaser-action@v6
         with:
           version: "~> v2"
-          args: release --clean --platform darwin/amd64,darwin/arm64
+          args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GOOS: darwin
@@ -86,7 +90,7 @@ jobs:
         uses: goreleaser/goreleaser-action@v6
         with:
           version: "~> v2"
-          args: release --clean --platform windows/amd64,windows/arm64
+          args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GOOS: windows
