@@ -1,131 +1,80 @@
-name: goreleaser
+name: Release
 
 on:
   push:
     tags:
       - 'v*'
 
-env:
-  GO_VERSION: '1.25'
-
 jobs:
-
-  build-linux:
-    name: Build Linux
-    runs-on: ubuntu-latest
+  build:
+    name: Build for ${{ matrix.os }}-${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
     permissions:
       contents: write
       packages: write
+    strategy:
+      matrix:
+        include:
+          - os: linux
+            arch: amd64
+            runner: ubuntu-latest
+            docker: true
+          - os: linux
+            arch: arm64
+            runner: ubuntu-24.04-arm64
+            docker: true
+
+          - os: darwin
+            arch: amd64
+            runner: macos-13
+          - os: darwin
+            arch: arm64
+            runner: macos-14
+
+          - os: windows
+            arch: amd64
+            runner: windows-latest
+
     steps:
-      -
-        name: Checkout
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Install modern ARM64 toolchain
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
-      -
-        name: Set up Go
+
+      - name: Set project name
+        run: echo "PROJECT_NAME=$(basename $GITHUB_REPOSITORY)" >> $GITHUB_ENV
+
+      - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
-          cache: true
+          go-version: "1.25"
+          cache: 'true'
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Build
+        run: |
+          make release PROJECT=${{ env.PROJECT_NAME }} GOOS=${{ matrix.os }} ARCH=${{ matrix.arch }}
+          make compress PROJECT=${{ env.PROJECT_NAME }} GOOS=${{ matrix.os }} ARCH=${{ matrix.arch }}
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.PROJECT_NAME }}_${{ github.ref_name }}_${{ matrix.os }}_${{ matrix.arch }}
+          path: dist/${{ env.PROJECT_NAME }}_${{ github.ref_name }}_${{ matrix.os }}_${{ matrix.arch }}.tar.gz
+
       - name: Log in to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v2
+        if: matrix.docker == true
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      -
-        name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v6
+
+      - name: Build & Push Docker Image
+        uses: docker/build-push-action@v5
+        if: matrix.docker == true
         with:
-          version: "~> v2"
-          args: release --clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  release-cross-build:
-    name: Build ${{ matrix.os }} Binary
-    needs: [build-linux]
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: macos-latest
-            goos: darwin
-            goarch: amd64
-            archive_format: tar.gz
-          - os: macos-latest
-            goos: darwin
-            goarch: arm64
-            archive_format: tar.gz
-          - os: windows-latest
-            goos: windows
-            goarch: amd64
-            archive_format: zip
-          - os: windows-latest
-            goos: windows
-            goarch: arm64
-            archive_format: zip
-    permissions:
-      contents: write
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-          cache: true
-      - name: Prepare Dependencies
-        run: go mod download
-      - name: Set Version Variable and Build Details
-        shell: bash
-        run: |
-            VERSION_TAG="${{ github.ref_name }}"
-            VERSION_NUM="${VERSION_TAG#v}"
-            echo "VERSION=${VERSION_NUM}" >> $GITHUB_ENV
-            echo "PROJECT_NAME=danmaku-tool" >> $GITHUB_ENV
-            local_binary_name="danmaku"
-            if [ "${{ matrix.goos }}" == "windows" ]; then
-            local_binary_name="danmaku.exe"
-            fi
-            echo "LOCAL_BINARY_NAME=${local_binary_name}" >> $GITHUB_ENV
-            
-            ARCHIVE_FORMAT="${{ matrix.archive_format }}"
-            ARCHIVE_NAME="${{ env.PROJECT_NAME }}_${{ env.VERSION }}_${{ matrix.goos }}_${{ matrix.goarch }}.${ARCHIVE_FORMAT}"
-            echo "ARCHIVE_NAME=${ARCHIVE_NAME}" >> $GITHUB_ENV
-
-      - name: Build Binary (CGO Enabled)
-        env:
-          CGO_ENABLED: 1
-          GOOS: ${{ matrix.goos }}
-          GOARCH: ${{ matrix.goarch }}
-        run: |
-          go build \
-            -ldflags "-s -w -X ${{ env.PROJECT_NAME }}/internal/config.Version=${{ env.VERSION }}" \
-            -o ${{ env.LOCAL_BINARY_NAME }} main.go
-
-      - name: Archive Binary
-        shell: bash
-        run: |
-          if [ "${{ matrix.archive_format }}" == "zip" ]; then
-            Compress-Archive -Path ${{ env.LOCAL_BINARY_NAME }} -DestinationPath ${{ env.ARCHIVE_NAME }}
-          else
-            tar -czf ${{ env.ARCHIVE_NAME }} ${{ env.LOCAL_BINARY_NAME }}
-          fi
-
-      - name: Upload Asset to Release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ needs.create-release.outputs.TAG_NAME }}
-        run: |
-          gh release upload $TAG ${{ env.ARCHIVE_NAME }} --clobber
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+            ghcr.io/${{ github.repository }}:latest
+          platforms: linux/amd64,linux/arm64
+          context: .
+          file: Dockerfile

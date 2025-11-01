@@ -1,10 +1,36 @@
-BINARY_NAME=danmaku
-LDFLAGS=-ldflags "-X danmu-tool/internal/config.Version=dev -w -s"
+VERSION := $(shell git describe --tags --always 2>/dev/null || echo "dev")
+GO_VERSION := 1.25
+BINARY := danmaku
+OUTPUT := dist
+PROJECT := danmaku-tool
+LDFLAGS := -ldflags "-X $(PROJECT)/internal/config.Version=$(VERSION) -w -s"
+GOOS :=
+ARCH :=
 
-.PHONY: build deps
-
+.PHONY: build
 build:
-# 	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build $(LDFLAGS) -o bin/$(BINARY_NAME)_linux_arm64 main.go
-# 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o bin/$(BINARY_NAME)_linux_amd64 main.go
+	@echo "--- Building local binary ($(OUTPUT)/$(BINARY)) with CGO=$(CGO_STATUS) ---"
 	go mod tidy
-	go build $(LDFLAGS) -o bin/$(BINARY_NAME) main.go
+	@echo "$(VERSION)"
+	CGO_ENABLED=1 go build $(LDFLAGS) -o bin/$(BINARY) main.go
+
+.PHONY: build-docker
+build-docker:
+	@echo "Building docker..."
+	docker buildx build -t $(PROJECT):$(VERSION) -t $(PROJECT):latest .
+
+.PHONY: compress
+compress:
+	@cd $(OUTPUT) && tar -czf $(PROJECT)_$(VERSION)_$(GOOS)_$(ARCH).tar.gz $(BINARY) && cd ..
+
+.PHONY: release
+release:
+	@echo "Building $(GOOS)-$(ARCH)..."
+	go mod tidy
+	go mod download
+	CGO_ENABLED=1 GOOS=$(GOOS) GOARCH=$(ARCH) go build $(LDFLAGS) -o $(OUTPUT)/$(BINARY) main.go
+
+.PHONY: clean
+clean:
+	@echo "Cleaning..."
+	rm -rf $(OUTPUT)
