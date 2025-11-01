@@ -11,7 +11,7 @@ env:
 jobs:
 
   build-linux:
-    name: Build Linux Binaries
+    name: Build Linux
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -49,48 +49,85 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GOOS: linux
 
-  build-macos:
-    name: Build macOS Binary
-    runs-on: macos-latest
+  release-cross-build:
+    name: Build ${{ matrix.os }} Binary
+    needs: [build-linux]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            goos: darwin
+            goarch: amd64
+            archive_format: tar.gz
+          - os: macos-latest
+            goos: darwin
+            goarch: arm64
+            archive_format: tar.gz
+          - os: windows-latest
+            goos: windows
+            goarch: amd64
+            archive_format: zip
+          - os: windows-latest
+            goos: windows
+            goarch: arm64
+            archive_format: zip
     permissions:
       contents: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-          cache: true
-      - name: Run GoReleaser (macOS Targets)
-        uses: goreleaser/goreleaser-action@v6
-        with:
-          version: "~> v2"
-          args: release --clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GOOS: darwin
 
-  build-windows:
-    name: Build Windows Binary
-    runs-on: windows-latest
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+        with: { fetch-depth: 0 }
       - uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-          cache: true
-      - name: Run GoReleaser (Windows Targets)
-        uses: goreleaser/goreleaser-action@v6
-        with:
-          version: "~> v2"
-          args: release --clean
+        with: { go-version: ${{ env.GO_VERSION }}, cache: true }
+      - name: Prepare Dependencies
+        run: go mod download
+
+      - name: Set Environment Variables for Naming
+        shell: bash
+        run: |
+          echo "PROJECT_NAME=danmaku-tool" >> $GITHUB_ENV
+          
+          #    使用 GitHub Actions 的字符串替换功能
+          echo "VERSION=${{ replace(github.ref_name, 'v', '') }}" >> $GITHUB_ENV
+          
+          local_binary_name="danmaku"
+          if [ "${{ matrix.goos }}" == "windows" ]; then
+            local_binary_name="danmaku.exe"
+          fi
+          echo "LOCAL_BINARY_NAME=${local_binary_name}" >> $GITHUB_ENV
+
+      - name: Build CGO Binary (Manual)
+        env:
+          CGO_ENABLED: 1
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          go build \
+            -ldflags "-s -w -X danmu-tool/internal/config.Version=${{ env.VERSION }}" \
+            -o ${{ env.LOCAL_BINARY_NAME }} main.go
+
+      - name: Archive Binary (Matching Goreleaser Template)
+        shell: bash
+        run: |
+          # 最终的压缩包名称
+          # 格式: {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}.[format]
+          ARCHIVE_NAME="${{ env.PROJECT_NAME }}_${{ env.VERSION }}_${{ matrix.goos }}_${{ matrix.goarch }}.${{ matrix.archive_format }}"
+          echo "ARCHIVE_NAME=${ARCHIVE_NAME}" >> $GITHUB_ENV
+          
+          if [ "${{ matrix.archive_format }}" == "zip" ]; then
+            # Windows Runner 上默认有 7z
+            7z a ${ARCHIVE_NAME} ${{ env.LOCAL_BINARY_NAME }}
+          else
+            # macOS/Linux Runner
+            tar -czf ${ARCHIVE_NAME} ${{ env.LOCAL_BINARY_NAME }}
+          fi
+
+      - name: Upload Release Asset (to existing release)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GOOS: windows
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release upload ${{ github.ref_name }} ${{ env.ARCHIVE_NAME }}
