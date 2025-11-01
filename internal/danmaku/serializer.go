@@ -4,6 +4,7 @@ import (
 	"danmu-tool/internal/config"
 	"danmu-tool/internal/utils"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -117,6 +118,26 @@ func WriteFile(platform Platform, data *SerializerData, savePath, filename strin
 			if err != nil {
 				logger.Error(fmt.Sprintf("xml wirte to file %s error: %s", filepath.Join(savePath, filename), err.Error()))
 			}
+		}
+	}
+	return nil
+}
+
+func checkPersistPath(fullPath, filename string) error {
+	if fullPath == "" || filename == "" {
+		return errors.New("empty save path or filename")
+	}
+
+	// check path
+	_, fileStatError := os.Stat(fullPath)
+	if fileStatError != nil {
+		if os.IsNotExist(fileStatError) {
+			mkdirError := os.MkdirAll(fullPath, os.ModePerm)
+			if mkdirError != nil {
+				return errors.New(fmt.Sprintf("create path %s error: %s", fullPath, mkdirError.Error()))
+			}
+		} else {
+			return errors.New(fmt.Sprintf("create path %s error: %s", fullPath, fileStatError.Error()))
 		}
 	}
 	return nil
