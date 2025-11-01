@@ -2,10 +2,10 @@ version: 2
 project_name: danmaku-tool
 env:
   - GO111MODULE=on
-before:
-  hooks:
-    - go mod tidy
-    - go mod download
+#before:
+#  hooks:
+#    - go mod tidy
+#    - go mod download
 
 builds:
   - main: main.go
