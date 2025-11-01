@@ -42,9 +42,10 @@ jobs:
         uses: goreleaser/goreleaser-action@v6
         with:
           version: "~> v2"
-          args: release --clean --platform linux/amd64,linux/arm64
+          args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GOOS: linux
 
   build-macos:
     name: Build macOS Binary
@@ -66,6 +67,7 @@ jobs:
           args: release --clean --platform darwin/amd64,darwin/arm64
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GOOS: darwin
 
   build-windows:
     name: Build Windows Binary
@@ -87,3 +89,4 @@ jobs:
           args: release --clean --platform windows/amd64,windows/arm64
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GOOS: windows
