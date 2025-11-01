@@ -120,7 +120,7 @@ jobs:
         with:
           allowUpdates: true
           makeLatest: true
-          artifacts: "dist/*.tar.gz"
+          artifacts: "dist/*/*.tar.gz"
           tag: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
           body: ${{ steps.build_changelog.outputs.changelog }}
