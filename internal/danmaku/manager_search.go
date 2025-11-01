@@ -46,7 +46,7 @@ func MatchMedia(param MatchParam) []*Media {
 							param.FileName += s.Name
 						}
 					} else {
-						if param.SeasonId > 1 {
+						if param.SeasonId > 1 && param.SeasonId <= len(ChineseNumberSlice) {
 							param.FileName += strings.Join([]string{"第", ChineseNumberSlice[param.SeasonId-1], "季"}, "")
 						}
 					}

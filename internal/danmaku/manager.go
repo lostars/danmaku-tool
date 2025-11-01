@@ -1,6 +1,7 @@
 package danmaku
 
 import (
+	"danmu-tool/internal/config"
 	"log/slog"
 	"net/http"
 	"regexp"
@@ -37,8 +38,7 @@ type PlatformClient struct {
 	Cookie     string
 	HttpClient *http.Client
 
-	XmlPersist *DataXMLPersist
-	Logger     *slog.Logger
+	Logger *slog.Logger
 }
 
 type Scraper interface {
@@ -50,6 +50,38 @@ type Scraper interface {
 	// Match 匹配剧集信息，如果是剧集，会获取ep信息同时返回
 	Match(param MatchParam) ([]*Media, error)
 	Platform() Platform
+}
+
+type SerializerData struct {
+	Data                []*StandardDanmaku
+	DurationInMills     int64
+	SeasonId, EpisodeId string
+}
+type DataSerializer interface {
+	Serialize(data *SerializerData) (interface{}, error)
+	Type() string
+}
+
+const (
+	XMLSerializer = "xml"
+	ASSSerializer = "ass"
+)
+
+func RegisterSerializer(p Platform, s DataSerializer) {
+	conf := config.GetConfig().GetPlatformConfig(string(p))
+	if conf == nil {
+		return
+	}
+	for _, name := range conf.Persists {
+		if name == s.Type() {
+			serializers := adapter.serializers[string(p)]
+			if serializers == nil {
+				serializers = []DataSerializer{}
+			}
+			serializers = append(serializers, s)
+			return
+		}
+	}
 }
 
 type Finalizer interface {
@@ -124,11 +156,13 @@ const TopMode = 5
 type manager struct {
 	scrapers     []Scraper
 	initializers []interface{}
+	serializers  map[string][]DataSerializer
 }
 
 var adapter = &manager{
 	scrapers:     []Scraper{},
 	initializers: []interface{}{},
+	serializers:  map[string][]DataSerializer{},
 }
 
 func GetScraper(platform string) Scraper {
@@ -167,10 +201,4 @@ const (
 	Tencent  = "tencent"
 	Youku    = "youku"
 	Iqiyi    = "iqiyi"
-)
-
-type DataPersistType string
-
-const (
-	XMLPersistType = "xml"
 )

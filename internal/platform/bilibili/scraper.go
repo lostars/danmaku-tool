@@ -64,19 +64,19 @@ func (c *client) Scrape(realId string) error {
 		}
 		epTitle = ep.Title
 
-		parser := &xmlParser{
-			epId:       ep.EPId,
-			seasonId:   series.Result.SeasonId,
-			epDuration: ep.Duration,
-			danmaku:    data,
+		serializer := &danmaku.SerializerData{
+			EpisodeId:       strconv.FormatInt(ep.EPId, 10),
+			SeasonId:        strconv.FormatInt(series.Result.SeasonId, 10),
+			DurationInMills: ep.Duration,
+			Data:            data,
 		}
 
 		filename := strconv.FormatInt(ep.EPId, 10)
-		if e := c.common.XmlPersist.WriteToFile(parser, savePath, filename); e != nil {
+		if e := danmaku.WriteFile(danmaku.Bilibili, serializer, savePath, filename); e != nil {
 			c.common.Logger.Error(e.Error())
 		}
 
-		c.common.Logger.Info("ep scraped done", "epId", ep.EPId, "size", len(parser.danmaku))
+		c.common.Logger.Info("ep scraped done", "epId", ep.EPId, "size", len(data))
 	}
 
 	var t = series.Result.Title

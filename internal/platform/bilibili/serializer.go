@@ -8,23 +8,24 @@ import (
 	"strings"
 )
 
-type xmlParser struct {
-	danmaku        []*danmaku.StandardDanmaku
-	epId, seasonId int64
-	// ep时长 ms
-	epDuration int64
+type xmlSerializer struct{}
+
+func (c *xmlSerializer) Type() string {
+	return danmaku.XMLSerializer
 }
 
-func (c *xmlParser) Parse() (*danmaku.DataXML, error) {
-	if c.danmaku == nil {
-		return nil, fmt.Errorf("ep%v danmaku is nil", c.epId)
+type assSerializer struct{}
+
+func (c *xmlSerializer) Serialize(d *danmaku.SerializerData) (interface{}, error) {
+	if d.Data == nil {
+		return nil, fmt.Errorf("ep%v danmaku is nil", d.EpisodeId)
 	}
 
 	// 合并重复弹幕
-	var source = c.danmaku
+	var source = d.Data
 	mergedMills := config.GetConfig().GetPlatformConfig(danmaku.Bilibili).MergeDanmakuInMills
 	if mergedMills > 0 {
-		source = danmaku.MergeDanmaku(source, mergedMills, c.epDuration)
+		source = danmaku.MergeDanmaku(source, mergedMills, d.DurationInMills)
 	}
 
 	var data = make([]danmaku.DataXMLDanmaku, len(source))
@@ -47,7 +48,7 @@ func (c *xmlParser) Parse() (*danmaku.DataXML, error) {
 
 	xml := danmaku.DataXML{
 		ChatServer:     "chat.bilibili.com",
-		ChatID:         strconv.FormatInt(c.seasonId, 10) + "_" + strconv.FormatInt(c.epId, 10),
+		ChatID:         d.SeasonId + "_" + d.EpisodeId,
 		Mission:        0,
 		MaxLimit:       2000,
 		Source:         "k-v",

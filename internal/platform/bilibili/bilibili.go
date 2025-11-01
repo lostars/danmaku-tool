@@ -28,6 +28,7 @@ func (c *client) Init() error {
 	}
 	c.common = common
 	danmaku.RegisterScraper(c)
+	danmaku.RegisterSerializer(danmaku.Bilibili, &xmlSerializer{})
 	return nil
 }
 

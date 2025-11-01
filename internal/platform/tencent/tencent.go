@@ -18,6 +18,7 @@ func (c *client) Init() error {
 	}
 	c.common = common
 	danmaku.RegisterScraper(c)
+	danmaku.RegisterSerializer(danmaku.Tencent, &xmlSerializer{})
 	return nil
 }
 

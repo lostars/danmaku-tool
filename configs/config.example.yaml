@@ -47,23 +47,12 @@ platforms:
     timeout: 10
     # 合并毫秒内重复弹幕 单位 ms <=0则不启用 同时作用于弹幕抓取和dandan api
     merge-danmaku-in-mills: 1000
-    persists:
-      - type: "xml" # xml 固定字符串
-        indent: true # 是否开启缩进，否的话则用一行存储 只针对json xml类生效
-        compress: false # 是否开启压缩
-      - type: "json" # json 固定字符串
-        indent: true # 是否开启缩进，否的话则用一行存储 只针对json xml类生效
-        compress: false # 是否开启压缩
+    # 弹幕保存文件类型 xml 或者 ass
+    persists: ["xml", "ass"]
   - name: "tencent"
     priority: 100
     cookie: "xxx" # 最好提供，否则可能会导致搜不到数据
     max-worker: 8 # 默认 8
     timeout: 100
     merge-danmaku-in-mills: 1000
-    persists:
-      - type: "xml"
-        indent: true
-        compress: false
-      - type: "json"
-        indent: true
-        compress: false
+    persists: ["xml", "ass"]

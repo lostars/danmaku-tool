@@ -110,18 +110,12 @@ type ServerConfig struct {
 	Tokens  []string `yaml:"tokens"`  // token配置
 }
 
-type DanmakuPersistConfig struct {
-	Indent   bool   `yaml:"indent"`
-	Compress bool   `yaml:"compress"`
-	Type     string `yaml:"type"`
-}
-
 type PlatformConfig struct {
-	Name                string                 `yaml:"name"`
-	Priority            int                    `yaml:"priority"`
-	Cookie              string                 `yaml:"cookie"`
-	MaxWorker           int                    `yaml:"max-worker"`
-	Timeout             int64                  `yaml:"timeout"` // in seconds
-	MergeDanmakuInMills int64                  `yaml:"merge-danmaku-in-mills"`
-	Persists            []DanmakuPersistConfig `yaml:"persists"`
+	Name                string   `yaml:"name"`
+	Priority            int      `yaml:"priority"`
+	Cookie              string   `yaml:"cookie"`
+	MaxWorker           int      `yaml:"max-worker"`
+	Timeout             int64    `yaml:"timeout"` // in seconds
+	MergeDanmakuInMills int64    `yaml:"merge-danmaku-in-mills"`
+	Persists            []string `yaml:"persists"`
 }

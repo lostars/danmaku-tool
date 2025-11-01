@@ -155,10 +155,10 @@ func (c *client) Scrape(idStr string) error {
 	}
 	result := c.scrapeDanmaku(baseInfo, tvId)
 
-	parser := &xmlParser{
-		tvId:              idStr,
-		danmaku:           result,
-		durationInSeconds: int64(baseInfo.Data.DurationSec),
+	serializer := &danmaku.SerializerData{
+		EpisodeId:       idStr,
+		Data:            result,
+		DurationInMills: int64(baseInfo.Data.DurationSec * 1000),
 	}
 
 	path := filepath.Join(config.GetConfig().SavePath, danmaku.Iqiyi, strconv.FormatInt(baseInfo.Data.AlbumId, 10))
@@ -167,7 +167,7 @@ func (c *client) Scrape(idStr string) error {
 		title = strconv.FormatInt(int64(baseInfo.Data.Order), 10) + "_"
 	}
 	filename := title + strconv.FormatInt(baseInfo.Data.TVId, 10)
-	if e := c.common.XmlPersist.WriteToFile(parser, path, filename); e != nil {
+	if e := danmaku.WriteFile(danmaku.Iqiyi, serializer, path, filename); e != nil {
 		return e
 	}
 

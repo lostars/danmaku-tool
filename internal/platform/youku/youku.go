@@ -32,6 +32,7 @@ func (c *client) Init() error {
 	}
 	c.common = common
 	danmaku.RegisterScraper(c)
+	danmaku.RegisterSerializer(danmaku.Youku, &xmlSerializer{})
 	return nil
 }
 
@@ -134,10 +135,10 @@ func (c *client) scrapeVideo(vid string) {
 
 	var result = c.scrapeDanmaku(vid, segmentsLen)
 
-	parser := &xmlParser{
-		vid:               vid,
-		danmaku:           result,
-		durationInSeconds: int64(durationInSeconds) + 1,
+	serializer := &danmaku.SerializerData{
+		EpisodeId:       vid,
+		Data:            result,
+		DurationInMills: int64(durationInSeconds * 1000),
 	}
 
 	path := filepath.Join(config.GetConfig().SavePath, danmaku.Youku, info.ShowId)
@@ -147,7 +148,7 @@ func (c *client) scrapeVideo(vid string) {
 		title = strconv.FormatInt(epId, 10) + "_"
 	}
 	filename := title + vid
-	if e := c.common.XmlPersist.WriteToFile(parser, path, filename); e != nil {
+	if e := danmaku.WriteFile(danmaku.Youku, serializer, path, filename); e != nil {
 		c.common.Logger.Error(e.Error())
 	}
 

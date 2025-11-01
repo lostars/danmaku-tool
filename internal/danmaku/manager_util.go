@@ -113,14 +113,6 @@ func InitPlatformClient(platform Platform) (*PlatformClient, error) {
 	c.HttpClient = &http.Client{Timeout: time.Duration(timeout * 1e9)}
 	c.Logger = utils.GetPlatformLogger(string(platform))
 
-	c.XmlPersist = &DataXMLPersist{}
-	// 初始化数据存储器
-	for _, p := range conf.Persists {
-		switch p.Type {
-		case XMLPersistType:
-			c.XmlPersist.Indent = p.Indent
-		}
-	}
 	return c, nil
 }
 

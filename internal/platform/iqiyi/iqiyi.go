@@ -28,6 +28,7 @@ func (c *client) Init() error {
 	}
 	c.common = common
 	danmaku.RegisterScraper(c)
+	danmaku.RegisterSerializer(danmaku.Iqiyi, &xmlSerializer{})
 	return nil
 }
 
@@ -169,27 +170,28 @@ func (c *client) scrape(tvId int64, segment int) ([]*danmaku.StandardDanmaku, er
 	return result, nil
 }
 
-type xmlParser struct {
-	// 弹幕数据
-	danmaku           []*danmaku.StandardDanmaku
-	tvId              string
-	durationInSeconds int64
+type xmlSerializer struct{}
+
+func (c *xmlSerializer) Type() string {
+	return danmaku.XMLSerializer
 }
 
-func (c *xmlParser) Parse() (*danmaku.DataXML, error) {
-	if c.danmaku == nil {
+type assSerializer struct{}
+
+func (c *xmlSerializer) Serialize(d *danmaku.SerializerData) (interface{}, error) {
+	if d.Data == nil {
 		return nil, fmt.Errorf("danmaku is nil")
 	}
 
 	xml := danmaku.DataXML{
 		ChatServer:     "chat.iqiyi.com",
-		ChatID:         c.tvId,
+		ChatID:         d.EpisodeId,
 		Mission:        0,
 		MaxLimit:       2000,
 		Source:         "k-v",
 		SourceProvider: danmaku.Iqiyi,
-		DataSize:       len(c.danmaku),
-		Danmaku:        danmaku.NormalConvert(c.danmaku, danmaku.Iqiyi, c.durationInSeconds*1000),
+		DataSize:       len(d.Data),
+		Danmaku:        danmaku.NormalConvert(d.Data, danmaku.Iqiyi, d.DurationInMills),
 	}
 
 	return &xml, nil

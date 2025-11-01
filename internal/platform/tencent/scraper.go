@@ -16,7 +16,6 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 	keyword := param.FileName
 	ssId := int64(param.SeasonId)
 
-	c.common.Logger.Debug(fmt.Sprintf("search keyword: %s", keyword))
 	searchParam := SearchParam{
 		Version:    "25101301",
 		ClientType: 1,
@@ -204,13 +203,13 @@ func (c *client) Scrape(idStr string) error {
 			c.common.Logger.Error(fmt.Sprintf("get danmaku by vid error: %s", e.Error()))
 			continue
 		}
-		parser := &xmlParser{
-			vid:     ep.ItemParams.VID,
-			danmaku: data,
+		serializer := &danmaku.SerializerData{
+			EpisodeId: ep.ItemParams.VID,
+			Data:      data,
 		}
 		v, err := strconv.ParseInt(ep.ItemParams.Duration, 10, 64)
 		if err == nil {
-			parser.durationInMills = v * 1000
+			serializer.DurationInMills = v * 1000
 		} else {
 			c.common.Logger.Error("duration is not number", "vid", ep.ItemParams.VID, "duration", ep.ItemParams.Duration)
 		}
@@ -221,11 +220,11 @@ func (c *client) Scrape(idStr string) error {
 			title = ep.ItemParams.Title + "_"
 		}
 		filename := title + ep.ItemParams.VID
-		if e := c.common.XmlPersist.WriteToFile(parser, path, filename); e != nil {
+		if e := danmaku.WriteFile(danmaku.Tencent, serializer, path, filename); e != nil {
 			c.common.Logger.Error(e.Error())
 		}
 
-		c.common.Logger.Info("ep scraped done", "vid", ep.ItemParams.VID, "size", len(parser.danmaku))
+		c.common.Logger.Info("ep scraped done", "vid", ep.ItemParams.VID, "size", len(data))
 	}
 
 	c.common.Logger.Info("danmaku scraped done", "cid", cid)

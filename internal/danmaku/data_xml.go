@@ -31,29 +31,20 @@ type DataXMLDanmaku struct {
 	Content    string `xml:",chardata"`
 }
 
-type DataXMLParser interface {
-	Parse() (*DataXML, error)
-}
-
 type DataXMLPersist struct {
 	// 缩进
 	Indent bool
 }
 
-func (x *DataXMLPersist) WriteToFile(parser DataXMLParser, fullPath, filename string) error {
-	if parser == nil {
-		return fmt.Errorf("%s parser is nil", XMLPersistType)
-	}
+var xmlPersist = DataXMLPersist{Indent: true}
 
+func (x *DataXMLPersist) WriteToFile(data DataXML, fullPath, filename string) error {
 	if e := checkPersistPath(fullPath, filename); e != nil {
 		return e
 	}
 
-	var data, err = parser.Parse()
-	if err != nil {
-		return err
-	}
 	var xmlData []byte
+	var err error
 	if x.Indent {
 		xmlData, err = xml.MarshalIndent(data, "", "    ")
 	} else {
@@ -72,7 +63,7 @@ func (x *DataXMLPersist) WriteToFile(parser DataXMLParser, fullPath, filename st
 		return err
 	}
 
-	utils.GetComponentLogger(XMLPersistType).Info("file save success", "file", writeFile)
+	utils.GetComponentLogger(XMLSerializer).Info("file save success", "file", writeFile)
 	return nil
 }
 
@@ -104,4 +95,29 @@ func NormalConvert(source []*StandardDanmaku, platform string, durationInMills i
 		data = append(data, d)
 	}
 	return data
+}
+
+func WriteFile(platform Platform, data *SerializerData, savePath, filename string) error {
+	logger := utils.GetComponentLogger("serializer")
+	serializers := adapter.serializers[string(platform)]
+	if serializers == nil {
+		logger.Info(fmt.Sprintf("%s no serializer configured", platform))
+		return nil
+	}
+
+	for _, serializer := range serializers {
+		d, err := serializer.Serialize(data)
+		if err != nil {
+			logger.Info(fmt.Sprintf("%s serialize error: %s", platform, err.Error()))
+			continue
+		}
+		switch t := d.(type) {
+		case DataXML:
+			err = xmlPersist.WriteToFile(t, savePath, filename)
+			if err != nil {
+				logger.Error(fmt.Sprintf("xml wirte to file %s error: %s", filepath.Join(savePath, filename), err.Error()))
+			}
+		}
+	}
+	return nil
 }
