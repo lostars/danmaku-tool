@@ -79,9 +79,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
+        with:
+          fetch-depth: 0
       - uses: actions/setup-go@v5
-        with: { go-version: ${{ env.GO_VERSION }}, cache: true }
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
       - name: Prepare Dependencies
         run: go mod download
 
