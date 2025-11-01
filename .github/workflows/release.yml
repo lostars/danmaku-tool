@@ -87,50 +87,45 @@ jobs:
           cache: true
       - name: Prepare Dependencies
         run: go mod download
-
-      - name: Set Environment Variables for Naming
+      - name: Set Version Variable and Build Details
         shell: bash
         run: |
-          echo "PROJECT_NAME=danmaku-tool" >> $GITHUB_ENV
-          
-          #    使用 GitHub Actions 的字符串替换功能
-          echo "VERSION=${{ replace(github.ref_name, 'v', '') }}" >> $GITHUB_ENV
-          
-          local_binary_name="danmaku"
-          if [ "${{ matrix.goos }}" == "windows" ]; then
+            VERSION_TAG="${{ github.ref_name }}"
+            VERSION_NUM="${VERSION_TAG#v}"
+            echo "VERSION=${VERSION_NUM}" >> $GITHUB_ENV
+            echo "PROJECT_NAME=danmaku-tool" >> $GITHUB_ENV
+            local_binary_name="danmaku"
+            if [ "${{ matrix.goos }}" == "windows" ]; then
             local_binary_name="danmaku.exe"
-          fi
-          echo "LOCAL_BINARY_NAME=${local_binary_name}" >> $GITHUB_ENV
+            fi
+            echo "LOCAL_BINARY_NAME=${local_binary_name}" >> $GITHUB_ENV
+            
+            ARCHIVE_FORMAT="${{ matrix.archive_format }}"
+            ARCHIVE_NAME="${{ env.PROJECT_NAME }}_${{ env.VERSION }}_${{ matrix.goos }}_${{ matrix.goarch }}.${ARCHIVE_FORMAT}"
+            echo "ARCHIVE_NAME=${ARCHIVE_NAME}" >> $GITHUB_ENV
 
-      - name: Build CGO Binary (Manual)
+      - name: Build Binary (CGO Enabled)
         env:
           CGO_ENABLED: 1
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
         run: |
           go build \
-            -ldflags "-s -w -X danmu-tool/internal/config.Version=${{ env.VERSION }}" \
+            -ldflags "-s -w -X ${{ env.PROJECT_NAME }}/internal/config.Version=${{ env.VERSION }}" \
             -o ${{ env.LOCAL_BINARY_NAME }} main.go
 
-      - name: Archive Binary (Matching Goreleaser Template)
+      - name: Archive Binary
         shell: bash
         run: |
-          # 最终的压缩包名称
-          # 格式: {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}.[format]
-          ARCHIVE_NAME="${{ env.PROJECT_NAME }}_${{ env.VERSION }}_${{ matrix.goos }}_${{ matrix.goarch }}.${{ matrix.archive_format }}"
-          echo "ARCHIVE_NAME=${ARCHIVE_NAME}" >> $GITHUB_ENV
-          
           if [ "${{ matrix.archive_format }}" == "zip" ]; then
-            # Windows Runner 上默认有 7z
-            7z a ${ARCHIVE_NAME} ${{ env.LOCAL_BINARY_NAME }}
+            Compress-Archive -Path ${{ env.LOCAL_BINARY_NAME }} -DestinationPath ${{ env.ARCHIVE_NAME }}
           else
-            # macOS/Linux Runner
-            tar -czf ${ARCHIVE_NAME} ${{ env.LOCAL_BINARY_NAME }}
+            tar -czf ${{ env.ARCHIVE_NAME }} ${{ env.LOCAL_BINARY_NAME }}
           fi
 
-      - name: Upload Release Asset (to existing release)
+      - name: Upload Asset to Release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.create-release.outputs.TAG_NAME }}
         run: |
-          gh release upload ${{ github.ref_name }} ${{ env.ARCHIVE_NAME }}
+          gh release upload $TAG ${{ env.ARCHIVE_NAME }} --clobber
