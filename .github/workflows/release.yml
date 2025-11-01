@@ -31,7 +31,6 @@ jobs:
 
       - name: Prepare Go Dependencies
         run: |
-          go mod tidy
           go mod download
 
       - name: Set up Docker Buildx
