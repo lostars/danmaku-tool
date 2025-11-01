@@ -27,10 +27,6 @@ type DandanSourceMode interface {
 	Mode() Mode
 }
 
-type SourceRelease interface {
-	ReleaseSource() error
-}
-
 type Mode string
 
 const (

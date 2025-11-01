@@ -6,6 +6,22 @@ save-path: ""
 dandan-mode: "real_time"
 dandan-timeout: 60 # dandan api timeout in seconds
 ua: "" # 请求ua 可不配置
+# 分词器配置 用于提升识别准确率
+tokenizer:
+  # 是否启用
+  enable: true
+  # 搜索词黑名单key value则是需要替换的搜索词 提升匹配精准度
+  blacklist:
+    - key: "刺客伍六七"
+      value: "伍六七"
+  # 分词库
+  words:
+    - "最强发型师"
+    - "伍六七"
+    - "记忆碎片"
+    - "暗影宿命"
+    - "玄武国篇"
+    - "最强发型师"
 server:
 #  dandan api token 配置
   tokens:

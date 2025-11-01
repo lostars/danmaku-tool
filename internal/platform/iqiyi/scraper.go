@@ -9,17 +9,11 @@ import (
 	"net/url"
 	"path/filepath"
 	"strconv"
-	"strings"
-
-	"github.com/lithammer/fuzzysearch/fuzzy"
 )
 
 func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 	keyword := param.FileName
 	ssId := int64(param.SeasonId)
-	if ssId > 1 && ssId <= 20 {
-		keyword = strings.Join([]string{keyword, "第", danmaku.ChineseNumberSlice[ssId-1], "季"}, "")
-	}
 
 	api := "https://mesh.if.iqiyi.com/portal/lw/search/homePageV3?"
 	params := url.Values{
@@ -68,7 +62,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 		}
 
 		clearTitle := danmaku.ClearTitle(t.AlbumInfo.Title)
-		match := fuzzy.Match(clearTitle, keyword)
+		match := danmaku.Tokenizer.Match(clearTitle, keyword)
 		c.common.Logger.Debug(fmt.Sprintf("[%s] match [%s]: %v index: %d", clearTitle, keyword, match, i))
 		if !match {
 			continue

@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/yanyiwu/gojieba"
 )
 
 func MergeDanmaku(dms []*StandardDanmaku, mergedInMills int64, durationInMills int64) []*StandardDanmaku {
@@ -82,7 +84,7 @@ func ClearTitle(title string) string {
 	if len(seasonMatches) > 1 {
 		s, err := strconv.ParseInt(seasonMatches[1], 10, 64)
 		if err == nil && int(s) < len(ChineseNumberSlice) && s >= 1 {
-			clearTitle = SeasonTitleMatch.ReplaceAllLiteralString(clearTitle, ChineseNumberSlice[s-1])
+			clearTitle = strings.ReplaceAll(clearTitle, seasonMatches[1], ChineseNumberSlice[s-1])
 		}
 	}
 	return clearTitle
@@ -120,4 +122,64 @@ func InitPlatformClient(platform Platform) (*PlatformClient, error) {
 		}
 	}
 	return c, nil
+}
+
+type StringTokenizer struct {
+	jieba *gojieba.Jieba
+}
+
+var Tokenizer = StringTokenizer{}
+
+func (t *StringTokenizer) ServerInit() error {
+	tokenizer := config.GetConfig().Tokenizer
+	if !tokenizer.Enable {
+		return nil
+	}
+	t.jieba = gojieba.NewJieba()
+	for _, w := range tokenizer.Words {
+		if w != "" {
+			t.jieba.AddWord(w)
+		}
+	}
+	return nil
+}
+
+func init() {
+	RegisterInitializer(&Tokenizer)
+}
+
+func (t *StringTokenizer) Finalize() error {
+	if t.jieba != nil {
+		t.jieba.Free()
+	}
+	return nil
+}
+
+func (t *StringTokenizer) Match(source, target string) bool {
+	// 处理语言
+	if !MatchLanguage.MatchString(target) {
+		if MatchLanguage.MatchString(source) {
+			return false
+		}
+	}
+
+	tokenizer := config.GetConfig().Tokenizer
+	if !tokenizer.Enable {
+		return true
+	}
+
+	//分词匹配
+	sourceTokens := t.jieba.Cut(source, true)
+	targetTokens := t.jieba.Cut(target, true)
+	count := 0
+	for _, targetT := range targetTokens {
+		for _, sourceT := range sourceTokens {
+			if sourceT == targetT {
+				count++
+				break
+			}
+		}
+	}
+	// 媒体标题通常较短 默认全部匹配
+	return len(targetTokens)-count == 0
 }

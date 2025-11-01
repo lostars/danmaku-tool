@@ -38,7 +38,7 @@ func scraperCmd() *cobra.Command {
 		err := p.Scrape(id)
 		logger.Debug("scrape cmd done", "cost_ms", time.Since(start).Milliseconds())
 		if err != nil {
-			return err
+			logger.Info(err.Error())
 		}
 
 		return nil

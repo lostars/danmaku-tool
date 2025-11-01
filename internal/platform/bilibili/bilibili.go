@@ -86,7 +86,7 @@ func (c *client) baseInfo(epId string, ssId string) (*SeriesInfo, error) {
 		params.Add("ep_id", epId)
 	}
 	if ssId != "" {
-		params.Add("season_id", epId)
+		params.Add("season_id", ssId)
 	}
 
 	api := "https://api.bilibili.com/pgc/view/web/season?" + params.Encode()
@@ -94,7 +94,6 @@ func (c *client) baseInfo(epId string, ssId string) (*SeriesInfo, error) {
 	if err != nil {
 		return nil, fmt.Errorf("create season request err: %s", err.Error())
 	}
-	req.Header.Set("Cookie", c.common.Cookie)
 	resp, err := c.common.DoReq(req)
 	if err != nil {
 		return nil, fmt.Errorf("get season err: %s", err.Error())

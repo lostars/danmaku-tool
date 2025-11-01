@@ -9,6 +9,7 @@ require (
 	github.com/go-chi/cors v1.2.2
 	github.com/lithammer/fuzzysearch v1.1.8
 	github.com/spf13/cobra v1.10.1
+	github.com/yanyiwu/gojieba v1.4.6
 	google.golang.org/protobuf v1.36.10
 	gopkg.in/yaml.v3 v3.0.1
 )

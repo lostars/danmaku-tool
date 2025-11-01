@@ -10,21 +10,11 @@ import (
 	"net/http"
 	"path/filepath"
 	"strconv"
-	"strings"
-
-	"github.com/lithammer/fuzzysearch/fuzzy"
 )
 
 func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 	keyword := param.FileName
 	ssId := int64(param.SeasonId)
-	if ssId > 0 && ssId <= 20 {
-		// 腾讯视频带上第几季搜索更精确 第一季也是 但是命中则不会显示 xx第一季
-		keyword = strings.Join([]string{keyword, "第", danmaku.ChineseNumberSlice[ssId-1], "季"}, "")
-	} else if ssId == 0 {
-		// S00
-		keyword = keyword + "剧场版"
-	}
 
 	c.common.Logger.Debug(fmt.Sprintf("search keyword: %s", keyword))
 	searchParam := SearchParam{
@@ -97,7 +87,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 		}
 
 		clearTitle := danmaku.ClearTitle(v.VideoInfo.Title)
-		match := fuzzy.Match(clearTitle, keyword)
+		match := danmaku.Tokenizer.Match(clearTitle, keyword)
 		c.common.Logger.Debug(fmt.Sprintf("[%s] match [%s]: %v", clearTitle, keyword, match))
 		if !match {
 			continue

@@ -11,8 +11,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/lithammer/fuzzysearch/fuzzy"
 )
 
 func (c *client) Scrape(realId string) error {
@@ -34,6 +32,9 @@ func (c *client) Scrape(realId string) error {
 
 	series, err := c.baseInfo(epId, ssId)
 	if err != nil {
+		fmt.Println(err.Error())
+		fmt.Println(epId)
+		fmt.Println(ssId)
 		return err
 	}
 
@@ -56,62 +57,19 @@ func (c *client) Scrape(realId string) error {
 			continue
 		}
 
-		var videoDuration = ep.Duration/1000 + 1 // in seconds
-		var segments int64
-		if videoDuration%360 == 0 {
-			segments = videoDuration / 360
-		} else {
-			segments = videoDuration/360 + 1
+		data, err := c.GetDanmaku(strconv.FormatInt(ep.EPId, 10))
+		if err != nil {
+			c.common.Logger.Info(fmt.Sprintf("%d scrape error: %s", ep.EPId, err.Error()))
+			continue
 		}
+		epTitle = ep.Title
 
 		parser := &xmlParser{
 			epId:       ep.EPId,
 			seasonId:   series.Result.SeasonId,
 			epDuration: ep.Duration,
+			danmaku:    data,
 		}
-		if isEP {
-			epTitle = ep.Title
-		}
-		tasks := make(chan task, segments)
-		lock := sync.Mutex{}
-		var wg sync.WaitGroup
-		for w := 0; w < c.common.MaxWorker; w++ {
-			wg.Add(1)
-			go func(i int) {
-				defer wg.Done()
-				for t := range tasks {
-					data := c.scrape(t.cid, 0, t.segment)
-					if data == nil {
-						continue
-					}
-					var standardData = make([]*danmaku.StandardDanmaku, 0, len(data))
-					for _, d := range data {
-						standardData = append(standardData, &danmaku.StandardDanmaku{
-							Content:     d.Content,
-							OffsetMills: int64(d.Progress),
-							Mode:        int(d.Mode),
-							Color:       int(d.Color),
-							FontSize:    d.Fontsize,
-						})
-					}
-					lock.Lock()
-					parser.danmaku = append(parser.danmaku, standardData...)
-					lock.Unlock()
-				}
-			}(w)
-		}
-
-		go func() {
-			for seg := int64(1); seg <= segments; seg++ {
-				tasks <- task{
-					cid:     ep.CId,
-					segment: seg,
-				}
-			}
-			close(tasks)
-		}()
-
-		wg.Wait()
 
 		filename := strconv.FormatInt(ep.EPId, 10)
 		if e := c.common.XmlPersist.WriteToFile(parser, savePath, filename); e != nil {
@@ -133,10 +91,6 @@ func (c *client) Scrape(realId string) error {
 func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 	keyword := param.FileName
 	var ssId = int64(param.SeasonId)
-	if ssId <= 20 && ssId > 1 {
-		keyword = strings.Join([]string{keyword, "第", danmaku.ChineseNumberSlice[ssId-1], "季"}, "")
-		c.common.Logger.Info(fmt.Sprintf("real search keyword %s", keyword))
-	}
 
 	var data = make([]*danmaku.Media, 0, 10)
 	var result SearchResult
@@ -170,8 +124,9 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 
 		var clearTitle = danmaku.ClearTitle(bangumi.Title)
 
-		match := fuzzy.Match(clearTitle, keyword)
-		c.common.Logger.Debug(fmt.Sprintf("[%s] match [%s]: %v", clearTitle, keyword, match))
+		target := keyword
+		match := danmaku.Tokenizer.Match(clearTitle, target)
+		c.common.Logger.Debug(fmt.Sprintf("[%s] match [%s]: %v", clearTitle, target, match))
 		if !match {
 			continue
 		}
@@ -191,19 +146,6 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 			if ssId >= 0 {
 				if ssId == 0 {
 					continue
-				}
-				if ssId == 1 {
-					// 标题一样 或者 包含第一季
-					if !(keyword == clearTitle || danmaku.MatchFirstSeason.MatchString(clearTitle)) {
-						continue
-					}
-				}
-				// 大部分剧集都是需要去匹配季信息的，标题都带了
-				// TODO 有些剧集不一定带了季编号在标题上 比如 刺客伍六七 在这里就被过滤掉了
-				if ssId > 1 {
-					if !strings.Contains(clearTitle, "第"+danmaku.ChineseNumberSlice[ssId-1]+"季") {
-						continue
-					}
 				}
 				// 获取第一集检查时长
 				if param.DurationSeconds > 0 {

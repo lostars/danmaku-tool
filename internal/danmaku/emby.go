@@ -6,11 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"regexp"
 	"time"
 )
-
-var embyYearRegex = regexp.MustCompile(`^(\d{4})-\d{2}-\d{2}T`)
 
 type EmbySearchResult struct {
 	TotalRecordCount int `json:"TotalRecordCount"`
@@ -18,10 +15,14 @@ type EmbySearchResult struct {
 		Name string `json:"Name"`
 		Id   string `json:"Id"`
 		// Continuing/Ended
-		Status         string `json:"Status"`
+		Status string `json:"Status"`
+		// Season/Series/Movie
 		Type           string `json:"Type"`
 		ProductionYear int    `json:"ProductionYear"`
 		EndDate        string `json:"EndDate"`
+
+		// 季/集
+		IndexNumber int `json:"IndexNumber"`
 	} `json:"Items"`
 }
 
@@ -47,8 +48,13 @@ func SearchEmby(fileName string, ssId int) (*EmbySearchResult, error) {
 	embyConfig := config.GetConfig().Emby
 	api := fmt.Sprintf("%s/emby/Users/%s/Items?%s", embyConfig.Url, embyConfig.User, params.Encode())
 
+	return doEmbyGet[EmbySearchResult](api)
+}
+
+func doEmbyGet[T any](api string) (*T, error) {
+
 	req, _ := http.NewRequest(http.MethodGet, api, nil)
-	req.Header.Set("X-Emby-Token", embyConfig.Token)
+	req.Header.Set("X-Emby-Token", config.GetConfig().Emby.Token)
 	req.Header.Set("X-Emby-Client", "danmaku-tool")
 	req.Header.Set("X-Emby-Device-Name", "danmaku-tool")
 
@@ -58,10 +64,23 @@ func SearchEmby(fileName string, ssId int) (*EmbySearchResult, error) {
 	}
 	defer resp.Body.Close()
 
-	var result EmbySearchResult
+	var result T
 	err = json.NewDecoder(resp.Body).Decode(&result)
 	if err != nil {
 		return nil, err
 	}
 	return &result, nil
+}
+
+func GetSeasons(id string) (*EmbySearchResult, error) {
+	embyConfig := config.GetConfig().Emby
+	params := url.Values{
+		// 季节也有年份信息，一定要带上查询
+		"Fields": {"ProductionYear", "Status", "EndDate", "BasicSyncInfo"},
+		"UserId": {embyConfig.User},
+	}
+
+	api := fmt.Sprintf("%s/emby/Shows/%s/Seasons?%s", embyConfig.Url, id, params.Encode())
+
+	return doEmbyGet[EmbySearchResult](api)
 }

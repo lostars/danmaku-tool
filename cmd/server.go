@@ -30,6 +30,7 @@ func serverCmd() *cobra.Command {
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		Init()
+		InitServer()
 		dandan.InitDandanCache()
 		httpLogger = utils.GetComponentLogger("dandan-api")
 		r := chi.NewRouter()

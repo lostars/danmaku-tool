@@ -82,6 +82,16 @@ type DanmakuConfig struct {
 	Platforms     []PlatformConfig `yaml:"platforms"`
 	Emby          EmbyConfig       `yaml:"emby"`
 	Server        ServerConfig     `yaml:"server"`
+	Tokenizer     TokenizerConfig  `yaml:"tokenizer"`
+}
+
+type TokenizerConfig struct {
+	Words     []string `yaml:"words"`
+	Enable    bool     `yaml:"enable"`
+	Blacklist []struct {
+		Key   string `yaml:"key"`
+		Value string `yaml:"value"`
+	} `yaml:"blacklist"`
 }
 
 type EmbyConfig struct {

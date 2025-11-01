@@ -33,7 +33,7 @@ var (
 	fileName = "data.gob"
 )
 
-func (c *realTimeData) ReleaseSource() error {
+func (c *realTimeData) Finalize() error {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 
@@ -76,7 +76,7 @@ func (c *realTimeData) Load() (bool, error) {
 	return true, nil
 }
 
-func (c *realTimeData) Init() error {
+func (c *realTimeData) ServerInit() error {
 	c.logger = utils.GetComponentLogger("real_time_service")
 	success, err := c.Load()
 	if err != nil {

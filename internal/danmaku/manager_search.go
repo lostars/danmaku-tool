@@ -3,32 +3,54 @@ package danmaku
 import (
 	"danmu-tool/internal/config"
 	"danmu-tool/internal/utils"
+	"regexp"
 	"sort"
-	"strconv"
+	"strings"
 	"sync"
 )
 
+var EmbySeasonTitleRegex = regexp.MustCompile(`Specials|季\s\d{1,2}|第*\s*\d{1,2}\s*季`)
+
 func MatchMedia(param MatchParam) []*Media {
 
+	// 替换黑名单搜索词 但是用于emby匹配的关键词不做替换
+	embyKeyword := param.FileName
+	for _, w := range config.GetConfig().Tokenizer.Blacklist {
+		if w.Key == param.FileName {
+			param.FileName = w.Value
+			break
+		}
+	}
 	if config.GetConfig().EmbyEnabled() {
-		search, err := SearchEmby(param.FileName, param.SeasonId)
+		search, err := SearchEmby(embyKeyword, param.SeasonId)
 		if err == nil && search.Items != nil && len(search.Items) > 0 {
 			// 默认取第一个
 			item := search.Items[0]
 			param.Emby.Name = item.Name
 			param.Emby.ItemId = item.Id
 			param.Emby.Type = item.Type
-			param.Emby.ProductionYear = item.ProductionYear
-			// 默认开始结束一致
-			param.Emby.ProductionYearEnd = item.ProductionYear
-			if item.Type == "Series" {
-				if item.Status == "Continuing" {
-					param.Emby.ProductionYearEnd = 1e6
-				}
-				matches := embyYearRegex.FindStringSubmatch(item.EndDate)
-				if len(matches) > 1 {
-					year, _ := strconv.ParseInt(matches[1], 10, 64)
-					param.Emby.ProductionYearEnd = int(year)
+			if item.Type == "Movie" {
+				param.Emby.ProductionYear = item.ProductionYear
+			}
+		}
+		if param.SeasonId >= 0 {
+			season, err := GetSeasons(param.Emby.ItemId)
+			if err == nil {
+				for _, s := range season.Items {
+					if s.IndexNumber != param.SeasonId {
+						continue
+					}
+					param.Emby.ProductionYear = s.ProductionYear
+					if !EmbySeasonTitleRegex.MatchString(s.Name) {
+						if param.SeasonId > 0 {
+							param.FileName += s.Name
+						}
+					} else {
+						if param.SeasonId > 1 {
+							param.FileName += strings.Join([]string{"第", ChineseNumberSlice[param.SeasonId-1], "季"}, "")
+						}
+					}
+					break
 				}
 			}
 		}

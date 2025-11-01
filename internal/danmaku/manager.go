@@ -42,7 +42,7 @@ type PlatformClient struct {
 }
 
 type Scraper interface {
-	PlatformInitializer
+	Initializer
 	// Scrape 抓取并保存弹幕 各个平台视频id/剧集id 看各自实现
 	Scrape(id string) error
 	// GetDanmaku 实时获取平台弹幕 id是各自平台的视频id
@@ -52,7 +52,15 @@ type Scraper interface {
 	Platform() Platform
 }
 
-type PlatformInitializer interface {
+type Finalizer interface {
+	Finalize() error
+}
+
+type ServerInitializer interface {
+	ServerInit() error
+}
+
+type Initializer interface {
 	Init() error
 }
 
@@ -61,7 +69,6 @@ var ChineseNumber = "一|二|三|四|五|六|七|八|九|十|十一|十二|十�
 var ChineseNumberSlice = strings.Split(ChineseNumber, "|")
 var MarkRegex = regexp.MustCompile(`[\p{P}\p{S}]`)
 var SeasonTitleMatch = regexp.MustCompile(`第(\d{1,2})季`)
-var MatchFirstSeason = regexp.MustCompile(`第[一1]季`)
 var MatchLanguage = regexp.MustCompile(`(日语|普通话|粤配|中配|中文|英文|粤语)版`)
 var MatchKeyword = regexp.MustCompile(`<em class="keyword">(.*?)</em>`)
 
@@ -90,9 +97,8 @@ type MatchParam struct {
 	SeasonId, EpisodeId int
 	// Emby 内部搜索参数 反查Emby用于更加精准的搜索
 	Emby struct {
-		// 年份数字（2025） 匹配时 判断年份是否在年份闭区间内
-		// 电影开始结束将会一样，剧集则会根据剧集状态修改结束时间，如果一直更新则会将结束年份设置为一个很大的值保证匹配
-		ProductionYear, ProductionYearEnd int
+		// 年份数字（2025）
+		ProductionYear int
 		// 剧集或者电影名称 这个和dandan api搜索的应该一致
 		Name string
 		// 类型: "Movie" "Series"
@@ -103,8 +109,8 @@ type MatchParam struct {
 }
 
 func (p MatchParam) MatchYear(year int) bool {
-	if p.Emby.ProductionYear > 0 && p.Emby.ProductionYearEnd > 0 {
-		return year <= p.Emby.ProductionYearEnd && year >= p.Emby.ProductionYear
+	if p.Emby.ProductionYear > 0 {
+		return year == p.Emby.ProductionYear
 	}
 	return true
 }
@@ -117,12 +123,12 @@ const TopMode = 5
 
 type manager struct {
 	scrapers     []Scraper
-	initializers []PlatformInitializer
+	initializers []interface{}
 }
 
 var adapter = &manager{
 	scrapers:     []Scraper{},
-	initializers: []PlatformInitializer{},
+	initializers: []interface{}{},
 }
 
 func GetScraper(platform string) Scraper {
@@ -134,7 +140,7 @@ func GetScraper(platform string) Scraper {
 	return nil
 }
 
-func GetInitializers() []PlatformInitializer {
+func GetInitializers() []interface{} {
 	return adapter.initializers
 }
 
@@ -150,7 +156,7 @@ func RegisterScraper(s Scraper) {
 	adapter.scrapers = append(adapter.scrapers, s)
 }
 
-func RegisterInitializer(i PlatformInitializer) {
+func RegisterInitializer(i interface{}) {
 	adapter.initializers = append(adapter.initializers, i)
 }
 
