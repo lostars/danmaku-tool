@@ -1,8 +1,8 @@
 package dandan
 
 import (
-	"danmu-tool/internal/api"
-	"danmu-tool/internal/config"
+	"danmaku-tool/internal/api"
+	"danmaku-tool/internal/config"
 	"net/http"
 	"time"
 

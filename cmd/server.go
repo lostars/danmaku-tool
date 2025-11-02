@@ -2,10 +2,10 @@ package cmd
 
 import (
 	"context"
-	"danmu-tool/internal/api"
-	"danmu-tool/internal/api/dandan"
-	"danmu-tool/internal/config"
-	"danmu-tool/internal/utils"
+	"danmaku-tool/internal/api"
+	"danmaku-tool/internal/api/dandan"
+	"danmaku-tool/internal/config"
+	"danmaku-tool/internal/utils"
 	"errors"
 	"log/slog"
 	"net/http"

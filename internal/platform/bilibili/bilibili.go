@@ -2,7 +2,7 @@ package bilibili
 
 import (
 	"compress/gzip"
-	"danmu-tool/internal/danmaku"
+	"danmaku-tool/internal/danmaku"
 	"encoding/json"
 	"errors"
 	"fmt"

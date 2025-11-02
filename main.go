@@ -1,8 +1,8 @@
 package main
 
 import (
-	"danmu-tool/cmd"
-	"danmu-tool/cmd/flags"
+	"danmaku-tool/cmd"
+	"danmaku-tool/cmd/flags"
 	"embed"
 )
 

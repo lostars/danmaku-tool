@@ -2,7 +2,7 @@ package dandan
 
 import (
 	"bytes"
-	"danmu-tool/internal/utils"
+	"danmaku-tool/internal/utils"
 	"net/http"
 	"path"
 	"strings"

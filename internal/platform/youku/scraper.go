@@ -1,7 +1,7 @@
 package youku
 
 import (
-	"danmu-tool/internal/danmaku"
+	"danmaku-tool/internal/danmaku"
 	"encoding/json"
 	"fmt"
 	"net/http"

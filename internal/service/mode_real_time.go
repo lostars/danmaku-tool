@@ -1,9 +1,9 @@
 package service
 
 import (
-	"danmu-tool/internal/config"
-	"danmu-tool/internal/danmaku"
-	"danmu-tool/internal/utils"
+	"danmaku-tool/internal/config"
+	"danmaku-tool/internal/danmaku"
+	"danmaku-tool/internal/utils"
 	"encoding/gob"
 	"errors"
 	"fmt"

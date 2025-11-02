@@ -1,7 +1,7 @@
 package iqiyi
 
 import (
-	"danmu-tool/internal/danmaku"
+	"danmaku-tool/internal/danmaku"
 	"encoding/json"
 	"fmt"
 	"io"

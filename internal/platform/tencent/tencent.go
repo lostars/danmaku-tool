@@ -2,7 +2,7 @@ package tencent
 
 import (
 	"bytes"
-	"danmu-tool/internal/danmaku"
+	"danmaku-tool/internal/danmaku"
 	"encoding/json"
 	"errors"
 	"fmt"

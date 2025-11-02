@@ -1,7 +1,7 @@
 package flags
 
 import (
-	"danmu-tool/internal/danmaku"
+	"danmaku-tool/internal/danmaku"
 	"strings"
 
 	"github.com/spf13/cobra"

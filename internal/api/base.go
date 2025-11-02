@@ -1,7 +1,7 @@
 package api
 
 import (
-	"danmu-tool/internal/utils"
+	"danmaku-tool/internal/utils"
 	"encoding/json"
 	"fmt"
 	"net/http"

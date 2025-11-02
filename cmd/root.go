@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"danmu-tool/cmd/flags"
-	_ "danmu-tool/internal/platform"
+	"danmaku-tool/cmd/flags"
+	_ "danmaku-tool/internal/platform"
 	"fmt"
 	"os"
 

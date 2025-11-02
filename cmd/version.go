@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"danmu-tool/internal/config"
+	"danmaku-tool/internal/config"
 	"fmt"
 
 	"github.com/spf13/cobra"

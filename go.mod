@@ -1,4 +1,4 @@
-module danmu-tool
+module danmaku-tool
 
 go 1.25
 

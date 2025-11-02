@@ -1,8 +1,8 @@
 package danmaku
 
 import (
-	"danmu-tool/internal/config"
-	"danmu-tool/internal/utils"
+	"danmaku-tool/internal/config"
+	"danmaku-tool/internal/utils"
 	"encoding/xml"
 	"errors"
 	"fmt"

@@ -1,7 +1,7 @@
 package danmaku
 
 import (
-	"danmu-tool/internal/config"
+	"danmaku-tool/internal/config"
 	"log/slog"
 	"net/http"
 	"regexp"

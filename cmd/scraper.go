@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"danmu-tool/cmd/flags"
-	"danmu-tool/internal/danmaku"
-	"danmu-tool/internal/utils"
+	"danmaku-tool/cmd/flags"
+	"danmaku-tool/internal/danmaku"
+	"danmaku-tool/internal/utils"
 	"errors"
 	"fmt"
 	"strings"

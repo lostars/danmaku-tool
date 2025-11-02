@@ -1,10 +1,10 @@
 package dandan
 
 import (
-	"danmu-tool/internal/api"
-	"danmu-tool/internal/danmaku"
-	"danmu-tool/internal/service"
-	"danmu-tool/internal/utils"
+	"danmaku-tool/internal/api"
+	"danmaku-tool/internal/danmaku"
+	"danmaku-tool/internal/service"
+	"danmaku-tool/internal/utils"
 	"fmt"
 	"net/http"
 	"strconv"

@@ -1,7 +1,7 @@
 package tencent
 
 import (
-	"danmu-tool/internal/danmaku"
+	"danmaku-tool/internal/danmaku"
 	"fmt"
 )
 

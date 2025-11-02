@@ -1,8 +1,8 @@
 package service
 
 import (
-	"danmu-tool/internal/config"
-	"danmu-tool/internal/danmaku"
+	"danmaku-tool/internal/config"
+	"danmaku-tool/internal/danmaku"
 	"sync"
 )
 

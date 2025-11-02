@@ -1,11 +1,11 @@
 package cmd
 
 import (
-	"danmu-tool/cmd/flags"
-	"danmu-tool/internal/config"
-	"danmu-tool/internal/danmaku"
-	"danmu-tool/internal/service"
-	"danmu-tool/internal/utils"
+	"danmaku-tool/cmd/flags"
+	"danmaku-tool/internal/config"
+	"danmaku-tool/internal/danmaku"
+	"danmaku-tool/internal/service"
+	"danmaku-tool/internal/utils"
 	"fmt"
 	"io/fs"
 	"os"
