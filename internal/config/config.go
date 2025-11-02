@@ -8,8 +8,9 @@ import (
 )
 
 var (
-	Version  string
-	ConfPath string
+	Version           string
+	ConfPath          string
+	JiebaDictTempDirs []string
 )
 
 var danmakuConfig *DanmakuConfig

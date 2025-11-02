@@ -127,7 +127,7 @@ func (t *StringTokenizer) ServerInit() error {
 	if !tokenizer.Enable {
 		return nil
 	}
-	t.jieba = gojieba.NewJieba()
+	t.jieba = gojieba.NewJieba(config.JiebaDictTempDirs...)
 	for _, w := range tokenizer.Words {
 		if w != "" {
 			t.jieba.AddWord(w)

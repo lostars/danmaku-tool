@@ -1,4 +1,4 @@
-name: goreleaser
+name: Release
 
 on:
   push:
@@ -6,29 +6,90 @@ on:
       - 'v*'
 
 env:
-  GO_VERSION: '1.25'
-
+  BINARY: danmaku
+  OUTPUT: dist
+  DOCKER_CONTEXT_DIR: docker_build_context
 jobs:
-
-  release:
-    name: Build and publish binaries
-    runs-on: ubuntu-latest
+  build:
+    name: Build for ${{ matrix.os }}-${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
     permissions:
       contents: write
+    strategy:
+      matrix:
+        include:
+          - os: linux
+            arch: amd64
+            runner: ubuntu-latest
+            docker: true
+          - os: linux
+            arch: arm64
+            runner: ubuntu-24.04-arm
+            docker: true
+
+          - os: darwin
+            arch: amd64
+            runner: macos-15-intel
+          - os: darwin
+            arch: arm64
+            runner: macos-latest
+
+          - os: windows
+            arch: amd64
+            runner: windows-latest
+#          - os: windows
+#            arch: arm64
+#            runner: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set project name
+        shell: bash
+        run: |
+          echo "PROJECT_NAME=${GITHUB_REPOSITORY##*/}" >> $GITHUB_ENV
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache: 'true'
+
+#      - name: Build Windows ARM64 CGO using Docker
+#        if: matrix.os == 'windows' && matrix.arch == 'arm64'
+#        run: |
+#          make build-win-arm64 OUTPUT=${{ env.OUTPUT }} BINARY=${{ env.BINARY }} PROJECT=${{ env.PROJECT_NAME }} GOOS=${{ matrix.os }} ARCH=${{ matrix.arch }}
+
+      - name: Build
+        shell: bash
+#        if: matrix.os != 'windows' || matrix.arch != 'arm64'
+        run: |
+          make release OUTPUT=${{ env.OUTPUT }} BINARY=${{ env.BINARY }} PROJECT=${{ env.PROJECT_NAME }} GOOS=${{ matrix.os }} ARCH=${{ matrix.arch }}
+          make compress OUTPUT=${{ env.OUTPUT }} BINARY=${{ env.BINARY }} PROJECT=${{ env.PROJECT_NAME }} GOOS=${{ matrix.os }} ARCH=${{ matrix.arch }}
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.PROJECT_NAME }}_${{ github.ref_name }}_${{ matrix.os }}_${{ matrix.arch }}.tar.gz
+          path: ${{ env.OUTPUT }}/${{ env.PROJECT_NAME }}_${{ github.ref_name }}_${{ matrix.os }}_${{ matrix.arch }}.tar.gz
+
+  build-docker:
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
       packages: write
     steps:
-      -
-        name: Checkout
+      - name: Checkout Code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      -
-        name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-          cache: true
-
+      - name: Set project name
+        shell: bash
+        run: |
+          echo "PROJECT_NAME=${GITHUB_REPOSITORY##*/}" >> $GITHUB_ENV
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: Log in to GHCR
@@ -37,11 +98,75 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      -
-        name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v6
+      - name: Download Artifacts (Linux AMD64)
+        uses: actions/download-artifact@v4
         with:
-          version: "~> v2"
-          args: release --clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: ${{ env.PROJECT_NAME }}_${{ github.ref_name }}_linux_amd64.tar.gz
+          path: ./${{ env.OUTPUT }}/
+      - name: Download Artifacts (Linux ARM64)
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.PROJECT_NAME }}_${{ github.ref_name }}_linux_arm64.tar.gz
+          path: ./${{ env.OUTPUT }}/
+      - name: Extract Binaries to Context
+        run: |
+          AMD64_TAR="${{ env.OUTPUT }}/${{ env.PROJECT_NAME }}_${{ github.ref_name }}_linux_amd64.tar.gz"
+          AMD64_BIN_DIR="${{ env.DOCKER_CONTEXT_DIR }}/linux/amd64"
+          mkdir -p $AMD64_BIN_DIR
+          tar -xzf $AMD64_TAR -C $AMD64_BIN_DIR/
+          
+          ARM64_TAR="${{ env.OUTPUT }}/${{ env.PROJECT_NAME }}_${{ github.ref_name }}_linux_arm64.tar.gz"
+          ARM64_BIN_DIR="${{ env.DOCKER_CONTEXT_DIR }}/linux/arm64"
+          mkdir -p $ARM64_BIN_DIR
+          tar -xzf $ARM64_TAR -C $ARM64_BIN_DIR/
+          
+          rm -f ${{ env.OUTPUT }}/*.tar.gz
+          ls -R ${{ env.DOCKER_CONTEXT_DIR }}
+      - name: Build & Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+            ghcr.io/${{ github.repository }}:latest
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            OUTPUT=${{ env.DOCKER_CONTEXT_DIR }}
+            BINARY=${{ env.BINARY }}
+          context: .
+          file: Dockerfile
+
+  release:
+    runs-on: ubuntu-latest
+    needs:
+      - build
+      - build-docker
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Download Artifacts
+        uses: actions/download-artifact@v5
+        with:
+          path: ${{ env.OUTPUT }}/
+      - name: Build Changelog
+        id: build_changelog
+        uses: mikepenz/release-changelog-builder-action@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          mode: COMMIT
+      - name: Create GitHub Release
+        uses: ncipollo/release-action@v1
+        with:
+          allowUpdates: true
+          makeLatest: true
+          artifacts: "${{ env.OUTPUT }}/*/*.tar.gz"
+          tag: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          body: ${{ steps.build_changelog.outputs.changelog }}
+          draft: false
+          prerelease: false
+          token: ${{ secrets.GITHUB_TOKEN }}
