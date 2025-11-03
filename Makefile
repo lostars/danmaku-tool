@@ -3,16 +3,17 @@ GO_VERSION := 1.25
 BINARY := danmaku
 OUTPUT := dist
 PROJECT := danmaku-tool
+PROJECT_PATH := $$(PWD)
 GOOS :=
 ARCH :=
 CGO_ENABLED := 1
 WIN_ARM := $(and $(filter windows,$(GOOS)), $(filter arm64,$(ARCH)))
+LINUX_LDFLAGS := -ldflags "-X $(PROJECT)/internal/config.Version=$(VERSION) -w -s -extldflags -static"
 ifeq ($(GOOS),linux)
-LDFLAGS := -ldflags '-X $(PROJECT)/internal/config.Version=$(VERSION) -w -s -extldflags "-static"'
+LDFLAGS := $(LINUX_LDFLAGS)
 else
-LDFLAGS := -ldflags '-X $(PROJECT)/internal/config.Version=$(VERSION) -w -s'
+LDFLAGS := -ldflags "-X $(PROJECT)/internal/config.Version=$(VERSION) -w -s"
 endif
-GOJIEBA_MOD_DIR := $(shell go list -m -f '{{.Dir}}' github.com/yanyiwu/gojieba | tr '\\' '/')
 ifeq ($(GOOS),windows)
 EXT := .exe
 else
@@ -30,7 +31,27 @@ build: copy-dict
 .PHONY: build-docker
 build-docker:
 	@echo "Building docker..."
-	docker buildx build --platform linux/amd64,linux/arm64 -t $(PROJECT):$(VERSION) -t $(PROJECT):latest .
+	docker buildx build --platform linux/amd64,linux/arm64 --build-arg OUTPUT=$(OUTPUT) -t $(PROJECT):dev .
+
+# linux编译 直接用golang镜像进行构建
+.PHONY: build-linux
+build-linux:
+	@mkdir -p $(OUTPUT)/linux/$(ARCH)
+	docker run --rm \
+        --platform linux/$(ARCH) \
+        -e CGO_ENABLED=$(CGO_ENABLED) \
+        -e GOOS=linux \
+        -e GOARCH=$(ARCH) \
+        -v "$(PROJECT_PATH)":/app \
+        -w /app \
+        golang:$(GO_VERSION) \
+        /bin/bash -c ' \
+        go mod download && \
+	  	mkdir -p $(OUTPUT)/dict && \
+        GOJIEBA_MOD_DIR=$$(go list -m -f '{{.Dir}}' github.com/yanyiwu/gojieba) && \
+      	echo $$GOJIEBA_MOD_DIR && \
+        cp -f $$GOJIEBA_MOD_DIR/deps/cppjieba/dict/*.utf8 $(OUTPUT)/dict/ || true && \
+        go build $(LINUX_LDFLAGS) -o $(OUTPUT)/linux/$(ARCH)/$(BIN) main.go'
 
 .PHONY: compress
 compress:
@@ -40,12 +61,13 @@ compress:
 .PHONY: copy-dict
 copy-dict:
 	@mkdir -p $(OUTPUT)/dict
-	@cp -f $(GOJIEBA_MOD_DIR)/deps/cppjieba/dict/*.utf8 $(OUTPUT)/dict/ || true
+	go mod download
+	GOJIEBA_MOD_DIR=$$(go list -m -f '{{.Dir}}' github.com/yanyiwu/gojieba | tr '\\' '/') && \
+	cp -f $$GOJIEBA_MOD_DIR/deps/cppjieba/dict/*.utf8 $(OUTPUT)/dict/ || true
 
 .PHONY: build-artifact
 build-artifact: copy-dict
 	@echo "Building $(GOOS)-$(ARCH)..."
-	go mod download
 	@echo "WIN_ARM: $(WIN_ARM)"
 ifneq ($(WIN_ARM),)
 	docker run --rm \
@@ -55,7 +77,13 @@ ifneq ($(WIN_ARM),)
       -v "$$(PWD):/app" \
       -w /app \
       x1unix/go-mingw:1.25 \
-      /bin/bash -c "go build $(LDFLAGS) -o $(OUTPUT)/$(BIN) main.go"
+      /bin/bash -c ' \
+	  go mod download && \
+	  mkdir -p $(OUTPUT)/dict && \
+      GOJIEBA_MOD_DIR=$$(go list -m -f '{{.Dir}}' github.com/yanyiwu/gojieba) && \
+      echo $$GOJIEBA_MOD_DIR && \
+	  cp -f $$GOJIEBA_MOD_DIR/deps/cppjieba/dict/*.utf8 $(OUTPUT)/dict/ || true && \
+      go build $(LDFLAGS) -o $(OUTPUT)/$(BIN) main.go'
 else
 	CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(ARCH) go build $(LDFLAGS) -o $(OUTPUT)/$(BIN) main.go
 endif
