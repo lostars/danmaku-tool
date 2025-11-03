@@ -5,7 +5,7 @@ ARG BINARY=danmaku
 ARG TARGETARCH
 ARG TARGETOS
 RUN apk add --no-cache tzdata
-COPY ${OUTPUT}/${TARGETOS}/${TARGETARCH}/${BINARY} /usr/local/bin
+COPY ${OUTPUT}/${TARGETOS}/${TARGETARCH}/${BINARY} /usr/local/bin/danmaku
 
 EXPOSE 8089
 ENV TZ=Asia/Shanghai

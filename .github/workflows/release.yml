@@ -21,11 +21,9 @@ jobs:
           - os: linux
             arch: amd64
             runner: ubuntu-latest
-            docker: true
           - os: linux
             arch: arm64
             runner: ubuntu-24.04-arm
-            docker: true
 
           - os: darwin
             arch: amd64
@@ -37,9 +35,9 @@ jobs:
           - os: windows
             arch: amd64
             runner: windows-latest
-#          - os: windows
-#            arch: arm64
-#            runner: ubuntu-latest
+          - os: windows
+            arch: arm64
+            runner: ubuntu-latest
 
     steps:
       - name: Checkout
@@ -56,17 +54,10 @@ jobs:
           go-version: "1.25"
           cache: 'true'
 
-#      - name: Build Windows ARM64 CGO using Docker
-#        if: matrix.os == 'windows' && matrix.arch == 'arm64'
-#        run: |
-#          make build-win-arm64 OUTPUT=${{ env.OUTPUT }} BINARY=${{ env.BINARY }} PROJECT=${{ env.PROJECT_NAME }} GOOS=${{ matrix.os }} ARCH=${{ matrix.arch }}
-
       - name: Build
         shell: bash
-#        if: matrix.os != 'windows' || matrix.arch != 'arm64'
         run: |
           make release OUTPUT=${{ env.OUTPUT }} BINARY=${{ env.BINARY }} PROJECT=${{ env.PROJECT_NAME }} GOOS=${{ matrix.os }} ARCH=${{ matrix.arch }}
-          make compress OUTPUT=${{ env.OUTPUT }} BINARY=${{ env.BINARY }} PROJECT=${{ env.PROJECT_NAME }} GOOS=${{ matrix.os }} ARCH=${{ matrix.arch }}
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4

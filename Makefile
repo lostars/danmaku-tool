@@ -3,10 +3,15 @@ GO_VERSION := 1.25
 BINARY := danmaku
 OUTPUT := dist
 PROJECT := danmaku-tool
-LDFLAGS := -ldflags '-X $(PROJECT)/internal/config.Version=$(VERSION) -w -s'
-LDFLAGS_LINUX := -ldflags '-X $(PROJECT)/internal/config.Version=$(VERSION) -w -s -extldflags "-static"'
 GOOS :=
 ARCH :=
+CGO_ENABLED := 1
+WIN_ARM := $(and $(filter windows,$(GOOS)), $(filter arm64,$(ARCH)))
+ifeq ($(GOOS),linux)
+LDFLAGS := -ldflags '-X $(PROJECT)/internal/config.Version=$(VERSION) -w -s -extldflags "-static"'
+else
+LDFLAGS := -ldflags '-X $(PROJECT)/internal/config.Version=$(VERSION) -w -s'
+endif
 GOJIEBA_MOD_DIR := $(shell go list -m -f '{{.Dir}}' github.com/yanyiwu/gojieba | tr '\\' '/')
 ifeq ($(GOOS),windows)
 EXT := .exe
@@ -16,52 +21,49 @@ endif
 BIN := $(BINARY)$(EXT)
 
 .PHONY: build
-build:
-	@echo "--- Building local binary ($(OUTPUT)/$(BIN)) with CGO=$(CGO_STATUS) ---"
-	go mod tidy
-	@echo "$(VERSION)"
-	CGO_ENABLED=1 go build $(LDFLAGS) -o bin/$(BIN) main.go
+build: copy-dict
+	@echo "Building locally..."
+	@go mod tidy
+	@echo "version: $(VERSION)"
+	CGO_ENABLED=$(CGO_ENABLED) go build $(LDFLAGS) -o $(OUTPUT)/$(BIN) main.go
 
 .PHONY: build-docker
 build-docker:
 	@echo "Building docker..."
-	docker buildx build -t $(PROJECT):$(VERSION) -t $(PROJECT):latest .
+	docker buildx build --platform linux/amd64,linux/arm64 -t $(PROJECT):$(VERSION) -t $(PROJECT):latest .
 
 .PHONY: compress
 compress:
+	@echo "Compressing binary..."
 	@cd $(OUTPUT) && tar -czf $(PROJECT)_$(VERSION)_$(GOOS)_$(ARCH).tar.gz $(BIN) && cd ..
 
-.PHONY: release
-release:
+.PHONY: copy-dict
+copy-dict:
+	@mkdir -p $(OUTPUT)/dict
+	@cp -f $(GOJIEBA_MOD_DIR)/deps/cppjieba/dict/*.utf8 $(OUTPUT)/dict/ || true
+
+.PHONY: build-artifact
+build-artifact: copy-dict
 	@echo "Building $(GOOS)-$(ARCH)..."
-	go mod tidy
 	go mod download
-	mkdir -p $(OUTPUT)/dict
-	cp $(GOJIEBA_MOD_DIR)/deps/cppjieba/dict/* $(OUTPUT)/dict/ || true
-ifeq ($(GOOS),linux)
-	CGO_ENABLED=1 GOOS=$(GOOS) GOARCH=$(ARCH) go build $(LDFLAGS_LINUX) -o $(OUTPUT)/$(BIN) main.go
+	@echo "WIN_ARM: $(WIN_ARM)"
+ifneq ($(WIN_ARM),)
+	docker run --rm \
+      -e CGO_ENABLED=$(CGO_ENABLED) \
+      -e GOOS=$(GOOS) \
+      -e GOARCH=$(ARCH) \
+      -v "$$(PWD):/app" \
+      -w /app \
+      x1unix/go-mingw:1.25 \
+      /bin/bash -c "go build $(LDFLAGS) -o $(OUTPUT)/$(BIN) main.go"
 else
-	CGO_ENABLED=1 GOOS=$(GOOS) GOARCH=$(ARCH) go build $(LDFLAGS) -o $(OUTPUT)/$(BIN) main.go
+	CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(ARCH) go build $(LDFLAGS) -o $(OUTPUT)/$(BIN) main.go
 endif
+
+.PHONY: release
+release: build-artifact compress
 
 .PHONY: clean
 clean:
 	@echo "Cleaning..."
 	rm -rf $(OUTPUT)
-
-.PHONY: build-win-arm64
-build-win-arm64:
-	go mod tidy
-	go mod download
-	cp $(GOJIEBA_MOD_DIR)/deps/cppjieba/dict/* $(OUTPUT)/dict/ || true
-	@bash -c ' \
-		mkdir -p "$(OUTPUT)"; \
-		docker run --rm \
-			-e CGO_ENABLED=1 \
-			-e GOOS=windows \
-			-e GOARCH=arm64 \
-			-v "$$(pwd):/go/src/app" \
-			-w /go/src/app \
-			x1unix/go-mingw:1.25 \
-			go build $(LDFLAGS) -o $(OUTPUT)/$(BIN) main.go; \
-	'
