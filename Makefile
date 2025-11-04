@@ -31,9 +31,12 @@ build: copy-dict
 .PHONY: build-docker
 build-docker:
 	@echo "Building docker..."
-	docker buildx build --platform linux/amd64,linux/arm64 --build-arg OUTPUT=$(OUTPUT) -t $(PROJECT):dev .
+	$(MAKE)	build-linux ARCH=arm64
+	$(MAKE) build-linux ARCH=amd64
+	docker buildx build --platform linux/amd64,linux/arm64 --build-arg OUTPUT=$(OUTPUT) \
+	--push -t ghcr.io/lostars/$(PROJECT):dev .
 
-# linux编译 直接用golang镜像进行构建
+# linux编译 直接用golang镜像进行构建 用于开发环境推送dev标签
 .PHONY: build-linux
 build-linux:
 	@mkdir -p $(OUTPUT)/linux/$(ARCH)

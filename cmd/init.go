@@ -28,9 +28,7 @@ func Init() {
 }
 
 func InitServer() {
-	// 初始化GoJieba
-	createTempDictsFromEmbed()
-	// 其他初始化
+	// server初始化必要资源
 	for _, init := range danmaku.GetInitializers() {
 		if i, ok := init.(danmaku.ServerInitializer); ok {
 			if err := i.ServerInit(); err != nil {
@@ -62,7 +60,9 @@ const tempDirPrefix = "jieba_temp_dict_"
 
 var jiebaTempDir = ""
 
-func createTempDictsFromEmbed() {
+type GoJiebaDict struct{}
+
+func (g *GoJiebaDict) ServerInit() error {
 	tempDir, err := os.MkdirTemp("", tempDirPrefix)
 	if err != nil {
 		panic(err)
@@ -83,4 +83,8 @@ func createTempDictsFromEmbed() {
 		config.JiebaDictTempDirs = append(config.JiebaDictTempDirs, destPath)
 	}
 	jiebaTempDir = tempDir
+	return nil
+}
+func init() {
+	danmaku.RegisterInitializer(&GoJiebaDict{})
 }

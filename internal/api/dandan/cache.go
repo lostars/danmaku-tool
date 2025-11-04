@@ -2,6 +2,7 @@ package dandan
 
 import (
 	"bytes"
+	"danmaku-tool/internal/danmaku"
 	"danmaku-tool/internal/utils"
 	"net/http"
 	"path"
@@ -13,16 +14,23 @@ import (
 
 var cache *ristretto.Cache[string, []byte]
 
-func InitDandanCache() {
+func init() {
+	danmaku.RegisterInitializer(&DanmakuCache{})
+}
+
+type DanmakuCache struct{}
+
+func (d *DanmakuCache) ServerInit() error {
 	c, err := ristretto.NewCache(&ristretto.Config[string, []byte]{
 		NumCounters: 1e7,     // number of keys to track frequency of (10M).
 		MaxCost:     1 << 29, // maximum cost of cache 512M
 		BufferItems: 64,      // number of keys per Get buffer.
 	})
 	if err != nil {
-		panic(err)
+		return err
 	}
 	cache = c
+	return nil
 }
 
 func CacheMiddleware(next http.Handler) http.Handler {

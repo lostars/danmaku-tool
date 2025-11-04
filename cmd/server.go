@@ -31,7 +31,6 @@ func serverCmd() *cobra.Command {
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		Init()
 		InitServer()
-		dandan.InitDandanCache()
 		httpLogger = utils.GetComponentLogger("dandan-api")
 		r := chi.NewRouter()
 
@@ -46,7 +45,7 @@ func serverCmd() *cobra.Command {
 		r.Use(middleware.Timeout(time.Duration(1e9 * timeout)))
 
 		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-			api.ResponseJSON(w, http.StatusOK, map[string]string{"version": ""})
+			api.ResponseJSON(w, http.StatusOK, map[string]string{"version": config.Version})
 		})
 
 		// dandan api

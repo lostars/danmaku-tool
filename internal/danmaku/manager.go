@@ -88,6 +88,7 @@ type Finalizer interface {
 	Finalize() error
 }
 
+// ServerInitializer 初始化server需要的操作，实现该接口并注册 RegisterInitializer 即可
 type ServerInitializer interface {
 	ServerInit() error
 }
