@@ -130,9 +130,6 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 		if bangumi.EPs != nil && len(bangumi.EPs) > 0 {
 			mediaType = danmaku.Series
 			if ssId >= 0 {
-				if ssId == 0 {
-					continue
-				}
 				// 获取第一集检查时长
 				if param.DurationSeconds > 0 {
 					ss, err := c.baseInfo(strconv.FormatInt(bangumi.EPs[0].Id, 10), "")

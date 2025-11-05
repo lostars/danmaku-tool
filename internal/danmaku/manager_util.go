@@ -81,7 +81,8 @@ var ChineseNumberSlice = strings.Split(ChineseNumber, "|")
 var MarkRegex = regexp.MustCompile(`[\p{P}\p{S}]`)
 var SeasonTitleMatch = regexp.MustCompile(`第\s*(\d{1,2}|` + ChineseNumber + `)\s*季`)
 var MatchLanguage = regexp.MustCompile(`(特别|普通话|粤配|中配|中文|粤语)\(版|篇\)*$`)
-var MatchKeyword = regexp.MustCompile(`<em class="keyword">(.*?)</em>`)
+var MatchSpecials = regexp.MustCompile(`(特别)篇$`)
+var MatchKeyword = regexp.MustCompile(`<em(\sclass="keyword")*>(.*?)</em>`)
 
 func ClearTitle(title string) string {
 	var clearTitle = utils.StripHTMLTags(title)
@@ -122,6 +123,14 @@ func (p MatchParam) MatchTitle(title string) bool {
 	if title == "" {
 		return false
 	}
+	// 检查em标签是否有命中搜索词
+	emMatches := MatchKeyword.FindStringSubmatch(title)
+	if len(emMatches) > 2 {
+		if emMatches[2] == "" {
+			return false
+		}
+		title = ClearTitle(title)
+	}
 	// 黑名单 正则匹配替换
 	if config.GetConfig().Tokenizer.Enable {
 		for _, r := range config.GetConfig().Tokenizer.Blacklist {
@@ -134,6 +143,10 @@ func (p MatchParam) MatchTitle(title string) bool {
 			}
 			title = re.ReplaceAllLiteralString(title, r.Replacement)
 		}
+	}
+	// 处理 S0
+	if p.SeasonId == 0 {
+		return MatchSpecials.MatchString(title)
 	}
 	// 语言版本处理 直接过滤掉
 	// 不同平台语言标题不一致，有些会把非原版语言添加到标题，有些会把原版添加到标题（日语版）
@@ -156,11 +169,6 @@ func (p MatchParam) MatchTitle(title string) bool {
 				return false
 			}
 		}
-	}
-	// 检查em标签是否有命中搜索词
-	emMatches := MatchKeyword.FindStringSubmatch(title)
-	if len(emMatches) > 1 && emMatches[1] == "" {
-		return false
 	}
 
 	// 最后清理标题 再次匹配

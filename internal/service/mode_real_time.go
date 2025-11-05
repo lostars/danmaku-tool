@@ -98,7 +98,8 @@ func (c *realTimeData) Match(param MatchParam) (*DanDanResult, error) {
 		DurationSeconds: param.DurationSeconds,
 		SeasonId:        -1,
 		// match接口用等于判断，防止匹配出错误弹幕
-		Mode: danmaku.Equals,
+		Mode:  danmaku.Equals,
+		Title: param.FileName,
 	}
 	if len(matches) > 3 {
 		ssId, _ := strconv.ParseInt(matches[2], 10, 64)

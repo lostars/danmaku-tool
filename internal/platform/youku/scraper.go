@@ -102,9 +102,9 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 			Platform: danmaku.Youku,
 		}
 
-		if len(n.Nodes) == 1 {
+		if mediaInfo.Cats == "电影" {
 			// 电影
-			if ssId >= 0 || mediaInfo.EpisodeTotal > 1 {
+			if ssId >= 0 {
 				continue
 			}
 			media.Type = danmaku.Movie
@@ -124,19 +124,27 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 				EpisodeId: videoInfo.Title,
 			})
 			media.Episodes = eps
-
 		} else {
 			// 剧集
-			if ssId < 0 || mediaInfo.EpisodeTotal <= 1 {
+			if ssId < 0 {
 				continue
 			}
+			data := n.Nodes[0]
+			if len(n.Nodes) > 1 {
+				data = n.Nodes[1]
+			}
+
 			media.Type = danmaku.Series
-			var eps = make([]*danmaku.MediaEpisode, 0, len(n.Nodes[1].Nodes))
-			for _, epInfo := range n.Nodes[1].Nodes {
+			var eps = make([]*danmaku.MediaEpisode, 0, len(data.Nodes))
+			for i, epInfo := range data.Nodes {
+				episodeId := epInfo.Data.ShowVideoStage
+				if episodeId == "" {
+					episodeId = strconv.FormatInt(int64(i+1), 10)
+				}
 				eps = append(eps, &danmaku.MediaEpisode{
 					Id:        epInfo.Data.VideoId,
 					Title:     epInfo.Data.Title,
-					EpisodeId: epInfo.Data.ShowVideoStage,
+					EpisodeId: episodeId,
 				})
 			}
 			media.Episodes = eps

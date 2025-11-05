@@ -109,7 +109,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 		}
 
 		var eps = make([]*danmaku.MediaEpisode, 0, v.VideoInfo.SubjectDoc.VideoNum)
-		for _, ep := range seriesItems {
+		for i, ep := range seriesItems {
 			if ep.ItemParams.IsTrailer == "1" {
 				continue
 			}
@@ -117,10 +117,18 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 			if ep.ItemParams.VID == "" {
 				continue
 			}
+			epTitle := ep.ItemParams.CTitleOutput
+			epId, e := strconv.ParseInt(epTitle, 10, 64)
+			if e == nil {
+				epTitle = strconv.FormatInt(epId, 10)
+			}
+			if epTitle == "" {
+				epTitle = strconv.FormatInt(int64(i+1), 10)
+			}
 			eps = append(eps, &danmaku.MediaEpisode{
 				Id:        ep.ItemParams.VID,
-				EpisodeId: ep.ItemParams.Title,
-				Title:     ep.ItemParams.CTitleOutput,
+				EpisodeId: epTitle,
+				Title:     ep.ItemParams.Title,
 			})
 		}
 		// 匹配剧场版 epId 暂时使用下标作为S00的epId 最新发布的在最前面

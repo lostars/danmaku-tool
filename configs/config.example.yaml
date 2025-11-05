@@ -11,6 +11,7 @@ tokenizer:
   # 是否启用
   enable: true
   # 搜索结果标题黑名单 regex正则匹配搜索结果标题 replacement 则是需要替换为的词 提升匹配精准度
+  # 注意 \ 转义
   blacklist:
     - regex: "(刺客)*伍六七.*记忆碎片"
       replacement: "刺客伍六七第五季"
@@ -22,6 +23,8 @@ tokenizer:
       replacement: "刺客伍六七第二季"
     - regex: "(刺客)*伍六七"
       replacement: "刺客伍六七"
+    - regex: "仙剑奇侠传\\s*第*\\s*(一|1)\\s*部*"
+      replacement: "仙剑奇侠传"
 server:
 #  dandan api token 配置
   tokens:

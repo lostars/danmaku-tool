@@ -14,6 +14,10 @@ import (
 func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 	keyword := param.Title
 	ssId := int64(param.SeasonId)
+	// 为了防止 template == 112 出现（此时Videos无数据），带上季信息进行搜索
+	if ssId > 0 && ssId <= int64(len(danmaku.ChineseNumberSlice)) {
+		keyword += fmt.Sprintf("第%s季", danmaku.ChineseNumberSlice[ssId-1])
+	}
 
 	api := "https://mesh.if.iqiyi.com/portal/lw/search/homePageV3?"
 	params := url.Values{
@@ -91,9 +95,13 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 				if len(epMatches) < 2 {
 					continue
 				}
+				epTitle := v.Number
+				if epTitle == "" {
+					epTitle = strconv.FormatInt(int64(i+1), 10)
+				}
 				eps = append(eps, &danmaku.MediaEpisode{
 					Id:        epMatches[1],
-					EpisodeId: v.Number,
+					EpisodeId: epTitle,
 					Title:     v.Subtitle,
 				})
 			}
