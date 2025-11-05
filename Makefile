@@ -3,15 +3,9 @@ GO_VERSION := 1.25
 BINARY := danmaku
 OUTPUT := dist
 PROJECT := danmaku-tool
-GOOS :=
-ARCH :=
-LDFLAGS := -ldflags "-X $(PROJECT)/internal/config.Version=$(VERSION) -w -s"
-ifeq ($(GOOS),windows)
-EXT := .exe
-else
-EXT :=
-endif
-BIN := $(BINARY)$(EXT)
+TARGETS := windows/arm64 windows/amd64 linux/amd64 linux/arm64 darwin/amd64 darwin/arm64
+DOCKER_TARGETS := linux/amd64 linux/arm64
+LDFLAGS := -ldflags "-X $(PROJECT)/internal/config.Version=$(VERSION) -w -s" -trimpath
 
 .PHONY: build
 build:
@@ -20,27 +14,38 @@ build:
 	@echo "version: $(VERSION)"
 	go build $(LDFLAGS) -o $(OUTPUT)/$(BIN) main.go
 
-.PHONY: build-docker
-build-docker:
-	@echo "Building docker..."
-	$(MAKE)	build-artifact ARCH=arm64
-	$(MAKE) build-artifact ARCH=amd64
+.PHONY: docker
+docker: clean
+	@for combo in $(DOCKER_TARGETS); do \
+		GOOS=$$(echo $$combo | cut -d/ -f1); \
+		ARCH=$$(echo $$combo | cut -d/ -f2); \
+		mkdir -p $(OUTPUT)/$${GOOS}/$${ARCH}; \
+		echo "Building $${GOOS}/$${ARCH}..."; \
+		GOOS=$$GOOS GOARCH=$$ARCH go build $(LDFLAGS) -o $(OUTPUT)/$${GOOS}/$${ARCH}/$(BINARY) main.go; \
+	done
+	@echo "Building docker image..."
 	docker buildx build --platform linux/amd64,linux/arm64 --build-arg OUTPUT=$(OUTPUT) \
 	--push -t ghcr.io/lostars/$(PROJECT):dev .
 
-.PHONY: compress
-compress:
-	@echo "Compressing binary..."
-	@cd $(OUTPUT) && tar -czf $(PROJECT)_$(VERSION)_$(GOOS)_$(ARCH).tar.gz $(BIN) && cd ..
-
-.PHONY: build-artifact
-build-artifact:
-	@echo "Building $(GOOS)-$(ARCH)..."
-	@echo "WIN_ARM: $(WIN_ARM)"
-	GOOS=$(GOOS) GOARCH=$(ARCH) go build $(LDFLAGS) -o $(OUTPUT)/$(BIN) main.go
+.PHONY: artifact
+artifact: clean
+	@for combo in $(TARGETS); do \
+		GOOS=$$(echo $$combo | cut -d/ -f1); \
+		ARCH=$$(echo $$combo | cut -d/ -f2); \
+		mkdir -p $(OUTPUT)/$${GOOS}/$${ARCH}; \
+		echo "Building $${GOOS}/$${ARCH}..."; \
+		if [ "$${GOOS}" = "windows" ]; then \
+			EXT=".exe"; \
+		else \
+			EXT=""; \
+		fi; \
+		BIN="$(BINARY)$${EXT}"; \
+		GOOS=$$GOOS GOARCH=$$ARCH go build $(LDFLAGS) -o $(OUTPUT)/$${GOOS}/$${ARCH}/$${BIN} main.go; \
+		tar -czf $(OUTPUT)/$(PROJECT)_$(VERSION)_$${GOOS}_$${ARCH}.tar.gz -C $(OUTPUT)/$${GOOS}/$${ARCH} $${BIN}; \
+	done
 
 .PHONY: release
-release: build-artifact compress
+release: artifact
 
 .PHONY: clean
 clean:
