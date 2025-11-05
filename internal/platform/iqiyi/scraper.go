@@ -12,7 +12,7 @@ import (
 )
 
 func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
-	keyword := param.FileName
+	keyword := param.Title
 	ssId := int64(param.SeasonId)
 
 	api := "https://mesh.if.iqiyi.com/portal/lw/search/homePageV3?"
@@ -61,9 +61,8 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 			continue
 		}
 
-		clearTitle := danmaku.ClearTitle(t.AlbumInfo.Title)
-		match := danmaku.Tokenizer.Match(clearTitle, keyword)
-		c.common.Logger.Debug(fmt.Sprintf("[%s] match [%s]: %v index: %d", clearTitle, keyword, match, i))
+		match := param.MatchTitle(t.AlbumInfo.Title)
+		c.common.Logger.Debug(fmt.Sprintf("[%s] match [%s]: %v index: %d", t.AlbumInfo.Title, param.Title, match, i))
 		if !match {
 			continue
 		}

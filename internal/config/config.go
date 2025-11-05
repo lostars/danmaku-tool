@@ -8,9 +8,8 @@ import (
 )
 
 var (
-	Version           string
-	ConfPath          string
-	JiebaDictTempDirs []string
+	Version  string
+	ConfPath string
 )
 
 var danmakuConfig *DanmakuConfig
@@ -87,11 +86,10 @@ type DanmakuConfig struct {
 }
 
 type TokenizerConfig struct {
-	Words     []string `yaml:"words"`
-	Enable    bool     `yaml:"enable"`
+	Enable    bool `yaml:"enable"`
 	Blacklist []struct {
-		Key   string `yaml:"key"`
-		Value string `yaml:"value"`
+		Regex       string `yaml:"regex"`
+		Replacement string `yaml:"replacement"`
 	} `yaml:"blacklist"`
 }
 

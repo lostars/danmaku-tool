@@ -7,9 +7,7 @@ import (
 	"danmaku-tool/internal/service"
 	"danmaku-tool/internal/utils"
 	"fmt"
-	"io/fs"
 	"os"
-	"path/filepath"
 )
 
 func Init() {
@@ -46,45 +44,4 @@ func Release() {
 			_, _ = fmt.Fprintf(os.Stdout, "release source error: %v\n", err)
 		}
 	}
-	// 清理GoJieba字典临时文件夹
-	if err := os.RemoveAll(jiebaTempDir); err != nil {
-		fmt.Printf("jieba temp dir cleanup fail %s: %v", jiebaTempDir, err)
-	} else {
-		fmt.Println("jieba temp dir cleanup done")
-	}
-}
-
-var dicts = []string{"jieba.dict.utf8", "hmm_model.utf8", "user.dict.utf8", "idf.utf8", "stop_words.utf8"}
-
-const tempDirPrefix = "jieba_temp_dict_"
-
-var jiebaTempDir = ""
-
-type GoJiebaDict struct{}
-
-func (g *GoJiebaDict) ServerInit() error {
-	tempDir, err := os.MkdirTemp("", tempDirPrefix)
-	if err != nil {
-		panic(err)
-	}
-
-	for _, dict := range dicts {
-		// 读取时候需要使用定义 embed.FS 的前缀
-		filename := filepath.Join("dist", "dict", dict)
-		content, err := fs.ReadFile(flags.JiebaDict, filename)
-		if err != nil {
-			panic(err)
-		}
-		// 写入物理文件系统 使用的实际物理路径
-		destPath := filepath.Join(tempDir, dict)
-		if err := os.WriteFile(destPath, content, 0644); err != nil {
-			panic(err)
-		}
-		config.JiebaDictTempDirs = append(config.JiebaDictTempDirs, destPath)
-	}
-	jiebaTempDir = tempDir
-	return nil
-}
-func init() {
-	danmaku.RegisterInitializer(&GoJiebaDict{})
 }

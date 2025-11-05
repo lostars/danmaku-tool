@@ -5,11 +5,10 @@ import (
 	"danmaku-tool/internal/utils"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/yanyiwu/gojieba"
 )
 
 func MergeDanmaku(dms []*StandardDanmaku, mergedInMills int64, durationInMills int64) []*StandardDanmaku {
@@ -76,18 +75,124 @@ func (p *PlatformClient) DoReq(req *http.Request) (*http.Response, error) {
 	return p.HttpClient.Do(req)
 }
 
+var SeriesRegex = regexp.MustCompile("(.*)\\sS(\\d{1,3})E(\\d{1,3})$")
+var ChineseNumber = "一|二|三|四|五|六|七|八|九|十|十一|十二|十三|十四|十五|十六|十七|十八|十九|二十"
+var ChineseNumberSlice = strings.Split(ChineseNumber, "|")
+var MarkRegex = regexp.MustCompile(`[\p{P}\p{S}]`)
+var SeasonTitleMatch = regexp.MustCompile(`第\s*(\d{1,2}|` + ChineseNumber + `)\s*季`)
+var MatchLanguage = regexp.MustCompile(`(特别|普通话|粤配|中配|中文|粤语)\(版|篇\)*$`)
+var MatchKeyword = regexp.MustCompile(`<em class="keyword">(.*?)</em>`)
+
 func ClearTitle(title string) string {
 	var clearTitle = utils.StripHTMLTags(title)
-	clearTitle = strings.ReplaceAll(clearTitle, " ", "")
 	clearTitle = MarkRegex.ReplaceAllLiteralString(clearTitle, "")
-	seasonMatches := SeasonTitleMatch.FindStringSubmatch(clearTitle)
-	if len(seasonMatches) > 1 {
-		s, err := strconv.ParseInt(seasonMatches[1], 10, 64)
-		if err == nil && int(s) < len(ChineseNumberSlice) && s >= 1 {
-			clearTitle = strings.ReplaceAll(clearTitle, seasonMatches[1], ChineseNumberSlice[s-1])
+	return clearTitle
+}
+
+func ClearTitleAndSeason(title string) string {
+	clearTitle := strings.ReplaceAll(title, " ", "")
+	return SeasonTitleMatch.ReplaceAllLiteralString(ClearTitle(clearTitle), "")
+}
+
+// MatchSeason 匹配标题中的季信息 返回数字季 没匹配上则返回-1
+func MatchSeason(title string) int {
+	seasonMatches := SeasonTitleMatch.FindStringSubmatch(title)
+	if len(seasonMatches) <= 1 {
+		return -1
+	}
+	s, err := strconv.ParseInt(seasonMatches[1], 10, 64)
+	if err == nil {
+		return int(s)
+	} else {
+		return GetNumberSeasonFromChinese(seasonMatches[1])
+	}
+}
+
+func GetNumberSeasonFromChinese(chineseNumber string) int {
+	for i, v := range ChineseNumberSlice {
+		if v == chineseNumber {
+			return i + 1
 		}
 	}
-	return clearTitle
+	return -1
+}
+
+// MatchTitle 标题匹配包含两部分：季信息 和 标题本身
+func (p MatchParam) MatchTitle(title string) bool {
+	if title == "" {
+		return false
+	}
+	// 黑名单 正则匹配替换
+	if config.GetConfig().Tokenizer.Enable {
+		for _, r := range config.GetConfig().Tokenizer.Blacklist {
+			re, err := regexp.Compile(r.Regex)
+			if err != nil {
+				continue
+			}
+			if !re.MatchString(title) {
+				continue
+			}
+			title = re.ReplaceAllLiteralString(title, r.Replacement)
+		}
+	}
+	// 语言版本处理 直接过滤掉
+	// 不同平台语言标题不一致，有些会把非原版语言添加到标题，有些会把原版添加到标题（日语版）
+	if !MatchLanguage.MatchString(p.Title) {
+		if MatchLanguage.MatchString(title) {
+			return false
+		}
+	}
+	// 优先匹配季信息
+	if p.SeasonId > 0 {
+		season := MatchSeason(title)
+		if season < 0 {
+			if p.SeasonId == 1 {
+				// 很多剧集是没有把第一季加到标题上的，如果未匹配出第一季那就继续处理
+			} else {
+				return false
+			}
+		} else {
+			if season != p.SeasonId {
+				return false
+			}
+		}
+	}
+	// 检查em标签是否有命中搜索词
+	emMatches := MatchKeyword.FindStringSubmatch(title)
+	if len(emMatches) > 1 && emMatches[1] == "" {
+		return false
+	}
+
+	// 最后清理标题 再次匹配
+	lowerClearTitle := strings.ToLower(ClearTitleAndSeason(title))
+	targetLowerTitle := strings.ToLower(ClearTitleAndSeason(p.Title))
+	switch p.Mode {
+	case Ignore:
+		return true
+	case Equals:
+		// 使用替换方式，方式标题重复出现
+		result := strings.ReplaceAll(lowerClearTitle, targetLowerTitle, "")
+		return result == ""
+	case Contains:
+		return strings.Contains(lowerClearTitle, targetLowerTitle)
+	}
+	return false
+}
+
+// MatchMode 用于 MatchTitle 最后的匹配方式
+type MatchMode string
+
+const (
+	Equals   = "equals"
+	Contains = "contains"
+	Ignore   = "ignore"
+)
+
+func (p MatchParam) MatchYear(year int) bool {
+	if p.Emby.ProductionYear > 0 {
+		return year == p.Emby.ProductionYear
+	}
+	return true
 }
 
 func InitPlatformClient(platform Platform) (*PlatformClient, error) {
@@ -114,64 +219,4 @@ func InitPlatformClient(platform Platform) (*PlatformClient, error) {
 	c.Logger = utils.GetPlatformLogger(string(platform))
 
 	return c, nil
-}
-
-type StringTokenizer struct {
-	jieba *gojieba.Jieba
-}
-
-var Tokenizer = StringTokenizer{}
-
-func (t *StringTokenizer) ServerInit() error {
-	tokenizer := config.GetConfig().Tokenizer
-	if !tokenizer.Enable {
-		return nil
-	}
-	t.jieba = gojieba.NewJieba(config.JiebaDictTempDirs...)
-	for _, w := range tokenizer.Words {
-		if w != "" {
-			t.jieba.AddWord(w)
-		}
-	}
-	return nil
-}
-
-func init() {
-	RegisterInitializer(&Tokenizer)
-}
-
-func (t *StringTokenizer) Finalize() error {
-	if t.jieba != nil {
-		t.jieba.Free()
-	}
-	return nil
-}
-
-func (t *StringTokenizer) Match(source, target string) bool {
-	// 处理语言
-	if !MatchLanguage.MatchString(target) {
-		if MatchLanguage.MatchString(source) {
-			return false
-		}
-	}
-
-	tokenizer := config.GetConfig().Tokenizer
-	if !tokenizer.Enable {
-		return true
-	}
-
-	//分词匹配
-	sourceTokens := t.jieba.Cut(source, true)
-	targetTokens := t.jieba.Cut(target, true)
-	count := 0
-	for _, targetT := range targetTokens {
-		for _, sourceT := range sourceTokens {
-			if sourceT == targetT {
-				count++
-				break
-			}
-		}
-	}
-	// 媒体标题通常较短 默认全部匹配
-	return len(targetTokens)-count == 0
 }

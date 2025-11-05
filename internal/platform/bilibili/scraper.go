@@ -32,9 +32,6 @@ func (c *client) Scrape(realId string) error {
 
 	series, err := c.baseInfo(epId, ssId)
 	if err != nil {
-		fmt.Println(err.Error())
-		fmt.Println(epId)
-		fmt.Println(ssId)
 		return err
 	}
 
@@ -89,7 +86,7 @@ func (c *client) Scrape(realId string) error {
 }
 
 func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
-	keyword := param.FileName
+	keyword := param.Title
 	var ssId = int64(param.SeasonId)
 
 	var data = make([]*danmaku.Media, 0, 10)
@@ -109,27 +106,16 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 	}
 
 	for _, bangumi := range result.Data.Result {
-
-		keys := danmaku.MatchKeyword.FindStringSubmatch(bangumi.Title)
-		if len(keys) < 2 {
-			continue
-		}
-		matchedKeyword := keys[1]
-		if !strings.Contains(keyword, strings.ReplaceAll(matchedKeyword, " ", "")) {
-			continue
-		}
 		if !param.MatchYear(time.Unix(bangumi.PubTime, 0).Year()) {
 			continue
 		}
 
-		var clearTitle = danmaku.ClearTitle(bangumi.Title)
-
-		target := keyword
-		match := danmaku.Tokenizer.Match(clearTitle, target)
-		c.common.Logger.Debug(fmt.Sprintf("[%s] match [%s]: %v", clearTitle, target, match))
+		match := param.MatchTitle(bangumi.Title)
+		c.common.Logger.Debug(fmt.Sprintf("[%s] match [%s]: %v", bangumi.Title, param.Title, match))
 		if !match {
 			continue
 		}
+		clearTitle := danmaku.ClearTitle(bangumi.Title)
 
 		var eps []*danmaku.MediaEpisode
 		// 分两类处理

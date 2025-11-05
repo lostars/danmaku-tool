@@ -3,26 +3,21 @@ package danmaku
 import (
 	"danmaku-tool/internal/config"
 	"danmaku-tool/internal/utils"
-	"regexp"
 	"sort"
-	"strings"
 	"sync"
 )
 
-var EmbySeasonTitleRegex = regexp.MustCompile(`Specials|季\s\d{1,2}|第*\s*\d{1,2}\s*季`)
-
 func MatchMedia(param MatchParam) []*Media {
 
-	// 替换黑名单搜索词 但是用于emby匹配的关键词不做替换
-	embyKeyword := param.FileName
-	for _, w := range config.GetConfig().Tokenizer.Blacklist {
-		if w.Key == param.FileName {
-			param.FileName = w.Value
-			break
-		}
+	// 匹配季
+	if param.SeasonId < 0 {
+		param.SeasonId = MatchSeason(param.Title)
 	}
-	if config.GetConfig().EmbyEnabled() {
-		search, err := SearchEmby(embyKeyword, param.SeasonId)
+	// 预处理标题
+	param.Title = ClearTitleAndSeason(param.Title)
+	// 从emby获取年份等信息
+	if config.GetConfig().EmbyEnabled() && param.SeasonId < 0 {
+		search, err := SearchEmby(param.Title, param.SeasonId)
 		if err == nil && search.Items != nil && len(search.Items) > 0 {
 			// 默认取第一个
 			item := search.Items[0]
@@ -32,25 +27,15 @@ func MatchMedia(param MatchParam) []*Media {
 			if item.Type == "Movie" {
 				param.Emby.ProductionYear = item.ProductionYear
 			}
-		}
-		if param.SeasonId >= 0 {
-			season, err := GetSeasons(param.Emby.ItemId)
-			if err == nil {
-				for _, s := range season.Items {
-					if s.IndexNumber != param.SeasonId {
-						continue
-					}
-					param.Emby.ProductionYear = s.ProductionYear
-					if !EmbySeasonTitleRegex.MatchString(s.Name) {
-						if param.SeasonId > 0 {
-							param.FileName += s.Name
-						}
-					} else {
-						if param.SeasonId > 1 && param.SeasonId <= len(ChineseNumberSlice) {
-							param.FileName += strings.Join([]string{"第", ChineseNumberSlice[param.SeasonId-1], "季"}, "")
+			if item.Type == "Series" {
+				season, err := GetSeasons(param.Emby.ItemId)
+				if err == nil {
+					for _, s := range season.Items {
+						if s.IndexNumber == param.SeasonId {
+							param.Emby.ProductionYear = s.ProductionYear
+							break
 						}
 					}
-					break
 				}
 			}
 		}
@@ -70,7 +55,7 @@ func MatchMedia(param MatchParam) []*Media {
 			defer wg.Done()
 			media, err := scraper.Match(param)
 			if err != nil {
-				logger.Error(err.Error(), "platform", scraper.Platform(), "title", param.FileName)
+				logger.Error(err.Error(), "platform", scraper.Platform(), "title", param.Title)
 				return
 			}
 

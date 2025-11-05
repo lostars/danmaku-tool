@@ -88,18 +88,24 @@ func (c *realTimeData) ServerInit() error {
 	return nil
 }
 
-func (c *realTimeData) Match(param danmaku.MatchParam) (*DanDanResult, error) {
+func (c *realTimeData) Match(param MatchParam) (*DanDanResult, error) {
 	matches := danmaku.SeriesRegex.FindStringSubmatch(param.FileName)
 	epId := int64(-1)
 	searchMovies := true
 	// 兼容搜索标题为 "xxxx S01E01" 格式
 	// 如果无法匹配则默认匹配电影
+	searchParam := danmaku.MatchParam{
+		DurationSeconds: param.DurationSeconds,
+		SeasonId:        -1,
+		// match接口用等于判断，防止匹配出错误弹幕
+		Mode: danmaku.Equals,
+	}
 	if len(matches) > 3 {
 		ssId, _ := strconv.ParseInt(matches[2], 10, 64)
 		epId, _ = strconv.ParseInt(matches[3], 10, 64)
-		param.FileName = matches[1]
-		param.SeasonId = int(ssId)
-		param.EpisodeId = int(epId)
+		searchParam.Title = matches[1]
+		searchParam.SeasonId = int(ssId)
+		searchParam.EpisodeId = int(epId)
 		searchMovies = false
 	}
 
@@ -108,9 +114,8 @@ func (c *realTimeData) Match(param danmaku.MatchParam) (*DanDanResult, error) {
 		Success: true,
 	}
 
-	media := danmaku.MatchMedia(param)
-	// 匹配到第一个即结束 客户端也只会使用第一个结果
-mediaLoop:
+	media := danmaku.MatchMedia(searchParam)
+	// 客户端只会使用第一个结果 但依旧匹配所有搜索结果用于接口调试
 	for _, m := range media {
 		if m.Episodes == nil || len(m.Episodes) == 0 {
 			continue
@@ -123,7 +128,6 @@ mediaLoop:
 				EpisodeTitle: m.Episodes[0].Title,
 			})
 			c.logger.Info("movie match success", "platform", m.Platform, "title", param.FileName)
-			break mediaLoop
 		} else {
 			for _, ep := range m.Episodes {
 				epStr := strconv.FormatInt(epId, 10)
@@ -135,7 +139,6 @@ mediaLoop:
 						AnimeTitle:   m.Title + " [" + string(m.Platform) + "]",
 						EpisodeTitle: ep.EpisodeId,
 					})
-					break mediaLoop
 				}
 			}
 		}

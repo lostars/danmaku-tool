@@ -13,7 +13,7 @@ import (
 )
 
 func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
-	keyword := param.FileName
+	keyword := param.Title
 	ssId := int64(param.SeasonId)
 
 	searchParam := SearchParam{
@@ -85,9 +85,8 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 			continue
 		}
 
-		clearTitle := danmaku.ClearTitle(v.VideoInfo.Title)
-		match := danmaku.Tokenizer.Match(clearTitle, keyword)
-		c.common.Logger.Debug(fmt.Sprintf("[%s] match [%s]: %v", clearTitle, keyword, match))
+		match := param.MatchTitle(v.VideoInfo.Title)
+		c.common.Logger.Debug(fmt.Sprintf("[%s] match [%s]: %v", v.VideoInfo.Title, param.Title, match))
 		if !match {
 			continue
 		}

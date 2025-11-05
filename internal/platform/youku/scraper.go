@@ -17,7 +17,7 @@ func (c *client) Scrape(id string) error {
 }
 
 func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
-	keyword := param.FileName
+	keyword := param.Title
 	ssId := int64(param.SeasonId)
 
 	params := map[string]interface{}{
@@ -88,10 +88,8 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 				continue
 			}
 		}
-		clearTitle := danmaku.ClearTitle(mediaInfo.TempTitle)
-		target := keyword
-		match := danmaku.Tokenizer.Match(clearTitle, target)
-		c.common.Logger.Debug(fmt.Sprintf("[%s] match [%s]: %v", clearTitle, target, match))
+		match := param.MatchTitle(mediaInfo.TempTitle)
+		c.common.Logger.Debug(fmt.Sprintf("[%s] match [%s]: %v", mediaInfo.TempTitle, param.Title, match))
 		if !match {
 			continue
 		}

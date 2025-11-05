@@ -2,7 +2,6 @@ package dandan
 
 import (
 	"danmaku-tool/internal/api"
-	"danmaku-tool/internal/danmaku"
 	"danmaku-tool/internal/service"
 	"danmaku-tool/internal/utils"
 	"fmt"
@@ -54,7 +53,7 @@ func CommentHandler(w http.ResponseWriter, r *http.Request) {
 
 func MatchHandler(w http.ResponseWriter, r *http.Request) {
 
-	var param danmaku.MatchParam
+	var param service.MatchParam
 	err := api.DecodeJSONBody(w, r, &param)
 	if err != nil {
 		api.ResponseJSON(w, http.StatusBadRequest, map[string]string{})

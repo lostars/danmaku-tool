@@ -10,18 +10,18 @@ ua: "" # 请求ua 可不配置
 tokenizer:
   # 是否启用
   enable: true
-  # 搜索词黑名单key value则是需要替换的搜索词 提升匹配精准度
+  # 搜索结果标题黑名单 regex正则匹配搜索结果标题 replacement 则是需要替换为的词 提升匹配精准度
   blacklist:
-    - key: "刺客伍六七"
-      value: "伍六七"
-  # 分词库
-  words:
-    - "最强发型师"
-    - "伍六七"
-    - "记忆碎片"
-    - "暗影宿命"
-    - "玄武国篇"
-    - "最强发型师"
+    - regex: "(刺客)*伍六七.*记忆碎片"
+      replacement: "刺客伍六七第五季"
+    - regex: "(刺客)*伍六七.*暗影宿命"
+      replacement: "刺客伍六七第四季"
+    - regex: "(刺客)*伍六七.*玄武国篇"
+      replacement: "刺客伍六七第三季"
+    - regex: "(刺客)*伍六七.*最强发型师"
+      replacement: "刺客伍六七第二季"
+    - regex: "(刺客)*伍六七"
+      replacement: "刺客伍六七"
 server:
 #  dandan api token 配置
   tokens:
