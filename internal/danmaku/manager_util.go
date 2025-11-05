@@ -197,8 +197,8 @@ const (
 )
 
 func (p MatchParam) MatchYear(year int) bool {
-	if p.Emby.ProductionYear > 0 {
-		return year == p.Emby.ProductionYear
+	if p.ProductionYear > 0 {
+		return year == p.ProductionYear
 	}
 	return true
 }

@@ -122,20 +122,8 @@ type MatchParam struct {
 	Title string
 	// 版本 中文版/配音版...
 	Version string
-	// 匹配模式 MatchMode 根据搜索情况
+	// 匹配模式 MatchMode
 	Mode MatchMode
-
-	// Emby 内部搜索参数 反查Emby用于更加精准的搜索
-	Emby struct {
-		// 年份数字（2025）
-		ProductionYear int
-		// 剧集或者电影名称 这个和dandan api搜索的应该一致
-		Name string
-		// 类型: "Movie" "Series"
-		Type string
-		// emby 内部 id 503357 保留
-		ItemId string
-	}
 }
 
 const WhiteColor = 16777215

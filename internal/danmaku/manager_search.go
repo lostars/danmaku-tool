@@ -21,18 +21,15 @@ func MatchMedia(param MatchParam) []*Media {
 		if err == nil && search.Items != nil && len(search.Items) > 0 {
 			// 默认取第一个
 			item := search.Items[0]
-			param.Emby.Name = item.Name
-			param.Emby.ItemId = item.Id
-			param.Emby.Type = item.Type
 			if item.Type == "Movie" {
-				param.Emby.ProductionYear = item.ProductionYear
+				param.ProductionYear = item.ProductionYear
 			}
 			if item.Type == "Series" {
-				season, err := GetSeasons(param.Emby.ItemId)
+				season, err := GetSeasons(item.Id)
 				if err == nil {
 					for _, s := range season.Items {
 						if s.IndexNumber == param.SeasonId {
-							param.Emby.ProductionYear = s.ProductionYear
+							param.ProductionYear = s.ProductionYear
 							break
 						}
 					}
