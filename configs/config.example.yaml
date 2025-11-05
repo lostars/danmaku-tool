@@ -11,7 +11,10 @@ tokenizer:
   # 是否启用
   enable: true
   # 搜索结果标题黑名单 regex正则匹配搜索结果标题 replacement 则是需要替换为的词 提升匹配精准度
+  # platform 生效的平台 默认为全平台
+  # mode 后续标题匹配模式 默认不修改
   # 注意 \ 转义
+  # 下面的示例规则可直接使用
   blacklist:
     - regex: "(刺客)*伍六七.*记忆碎片"
       replacement: "刺客伍六七第五季"
@@ -25,6 +28,10 @@ tokenizer:
       replacement: "刺客伍六七"
     - regex: "仙剑奇侠传\\s*第*\\s*(一|1)\\s*部*"
       replacement: "仙剑奇侠传"
+    - regex: "火影忍者疾风传"
+      replacement: "火影忍者疾风传"
+      platform: tencent
+      mode: contains
 server:
 #  dandan api token 配置
   tokens:

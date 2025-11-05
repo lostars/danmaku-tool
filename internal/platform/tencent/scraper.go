@@ -74,8 +74,19 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 		}
 	}
 
-	var result []*danmaku.Media
+	// 数据去重
+	var data = make([]SearchResultItem, 0, len(itemList))
+	var count = make(map[string]bool, len(itemList))
 	for _, v := range itemList {
+		if count[v.VideoInfo.Title] {
+			continue
+		}
+		data = append(data, v)
+		count[v.VideoInfo.Title] = true
+	}
+
+	var result []*danmaku.Media
+	for _, v := range data {
 		if tencentExcludeRegex.MatchString(v.VideoInfo.SubTitle) {
 			// 命中黑名单 则代表搜索不到
 			c.common.Logger.Info("title in blacklist", "subTitle", v.VideoInfo.SubTitle)

@@ -131,17 +131,27 @@ func (p MatchParam) MatchTitle(title string) bool {
 		}
 		title = ClearTitle(title)
 	}
+	matchMode := string(p.Mode)
 	// 黑名单 正则匹配替换
-	if config.GetConfig().Tokenizer.Enable {
+	if config.GetConfig().Tokenizer.Enable && config.GetConfig().Tokenizer.Blacklist != nil {
 		for _, r := range config.GetConfig().Tokenizer.Blacklist {
 			re, err := regexp.Compile(r.Regex)
 			if err != nil {
 				continue
 			}
-			if !re.MatchString(title) {
-				continue
+			// 全平台
+			noneMatchPlatform := r.Platform == ""
+			// 特定平台
+			matchPlatform := r.Platform != "" && r.Platform == string(p.Platform)
+			if (noneMatchPlatform || matchPlatform) && re.MatchString(title) {
+				// 更改后续匹配模式
+				if r.Mode != "" {
+					matchMode = r.Mode
+				}
+				title = re.ReplaceAllLiteralString(title, r.Replacement)
+				// 只匹配一次
+				break
 			}
-			title = re.ReplaceAllLiteralString(title, r.Replacement)
 		}
 	}
 	// 处理 S0
@@ -174,7 +184,7 @@ func (p MatchParam) MatchTitle(title string) bool {
 	// 最后清理标题 再次匹配
 	lowerClearTitle := strings.ToLower(ClearTitleAndSeason(title))
 	targetLowerTitle := strings.ToLower(ClearTitleAndSeason(p.Title))
-	switch p.Mode {
+	switch matchMode {
 	case Ignore:
 		return true
 	case Equals:

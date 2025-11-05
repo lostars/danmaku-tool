@@ -16,7 +16,7 @@ func MatchMedia(param MatchParam) []*Media {
 	// 预处理标题
 	param.Title = ClearTitleAndSeason(param.Title)
 	// 从emby获取年份等信息
-	if config.GetConfig().EmbyEnabled() && param.SeasonId < 0 {
+	if config.EmbyEnabled() && param.SeasonId < 0 {
 		search, err := SearchEmby(param.Title, param.SeasonId)
 		if err == nil && search.Items != nil && len(search.Items) > 0 {
 			// 默认取第一个
@@ -25,7 +25,7 @@ func MatchMedia(param MatchParam) []*Media {
 				param.ProductionYear = item.ProductionYear
 			}
 			if item.Type == "Series" {
-				season, err := GetSeasons(item.Id)
+				season, err := GetSeasons(item.Id, false)
 				if err == nil {
 					for _, s := range season.Items {
 						if s.IndexNumber == param.SeasonId {
@@ -50,6 +50,7 @@ func MatchMedia(param MatchParam) []*Media {
 	for _, s := range scrapers {
 		go func(scraper Scraper) {
 			defer wg.Done()
+			param.Platform = scraper.Platform()
 			media, err := scraper.Match(param)
 			if err != nil {
 				logger.Error(err.Error(), "platform", scraper.Platform(), "title", param.Title)

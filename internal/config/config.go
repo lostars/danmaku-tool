@@ -90,6 +90,8 @@ type TokenizerConfig struct {
 	Blacklist []struct {
 		Regex       string `yaml:"regex"`
 		Replacement string `yaml:"replacement"`
+		Platform    string `yaml:"platform"`
+		Mode        string `yaml:"mode"`
 	} `yaml:"blacklist"`
 }
 
@@ -99,8 +101,8 @@ type EmbyConfig struct {
 	Token string `yaml:"token"`
 }
 
-func (c *DanmakuConfig) EmbyEnabled() bool {
-	return c.Emby.User != "" && c.Emby.Url != "" && c.Emby.Token != ""
+func EmbyEnabled() bool {
+	return danmakuConfig.Emby.User != "" && danmakuConfig.Emby.Url != "" && danmakuConfig.Emby.Token != ""
 }
 
 type ServerConfig struct {

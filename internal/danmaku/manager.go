@@ -120,10 +120,10 @@ type MatchParam struct {
 	ProductionYear int
 	// 用于搜索的标题 用于直接搜索无需再次处理
 	Title string
-	// 版本 中文版/配音版...
-	Version string
 	// 匹配模式 MatchMode
 	Mode MatchMode
+	// 平台
+	Platform Platform
 }
 
 const WhiteColor = 16777215
