@@ -7,16 +7,11 @@ on:
         required: true
         default: 'main'
 
-env:
-  BINARY: danmaku
-  OUTPUT: dist
-  VERSION: dev
 jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
     permissions:
-      contents: write
       packages: write
     steps:
       - name: Checkout
@@ -31,7 +26,7 @@ jobs:
       - name: Build
         shell: bash
         run: |
-          make release
+          make docker-binary VERSION=dev
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3

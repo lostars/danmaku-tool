@@ -66,12 +66,12 @@ func (c *client) Scrape(realId string) error {
 			SeasonId:        strconv.FormatInt(series.Result.SeasonId, 10),
 			DurationInMills: ep.Duration,
 			Data:            data,
+			ResX:            ep.Dimension.Width,
+			ResY:            ep.Dimension.Height,
 		}
 
 		filename := strconv.FormatInt(ep.EPId, 10)
-		if e := danmaku.WriteFile(danmaku.Bilibili, serializer, savePath, filename); e != nil {
-			c.common.Logger.Error(e.Error())
-		}
+		danmaku.WriteFile(danmaku.Bilibili, serializer, savePath, filename)
 
 		c.common.Logger.Info("ep scraped done", "epId", ep.EPId, "size", len(data))
 	}

@@ -224,6 +224,7 @@ func (c *client) Scrape(idStr string) error {
 		serializer := &danmaku.SerializerData{
 			EpisodeId: ep.ItemParams.VID,
 			Data:      data,
+			// TODO
 		}
 		v, err := strconv.ParseInt(ep.ItemParams.Duration, 10, 64)
 		if err == nil {
@@ -238,9 +239,7 @@ func (c *client) Scrape(idStr string) error {
 			title = ep.ItemParams.Title + "_"
 		}
 		filename := title + ep.ItemParams.VID
-		if e := danmaku.WriteFile(danmaku.Tencent, serializer, path, filename); e != nil {
-			c.common.Logger.Error(e.Error())
-		}
+		danmaku.WriteFile(danmaku.Tencent, serializer, path, filename)
 
 		c.common.Logger.Info("ep scraped done", "vid", ep.ItemParams.VID, "size", len(data))
 	}

@@ -16,6 +16,12 @@ type SeriesInfo struct {
 			Link        string `json:"link"`
 			Title       string `json:"title"`
 			PubTime     int64  `json:"pub_time"`
+			// 分辨率信息
+			Dimension struct {
+				Height int `json:"height"`
+				Rotate int `json:"rotate"`
+				Width  int `json:"width"`
+			} `json:"dimension"`
 		} `json:"episodes"`
 		// 同系列所有季信息
 		Seasons []struct {

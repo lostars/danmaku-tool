@@ -1,7 +1,6 @@
 package danmaku
 
 import (
-	"danmaku-tool/internal/config"
 	"log/slog"
 	"net/http"
 )
@@ -51,12 +50,16 @@ type Scraper interface {
 }
 
 type SerializerData struct {
+	Platform            Platform
+	fullPath, filename  string
 	Data                []*StandardDanmaku
 	DurationInMills     int64
 	SeasonId, EpisodeId string
+	// ass 文件用
+	ResX, ResY int // 视频分辨率
 }
 type DataSerializer interface {
-	Serialize(data *SerializerData) (interface{}, error)
+	Serialize(data *SerializerData) error
 	Type() string
 }
 
@@ -64,23 +67,6 @@ const (
 	XMLSerializer = "xml"
 	ASSSerializer = "ass"
 )
-
-func RegisterSerializer(p Platform, s DataSerializer) {
-	conf := config.GetConfig().GetPlatformConfig(string(p))
-	if conf == nil {
-		return
-	}
-	for _, name := range conf.Persists {
-		if name == s.Type() {
-			serializers := adapter.serializers[string(p)]
-			if serializers == nil {
-				serializers = []DataSerializer{}
-			}
-			serializers = append(serializers, s)
-			return
-		}
-	}
-}
 
 type Finalizer interface {
 	Finalize() error
@@ -135,13 +121,13 @@ const TopMode = 5
 type manager struct {
 	scrapers     []Scraper
 	initializers []interface{}
-	serializers  map[string][]DataSerializer
+	serializers  map[string]DataSerializer
 }
 
 var adapter = &manager{
 	scrapers:     []Scraper{},
 	initializers: []interface{}{},
-	serializers:  map[string][]DataSerializer{},
+	serializers:  map[string]DataSerializer{},
 }
 
 func GetScraper(platform string) Scraper {

@@ -166,6 +166,7 @@ func (c *client) Scrape(idStr string) error {
 		EpisodeId:       idStr,
 		Data:            result,
 		DurationInMills: int64(baseInfo.Data.DurationSec * 1000),
+		// TODO
 	}
 
 	path := filepath.Join(config.GetConfig().SavePath, danmaku.Iqiyi, strconv.FormatInt(baseInfo.Data.AlbumId, 10))
@@ -174,9 +175,7 @@ func (c *client) Scrape(idStr string) error {
 		title = strconv.FormatInt(int64(baseInfo.Data.Order), 10) + "_"
 	}
 	filename := title + strconv.FormatInt(baseInfo.Data.TVId, 10)
-	if e := danmaku.WriteFile(danmaku.Iqiyi, serializer, path, filename); e != nil {
-		return e
-	}
+	danmaku.WriteFile(danmaku.Iqiyi, serializer, path, filename)
 
 	return nil
 }

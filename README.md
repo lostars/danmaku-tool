@@ -19,7 +19,7 @@ Get a better match with Emby API enabled.
 
 - [ ] complete danmaku scrage CLI
   - [ ] scrape by BV id of Bilibili
-  - [ ] save as ASS file
+  - [x] save as ASS file
   - [ ] scrape by album of iqiyi
   - [ ] scrape by show of youku
 - [x] **bilibili** scrape and DanDan API match 

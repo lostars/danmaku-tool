@@ -12,10 +12,15 @@ build:
 	@echo "Building locally..."
 	@go mod tidy
 	@echo "version: $(VERSION)"
-	go build $(LDFLAGS) -o $(OUTPUT)/$(BIN) main.go
+	go build $(LDFLAGS) -o $(OUTPUT)/$(BINARY) main.go
 
 .PHONY: docker
-docker: clean
+docker: clean docker-binary
+	docker buildx build --platform linux/amd64,linux/arm64 --build-arg OUTPUT=$(OUTPUT) \
+	--push -t ghcr.io/lostars/$(PROJECT):dev .
+
+.PHONY: docker-binary
+docker-binary:
 	@for combo in $(DOCKER_TARGETS); do \
 		GOOS=$$(echo $$combo | cut -d/ -f1); \
 		ARCH=$$(echo $$combo | cut -d/ -f2); \
@@ -23,9 +28,6 @@ docker: clean
 		echo "Building $${GOOS}/$${ARCH}..."; \
 		GOOS=$$GOOS GOARCH=$$ARCH go build $(LDFLAGS) -o $(OUTPUT)/$${GOOS}/$${ARCH}/$(BINARY) main.go; \
 	done
-	@echo "Building docker image..."
-	docker buildx build --platform linux/amd64,linux/arm64 --build-arg OUTPUT=$(OUTPUT) \
-	--push -t ghcr.io/lostars/$(PROJECT):dev .
 
 .PHONY: artifact
 artifact: clean
