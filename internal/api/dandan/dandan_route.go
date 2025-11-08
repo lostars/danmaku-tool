@@ -35,6 +35,8 @@ func apiRoute() func(r chi.Router) {
 		r.Use(TokenValidatorMiddleware)
 		r.Get("/comment/{id}", CommentHandler)
 		r.Post("/match", MatchHandler)
+		r.Get("/search/anime", SearchAnime)
+		r.Get("/bangumi/{id}", AnimeInfo)
 	}
 }
 

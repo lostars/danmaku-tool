@@ -49,6 +49,11 @@ type Scraper interface {
 	Platform() Platform
 }
 
+type MediaService interface {
+	Media(id string) (*Media, error)
+	Scraper
+}
+
 type SerializerData struct {
 	Platform            Platform
 	fullPath, filename  string
@@ -110,6 +115,8 @@ type MatchParam struct {
 	Mode MatchMode
 	// 平台
 	Platform Platform
+	// 是否检查em标签 腾讯和b站返回结果带em标签用于判断是否命中
+	CheckEm bool
 }
 
 const WhiteColor = 16777215
@@ -134,6 +141,17 @@ func GetScraper(platform string) Scraper {
 	for _, v := range adapter.scrapers {
 		if string(v.Platform()) == platform {
 			return v
+		}
+	}
+	return nil
+}
+
+func GetMediaService(platform string) MediaService {
+	for _, v := range adapter.scrapers {
+		if platform == string(v.Platform()) {
+			if s, ok := v.(MediaService); ok {
+				return s
+			}
 		}
 	}
 	return nil

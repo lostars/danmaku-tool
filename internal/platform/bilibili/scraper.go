@@ -126,9 +126,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 					所以如果剧集故意不带ssId进行搜索 则不会出相关数据
 			2. 无EP信息 丛url解析epId 则只可能是电影一类单视频
 		*/
-		var mediaType danmaku.MediaType
 		if bangumi.EPs != nil && len(bangumi.EPs) > 0 {
-			mediaType = danmaku.Series
 			if ssId >= 0 {
 				// 获取第一集检查时长
 				if param.DurationSeconds > 0 {
@@ -186,7 +184,6 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 
 		} else {
 			if bangumi.Url != "" {
-				mediaType = danmaku.Movie
 				// https://www.bilibili.com/bangumi/play/ep747309?theme=movie
 				str := path.Base(bangumi.Url)[2:]
 				if strings.Contains(str, "?") {
@@ -203,7 +200,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 
 		b := &danmaku.Media{
 			Id:       strconv.FormatInt(bangumi.SeasonId, 10),
-			Type:     mediaType,
+			Type:     parseMediaType(bangumi.MediaType),
 			TypeDesc: bangumi.SeasonTypeName,
 			Desc:     bangumi.Desc,
 			Title:    clearTitle,

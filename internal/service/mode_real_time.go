@@ -149,7 +149,7 @@ func (c *realTimeData) Match(param MatchParam) (*DanDanResult, error) {
 }
 
 func (c *realTimeData) GetDanmaku(param CommentParam) (*CommentResult, error) {
-	platform, epId, found := c.decodeGlobalID(param.Id)
+	platform, _, epId, found := c.decodeGlobalID(param.Id)
 	if !found {
 		return nil, fmt.Errorf("invalid param")
 	}
@@ -231,17 +231,104 @@ func (c *realTimeData) getGlobalID(platform, ssID, epID string) int64 {
 	return newID
 }
 
-func (c *realTimeData) decodeGlobalID(globalID int64) (platform string, vid string, found bool) {
+func (c *realTimeData) decodeGlobalID(globalID int64) (platform string, ssId, epId string, found bool) {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 
 	key, found := c.ReverseMap[globalID]
 	if !found {
-		return "", "", false
+		return "", "", "", false
 	}
 	parts := strings.Split(key, "\x00")
 	if len(parts) == 3 {
-		return parts[0], parts[2], true
+		return parts[0], parts[1], parts[2], true
 	}
-	return "", "", false
+	return "", "", "", false
+}
+
+func (c *realTimeData) SearchAnime(title string) *DanDanResult {
+	param := danmaku.MatchParam{
+		Title: title,
+		Mode:  danmaku.Search,
+	}
+
+	media := danmaku.MatchMedia(param)
+	anime := make([]AnimeResult, 0, len(media))
+	for _, m := range media {
+		id := c.getGlobalID(string(m.Platform), m.Id, "")
+		anime = append(anime, AnimeResult{
+			AnimeId:      id,
+			BangumiId:    strconv.FormatInt(id, 10),
+			AnimeTitle:   m.Title,
+			Type:         parseDandanType(m.Type),
+			TypeDesc:     m.TypeDesc,
+			EpisodeCount: len(m.Episodes),
+		})
+	}
+
+	result := &DanDanResult{
+		ErrorCode: 0,
+		Success:   true,
+		Anime:     anime,
+	}
+
+	return result
+}
+
+func (c *realTimeData) AnimeInfo(id string) (*DanDanResult, error) {
+	globalId, err := strconv.ParseInt(id, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	platform, ssId, _, found := c.decodeGlobalID(globalId)
+	if !found {
+		return nil, fmt.Errorf("invalid id")
+	}
+	mediaService := danmaku.GetMediaService(platform)
+	if mediaService == nil {
+		return nil, fmt.Errorf("no service available")
+	}
+	media, err := mediaService.Media(ssId)
+	if err != nil {
+		return nil, err
+	}
+
+	animeId := c.getGlobalID(string(media.Platform), media.Id, "")
+	var eps = make([]EpisodeResult, 0, len(media.Episodes))
+	for _, ep := range media.Episodes {
+		eps = append(eps, EpisodeResult{
+			SeasonId:      strconv.FormatInt(animeId, 10),
+			EpisodeId:     c.getGlobalID(string(media.Platform), media.Id, ep.Id),
+			EpisodeTitle:  ep.Title,
+			EpisodeNumber: ep.EpisodeId,
+		})
+	}
+
+	anime := &AnimeResult{
+		AnimeId:      animeId,
+		BangumiId:    strconv.FormatInt(animeId, 10),
+		AnimeTitle:   media.Title,
+		Type:         parseDandanType(media.Type),
+		TypeDesc:     media.TypeDesc,
+		EpisodeCount: len(media.Episodes),
+		Episodes:     eps,
+	}
+
+	result := &DanDanResult{
+		ErrorCode: 0,
+		Success:   true,
+		Bangumi:   anime,
+	}
+	return result, nil
+}
+
+func parseDandanType(mediaType danmaku.MediaType) string {
+	typeStr := ""
+	switch mediaType {
+	case danmaku.Movie:
+		typeStr = "movie"
+	case danmaku.Series:
+		typeStr = "tvseries"
+	}
+	return typeStr
 }

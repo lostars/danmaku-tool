@@ -1,5 +1,7 @@
 package bilibili
 
+import "danmaku-tool/internal/danmaku"
+
 type SeriesInfo struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
@@ -14,7 +16,8 @@ type SeriesInfo struct {
 			EPId        int64  `json:"ep_id"`
 			SectionType int    `json:"section_type"` // 1 是预告之类的 0是正常剧集？？
 			Link        string `json:"link"`
-			Title       string `json:"title"`
+			Title       string `json:"title"`      // 1 集数编号
+			ShowTitle   string `json:"show_title"` // 第1话 阿七的特别任务
 			PubTime     int64  `json:"pub_time"`
 			// 分辨率信息
 			Dimension struct {
@@ -46,6 +49,14 @@ type SeriesInfo struct {
 		Total    int    `json:"total"` // 未完结：大多为-1 已完结：正整数
 		Type     int    `json:"type"`  // 1：番剧 2：电影 3：纪录片 4：国创 5：电视剧 7：综艺
 	} `json:"result"`
+}
+
+func parseMediaType(mediaType int) danmaku.MediaType {
+	switch mediaType {
+	case 2:
+		return danmaku.Movie
+	}
+	return danmaku.Series
 }
 
 type SearchResult struct {

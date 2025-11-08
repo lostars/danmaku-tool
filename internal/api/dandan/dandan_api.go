@@ -78,3 +78,39 @@ func MatchHandler(w http.ResponseWriter, r *http.Request) {
 
 	api.ResponseJSON(w, http.StatusOK, result)
 }
+
+func SearchAnime(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query()
+	keyword := query.Get("keyword")
+	query.Get("type")
+
+	mode := service.GetDandanSourceMode()
+	if mode == nil {
+		api.ResponseJSON(w, http.StatusBadRequest, map[string]string{
+			"message": "no available source",
+		})
+		return
+	}
+	result := mode.SearchAnime(keyword)
+
+	api.ResponseJSON(w, http.StatusOK, result)
+}
+
+func AnimeInfo(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	mode := service.GetDandanSourceMode()
+	if mode == nil {
+		api.ResponseJSON(w, http.StatusBadRequest, map[string]string{
+			"message": "no available source",
+		})
+		return
+	}
+	result, err := mode.AnimeInfo(id)
+	if err != nil {
+		api.ResponseJSON(w, http.StatusBadRequest, map[string]string{
+			"message": err.Error(),
+		})
+		return
+	}
+	api.ResponseJSON(w, http.StatusOK, result)
+}

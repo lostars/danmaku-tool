@@ -124,12 +124,21 @@ func (p MatchParam) MatchTitle(title string) bool {
 		return false
 	}
 	// 检查em标签是否有命中搜索词
-	emMatches := MatchKeyword.FindStringSubmatch(title)
-	if len(emMatches) > 2 {
-		if emMatches[2] == "" {
+	if p.CheckEm {
+		emMatches := MatchKeyword.FindStringSubmatch(title)
+		if len(emMatches) <= 2 {
 			return false
 		}
-		title = ClearTitle(title)
+		if len(emMatches) > 2 {
+			if emMatches[2] == "" {
+				return false
+			}
+			title = ClearTitle(title)
+		}
+	}
+	// 如果是搜索模式，则匹配到命中搜索词结束
+	if p.Mode == Search {
+		return true
 	}
 	matchMode := string(p.Mode)
 	// 黑名单 正则匹配替换
@@ -204,6 +213,7 @@ const (
 	Equals   = "equals"
 	Contains = "contains"
 	Ignore   = "ignore"
+	Search   = "search"
 )
 
 func (p MatchParam) MatchYear(year int) bool {

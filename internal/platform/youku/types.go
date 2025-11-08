@@ -9,7 +9,8 @@ import (
 var pageRegex = regexp.MustCompile(`<script>window\.__PAGE_CONF__\s=(\{.*});`)
 var matchVIDRegex = regexp.MustCompile(`/v_show/id_([a-zA-Z0-9=]+)\.html`)
 
-var blackListRegex = regexp.MustCompile(`短剧`)
+var blacklistRegex = regexp.MustCompile(`短剧`)
+var blacklistCatsRegex = regexp.MustCompile(`游戏`)
 var yearMatchRegex = regexp.MustCompile(`\s(\d{4})\s·`)
 
 type APIResult struct {

@@ -21,6 +21,33 @@ type client struct {
 	token tokenKey
 }
 
+func (c *client) Media(id string) (*danmaku.Media, error) {
+	series, err := c.baseInfo("", id)
+	if err != nil {
+		return nil, err
+	}
+
+	var eps = make([]*danmaku.MediaEpisode, 0, len(series.Result.Episodes))
+	for _, ep := range series.Result.Episodes {
+		eps = append(eps, &danmaku.MediaEpisode{
+			Id:        strconv.FormatInt(ep.EPId, 10),
+			EpisodeId: ep.Title,
+			Title:     ep.ShowTitle,
+		})
+	}
+
+	result := &danmaku.Media{
+		Episodes: eps,
+		Id:       strconv.FormatInt(series.Result.SeasonId, 10),
+		Title:    series.Result.Title,
+		Desc:     series.Result.Title,
+		Type:     parseMediaType(series.Result.Type),
+		Platform: danmaku.Bilibili,
+	}
+
+	return result, nil
+}
+
 func (c *client) Init() error {
 	common, err := danmaku.InitPlatformClient(danmaku.Bilibili)
 	if err != nil {

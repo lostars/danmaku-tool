@@ -75,7 +75,11 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 		}
 		// 过滤标签
 		tag := mediaInfo.PosterDTO.IconCorner.TagText
-		if blackListRegex.MatchString(tag) {
+		if blacklistRegex.MatchString(tag) {
+			continue
+		}
+		// 过滤黑名单分类
+		if blacklistCatsRegex.MatchString(mediaInfo.Cats) {
 			continue
 		}
 		// 过滤年份

@@ -23,6 +23,8 @@ func GetDandanSourceMode() DandanSourceMode {
 // DandanSourceMode dandan api 数据源接口
 type DandanSourceMode interface {
 	Match(param MatchParam) (*DanDanResult, error)
+	SearchAnime(title string) *DanDanResult
+	AnimeInfo(id string) (*DanDanResult, error)
 	GetDanmaku(param CommentParam) (*CommentResult, error)
 	Mode() Mode
 }
@@ -56,20 +58,29 @@ type DanDanResult struct {
 	IsMatched bool    `json:"isMatched"`
 	Matches   []Match `json:"matches"`
 	// search result
-	Anime []AnimeResult `json:"animes"`
+	Anime   []AnimeResult `json:"animes"`
+	Bangumi *AnimeResult  `json:"bangumi"`
 }
 
 type AnimeResult struct {
-	AnimeId      int64  `json:"animeId"`
-	BangumiId    string `json:"bangumiId"`
-	AnimeTitle   string `json:"animeTitle"`
-	Type         string `json:"type"`
-	TypeDesc     string `json:"typeDescription"`
-	ImageUrl     string `json:"imageUrl"`
-	StartDate    string `json:"startDate"` // 2025-10-31T02:45:58.049Z
-	EpisodeCount int    `json:"episodeCount"`
-	Rating       int    `json:"rating"`
-	Favorite     bool   `json:"isFavorited"`
+	AnimeId      int64           `json:"animeId"`
+	BangumiId    string          `json:"bangumiId"`
+	AnimeTitle   string          `json:"animeTitle"`
+	Type         string          `json:"type"`
+	TypeDesc     string          `json:"typeDescription"`
+	ImageUrl     string          `json:"imageUrl"`
+	StartDate    string          `json:"startDate"` // 2025-10-31T02:45:58.049Z
+	EpisodeCount int             `json:"episodeCount"`
+	Rating       int             `json:"rating"`
+	Favorite     bool            `json:"isFavorited"`
+	Episodes     []EpisodeResult `json:"episodes"`
+}
+
+type EpisodeResult struct {
+	SeasonId      string `json:"seasonId"`
+	EpisodeId     int64  `json:"episodeId"`
+	EpisodeTitle  string `json:"episodeTitle"`
+	EpisodeNumber string `json:"episodeNumber"`
 }
 
 type Match struct {
