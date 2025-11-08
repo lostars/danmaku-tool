@@ -166,7 +166,6 @@ func (c *client) Scrape(idStr string) error {
 		EpisodeId:       idStr,
 		Data:            result,
 		DurationInMills: int64(baseInfo.Data.DurationSec * 1000),
-		// TODO
 	}
 
 	path := filepath.Join(config.GetConfig().SavePath, danmaku.Iqiyi, strconv.FormatInt(baseInfo.Data.AlbumId, 10))

@@ -224,7 +224,6 @@ func (c *client) Scrape(idStr string) error {
 		serializer := &danmaku.SerializerData{
 			EpisodeId: ep.ItemParams.VID,
 			Data:      data,
-			// TODO
 		}
 		v, err := strconv.ParseInt(ep.ItemParams.Duration, 10, 64)
 		if err == nil {

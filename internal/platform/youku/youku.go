@@ -138,7 +138,6 @@ func (c *client) scrapeVideo(vid string) {
 		EpisodeId:       vid,
 		Data:            result,
 		DurationInMills: int64(durationInSeconds * 1000),
-		// TODO
 	}
 
 	path := filepath.Join(config.GetConfig().SavePath, danmaku.Youku, info.ShowId)

@@ -107,7 +107,7 @@ func NormalConvert(s *SerializerData) *DataXML {
 	}
 
 	result := &DataXML{
-		ChatServer:     "chat.bilibili.com",
+		ChatServer:     s.SeasonId + "_" + s.EpisodeId,
 		ChatID:         s.SeasonId + "_" + s.EpisodeId,
 		Mission:        0,
 		MaxLimit:       2000,
@@ -180,8 +180,11 @@ func (a *DataAssPersist) Serialize(data *SerializerData) error {
 	if e := checkPersistPath(savePath, filename); e != nil {
 		return e
 	}
+	logger := utils.GetComponentLogger(ASSSerializer)
 	if data.ResX == 0 || data.ResY == 0 {
-		return fmt.Errorf("ass serializer need video resolution, episodeId: %s", data.EpisodeId)
+		data.ResX = 1920
+		data.ResY = 1080
+		logger.Warn(fmt.Sprintf("ass serializer fallback to default resolution, episodeId: %s", data.EpisodeId))
 	}
 
 	scriptInfoLines := []string{
@@ -232,7 +235,7 @@ func (a *DataAssPersist) Serialize(data *SerializerData) error {
 	if _, err := file.WriteString(assStr); err != nil {
 		return err
 	}
-	utils.GetComponentLogger(ASSSerializer).Info("file save success", "file", writeFile)
+	logger.Info("file save success", "file", writeFile)
 	return nil
 }
 
