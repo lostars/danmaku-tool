@@ -52,12 +52,15 @@ func MatchMedia(param MatchParam) []*Media {
 	for _, s := range scrapers {
 		go func(scraper Scraper) {
 			defer wg.Done()
+			// 并发 复制参数进行处理
+			searchParam := param
 			if s.Platform() == Bilibili {
-				param.CheckEm = true
+				searchParam.CheckEm = true
 			}
-			param.Platform = scraper.Platform()
+			searchParam.Platform = scraper.Platform()
+
 			start := time.Now()
-			media, err := scraper.Match(param)
+			media, err := scraper.Match(searchParam)
 			if err != nil {
 				logger.Error(err.Error(), "platform", scraper.Platform(), "title", param.Title)
 				return

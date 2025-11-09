@@ -103,7 +103,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 				c.common.Logger.Info("title in blacklist", "subTitle", v.VideoInfo.SubTitle)
 				return
 			}
-			if !param.MatchYear(v.VideoInfo.Year) {
+			if v.VideoInfo.Year <= 0 || !param.MatchYear(v.VideoInfo.Year) {
 				return
 			}
 
