@@ -41,6 +41,7 @@ func (c *client) Media(id string) (*danmaku.Media, error) {
 		Id:       strconv.FormatInt(series.Result.SeasonId, 10),
 		Title:    series.Result.Title,
 		Desc:     series.Result.Title,
+		Cover:    series.Result.Cover,
 		Type:     parseMediaType(series.Result.Type),
 		Platform: danmaku.Bilibili,
 	}

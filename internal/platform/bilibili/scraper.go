@@ -204,6 +204,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 			TypeDesc: bangumi.SeasonTypeName,
 			Desc:     bangumi.Desc,
 			Title:    clearTitle,
+			Cover:    bangumi.Cover,
 			Episodes: eps,
 			Platform: danmaku.Bilibili,
 		}

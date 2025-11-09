@@ -18,7 +18,7 @@ type Media struct {
 	Id       string // 存储平台实际id
 	Title    string
 	Desc     string
-	CoverUrl string
+	Cover    string
 	Episodes []*MediaEpisode
 	Platform Platform
 }

@@ -103,6 +103,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 			Title:    mediaInfo.TempTitle,
 			Desc:     mediaInfo.Info,
 			TypeDesc: mediaInfo.Cats,
+			Cover:    mediaInfo.ThumbUrl,
 			Platform: danmaku.Youku,
 		}
 

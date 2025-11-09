@@ -262,7 +262,7 @@ func (c *realTimeData) SearchAnime(title string) *DanDanAnimeResult {
 			AnimeTitle:   m.Title,
 			Type:         parseDandanType(m.Type),
 			TypeDesc:     m.TypeDesc,
-			ImageUrl:     m.CoverUrl,
+			ImageUrl:     m.Cover,
 			EpisodeCount: len(m.Episodes),
 		})
 	}
@@ -311,7 +311,7 @@ func (c *realTimeData) AnimeInfo(id string) (*DanDanAnimeInfoResult, error) {
 		AnimeTitle:   media.Title,
 		Type:         parseDandanType(media.Type),
 		TypeDesc:     media.TypeDesc,
-		ImageUrl:     media.CoverUrl,
+		ImageUrl:     media.Cover,
 		EpisodeCount: len(media.Episodes),
 		Episodes:     eps,
 	}

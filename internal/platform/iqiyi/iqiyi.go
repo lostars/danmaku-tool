@@ -246,7 +246,7 @@ func (c *client) Media(id string) (*danmaku.Media, error) {
 		TypeDesc: string(mediaType),
 		Id:       id,
 		Desc:     baseInfo.Data.Description,
-		CoverUrl: baseInfo.Data.AlbumImageUrl,
+		Cover:    baseInfo.Data.AlbumImageUrl,
 		Episodes: eps,
 		Platform: danmaku.Iqiyi,
 	}

@@ -131,6 +131,7 @@ type SearchResultItem struct {
 	VideoInfo struct {
 		VideoType int    `json:"videoType"` // 上面定义的Type
 		Desc      string `json:"descrip"`
+		ImgUrl    string `json:"imgUrl"`
 		TypeName  string `json:"typeName"` // 电视剧/电影
 		// 年份
 		Year       int    `json:"year"`

@@ -46,6 +46,7 @@ type NodeData struct {
 	EpisodeTotal   int    `json:"episodeTotal"`   // ep数量
 	MediaCompleted int    `json:"mediaCompleted"` // 是否完结
 	TempTitle      string `json:"tempTitle"`
+	ThumbUrl       string `json:"thumbUrl"`
 	Info           string `json:"info"`
 	Cats           string `json:"cats"` // 分类
 
