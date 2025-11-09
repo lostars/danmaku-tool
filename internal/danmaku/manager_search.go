@@ -16,7 +16,7 @@ func MatchMedia(param MatchParam) []*Media {
 	// 预处理标题
 	param.Title = ClearTitleAndSeason(param.Title)
 	// 从emby获取年份等信息
-	if config.EmbyEnabled() && param.SeasonId < 0 {
+	if config.EmbyEnabled() {
 		search, err := SearchEmby(param.Title, param.SeasonId)
 		if err == nil && search.Items != nil && len(search.Items) > 0 {
 			// 默认取第一个

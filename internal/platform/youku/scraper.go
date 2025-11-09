@@ -118,7 +118,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 			if vid == "" {
 				continue
 			}
-			videoInfo, e := c.videoInfo(vid)
+			videoInfo, _, e := c.videoInfo(vid)
 			if e != nil {
 				continue
 			}
@@ -163,7 +163,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 
 func (c *client) GetDanmaku(id string) ([]*danmaku.StandardDanmaku, error) {
 
-	info, err := c.videoInfo(id)
+	info, _, err := c.videoInfo(id)
 	if err != nil {
 		c.common.Logger.Error(fmt.Sprintf("%s video info error", err.Error()))
 		return nil, err

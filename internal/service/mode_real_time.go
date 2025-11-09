@@ -248,8 +248,9 @@ func (c *realTimeData) decodeGlobalID(globalID int64) (platform string, ssId, ep
 
 func (c *realTimeData) SearchAnime(title string) *DanDanAnimeResult {
 	param := danmaku.MatchParam{
-		Title: title,
-		Mode:  danmaku.Search,
+		Title:    title,
+		Mode:     danmaku.Search,
+		SeasonId: -1,
 	}
 
 	media := danmaku.MatchMedia(param)

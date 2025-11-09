@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// var videoRegex = regexp.MustCompile(`<script>window\.__INITIAL_DATA__\s=(\{.*});</script>`)
+var videoRegex = regexp.MustCompile(`<script>window\.__INITIAL_DATA__\s=(\{.*});</script>`)
 var pageRegex = regexp.MustCompile(`<script>window\.__PAGE_CONF__\s=(\{.*});`)
 var matchVIDRegex = regexp.MustCompile(`/v_show/id_([a-zA-Z0-9=]+)\.html`)
 
@@ -117,4 +117,29 @@ type VideoInfoFromHtml struct {
 	StageStr       string `json:"stageStr"`       // 第1集
 	ShowVideoStage string `json:"showVideostage"` // 1
 	Completed      int    `json:"completed"`      // 是否完结
+}
+
+type ShowInfoFromHtml struct {
+	PageMap struct {
+		Extra struct {
+			ShowCategory string `json:"showCategory"`
+			ShowImgV     string `json:"showImgV"`
+		}
+	} `json:"pageMap"`
+	ModuleList []struct {
+		// 10001 NORMAL
+		Type       int    `json:"type"`
+		TypeName   string `json:"typeName"`
+		Components []struct {
+			// 10013 Web播放页选集组件 此时为剧集列表信息
+			Type     int    `json:"type"`
+			TypeName string `json:"typeName"`
+			ItemList []struct {
+				Id          int64  `json:"id"`           // vid 数字id
+				ActionValue string `json:"action_value"` // vid 字符串
+				Title       string `json:"title"`        // 司藤 第1集
+				StageIndex  int    `json:"stageIndex"`   // 2 编号
+			} `json:"itemList"`
+		} `json:"components"`
+	} `json:"moduleList"`
 }

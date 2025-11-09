@@ -46,34 +46,47 @@ func (c *client) Platform() danmaku.Platform {
 	show_id则是从视频页面 window.__PAGE_CONF__ 获取，是一个json结构
 */
 
-func (c *client) videoInfo(vid string) (*VideoInfoFromHtml, error) {
+func (c *client) videoInfo(vid string) (*VideoInfoFromHtml, *ShowInfoFromHtml, error) {
 	videoUrl := fmt.Sprintf("https://v.youku.com/v_show/id_%s.html", vid)
 	req, err := http.NewRequest(http.MethodGet, videoUrl, nil)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	resp, err := c.common.DoReq(req)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer resp.Body.Close()
 
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	htmlContent := string(bodyBytes)
-	matches := pageRegex.FindStringSubmatch(htmlContent)
-	if len(matches) < 2 {
-		return nil, fmt.Errorf("%s match json fail from html", vid)
+
+	// show info
+	showMatches := videoRegex.FindStringSubmatch(htmlContent)
+	if len(showMatches) < 2 {
+		return nil, nil, fmt.Errorf("%s match show info json fail from html", vid)
+	}
+	var showInfo ShowInfoFromHtml
+	err = json.Unmarshal([]byte(showMatches[1]), &showInfo)
+	if err != nil {
+		return nil, nil, err
 	}
 
+	// base info
+	matches := pageRegex.FindStringSubmatch(htmlContent)
+	if len(matches) < 2 {
+		return nil, nil, fmt.Errorf("%s match json fail from html", vid)
+	}
 	var info VideoInfoFromHtml
 	err = json.Unmarshal([]byte(matches[1]), &info)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return &info, nil
+
+	return &info, &showInfo, nil
 }
 
 func (c *client) scrapeDanmaku(vid string, segmentsLen int) []*danmaku.StandardDanmaku {
@@ -119,7 +132,7 @@ func (c *client) scrapeDanmaku(vid string, segmentsLen int) []*danmaku.StandardD
 }
 
 func (c *client) scrapeVideo(vid string) {
-	info, err := c.videoInfo(vid)
+	info, _, err := c.videoInfo(vid)
 	if err != nil {
 		c.common.Logger.Error(fmt.Sprintf("%s video info error", err.Error()))
 		return
@@ -236,4 +249,53 @@ func (c *client) getVID(showId string) string {
 		return matches[1]
 	}
 	return ""
+}
+
+func (c *client) Media(showId string) (*danmaku.Media, error) {
+	vid := c.getVID(showId)
+	if vid == "" {
+		return nil, fmt.Errorf("%s show get vid fail", showId)
+	}
+	baseInfo, showInfo, err := c.videoInfo(vid)
+	if err != nil {
+		return nil, fmt.Errorf("%s show get video info fail", showId)
+	}
+
+	var eps []*danmaku.MediaEpisode
+moduleLoop:
+	for _, module := range showInfo.ModuleList {
+		if module.Type != 10001 {
+			continue
+		}
+		for _, component := range module.Components {
+			if component.ItemList == nil {
+				continue
+			}
+			// 10013剧集 10311电影
+			// 电影不同语言版本的showId相同 字符vid相同，只有数字vid是不同的
+			if component.Type != 10013 && component.Type != 10311 {
+				continue
+			}
+			for _, ep := range component.ItemList {
+				eps = append(eps, &danmaku.MediaEpisode{
+					Title:     ep.Title,
+					EpisodeId: strconv.FormatInt(int64(ep.StageIndex), 10),
+					Id:        ep.ActionValue,
+				})
+			}
+
+			break moduleLoop
+		}
+	}
+
+	media := &danmaku.Media{
+		Id:       baseInfo.ShowId,
+		Title:    baseInfo.ShowName,
+		TypeDesc: showInfo.PageMap.Extra.ShowCategory,
+		Cover:    showInfo.PageMap.Extra.ShowImgV,
+		Platform: danmaku.Youku,
+		Episodes: eps,
+	}
+
+	return media, nil
 }
