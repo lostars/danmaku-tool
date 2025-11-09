@@ -99,24 +99,33 @@ func (c *client) series(cid string) ([]*SeriesItem, error) {
 		return nil, err
 	}
 
-	for _, tab := range tabs {
-		if tab.Selected {
-			continue
-		}
+	// 并发获取 可能会出现超长tabs 比如火影
+	lock := sync.Mutex{}
+	wg := sync.WaitGroup{}
+	wg.Add(len(tabs))
+	for _, t := range tabs {
+		go func(tab SeriesTab) {
+			defer wg.Done()
+			if tab.Selected {
+				return
+			}
+			tabSeries, e := c.doSeriesRequest(cid, "", SeriesEPPageId, tab.PageContext)
+			if e != nil {
+				c.common.Logger.Error(e.Error())
+				return
+			}
+			d, e := tabSeries.series()
+			if e != nil {
+				c.common.Logger.Error(e.Error())
+				return
+			}
 
-		tabSeries, err := c.doSeriesRequest(cid, "", SeriesEPPageId, tab.PageContext)
-		if err != nil {
-			c.common.Logger.Error(err.Error())
-			continue
-		}
-
-		d, err := tabSeries.series()
-		if err != nil {
-			c.common.Logger.Error(err.Error())
-			continue
-		}
-		eps = append(eps, d...)
+			lock.Lock()
+			eps = append(eps, d...)
+			lock.Unlock()
+		}(t)
 	}
+	wg.Wait()
 
 	return eps, nil
 }
@@ -291,4 +300,56 @@ func (s *SeriesResult) series() ([]*SeriesItem, error) {
 		eps = append(eps, &v)
 	}
 	return eps, nil
+}
+
+func (c *client) Media(id string) (*danmaku.Media, error) {
+	infoResult, err := c.doSeriesRequest(id, "", SeriesInfoPageId, "")
+	if err != nil {
+		return nil, err
+	}
+	infoItems, err := infoResult.series()
+	if err != nil {
+		return nil, err
+	}
+	if infoItems == nil || len(infoItems) < 1 {
+		return nil, fmt.Errorf("no base info found: %s", id)
+	}
+	info := infoItems[0].ItemParams
+
+	media := &danmaku.Media{
+		Id:       info.ReportCID,
+		Title:    info.Title,
+		Platform: danmaku.Tencent,
+	}
+
+	items, err := c.series(id)
+	if err != nil {
+		return nil, err
+	}
+	var eps []*danmaku.MediaEpisode
+	for i, ep := range items {
+		if ep.ItemParams.IsTrailer == "1" {
+			continue
+		}
+		// 有可能vid为空
+		if ep.ItemParams.VID == "" {
+			continue
+		}
+		epTitle := ep.ItemParams.CTitleOutput
+		epId, e := strconv.ParseInt(epTitle, 10, 64)
+		if e == nil {
+			epTitle = strconv.FormatInt(epId, 10)
+		}
+		if epTitle == "" {
+			epTitle = strconv.FormatInt(int64(i+1), 10)
+		}
+		eps = append(eps, &danmaku.MediaEpisode{
+			Id:        ep.ItemParams.VID,
+			EpisodeId: epTitle,
+			Title:     ep.ItemParams.CTitleOutput,
+		})
+	}
+	media.Episodes = eps
+
+	return media, nil
 }

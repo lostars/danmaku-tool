@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"strconv"
+	"sync"
 )
 
 func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
@@ -86,81 +87,92 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 	}
 
 	var result []*danmaku.Media
+	// 并发处理 循环中需要获取剧集列表 4并发已足够再高就会触发限流
+	sem := make(chan struct{}, 4)
+	lock := sync.Mutex{}
 	for _, v := range data {
-		if tencentExcludeRegex.MatchString(v.VideoInfo.SubTitle) {
-			// 命中黑名单 则代表搜索不到
-			c.common.Logger.Info("title in blacklist", "subTitle", v.VideoInfo.SubTitle)
-			continue
-		}
-		if !param.MatchYear(v.VideoInfo.Year) {
-			continue
-		}
+		sem <- struct{}{}
+		go func(v SearchResultItem) {
+			defer func() { <-sem }()
 
-		match := param.MatchTitle(v.VideoInfo.Title)
-		c.common.Logger.Debug(fmt.Sprintf("[%s] match [%s]: %v", v.VideoInfo.Title, param.Title, match))
-		if !match {
-			continue
-		}
+			if tencentExcludeRegex.MatchString(v.VideoInfo.SubTitle) {
+				// 命中黑名单 则代表搜索不到
+				c.common.Logger.Info("title in blacklist", "subTitle", v.VideoInfo.SubTitle)
+				return
+			}
+			if !param.MatchYear(v.VideoInfo.Year) {
+				return
+			}
 
-		var mediaType danmaku.MediaType
-		if ssId < 0 {
-			mediaType = danmaku.Movie
-		} else {
-			if v.VideoInfo.SubjectDoc.VideoNum <= 0 {
-				// 没有集数信息
-				continue
+			match := param.MatchTitle(v.VideoInfo.Title)
+			c.common.Logger.Debug(fmt.Sprintf("[%s] match [%s]: %v", v.VideoInfo.Title, param.Title, match))
+			if !match {
+				return
 			}
-			mediaType = danmaku.Series
-		}
 
-		seriesItems, e := c.series(v.Doc.Id)
-		if e != nil {
-			c.common.Logger.Error(e.Error())
-			continue
-		}
+			var mediaType danmaku.MediaType
+			if ssId < 0 {
+				mediaType = danmaku.Movie
+			} else {
+				if v.VideoInfo.SubjectDoc.VideoNum <= 0 {
+					// 没有集数信息
+					return
+				}
+				mediaType = danmaku.Series
+			}
 
-		var eps = make([]*danmaku.MediaEpisode, 0, v.VideoInfo.SubjectDoc.VideoNum)
-		for i, ep := range seriesItems {
-			if ep.ItemParams.IsTrailer == "1" {
-				continue
+			seriesItems, e := c.series(v.Doc.Id)
+			if e != nil {
+				c.common.Logger.Error(e.Error())
+				return
 			}
-			// 有可能vid为空
-			if ep.ItemParams.VID == "" {
-				continue
-			}
-			epTitle := ep.ItemParams.CTitleOutput
-			epId, e := strconv.ParseInt(epTitle, 10, 64)
-			if e == nil {
-				epTitle = strconv.FormatInt(epId, 10)
-			}
-			if epTitle == "" {
-				epTitle = strconv.FormatInt(int64(i+1), 10)
-			}
-			eps = append(eps, &danmaku.MediaEpisode{
-				Id:        ep.ItemParams.VID,
-				EpisodeId: epTitle,
-				Title:     ep.ItemParams.Title,
-			})
-		}
-		// 匹配剧场版 epId 暂时使用下标作为S00的epId 最新发布的在最前面
-		if ssId == 0 {
-			for i, ep := range eps {
-				ep.EpisodeId = strconv.FormatInt(int64(len(eps)-i), 10)
-			}
-		}
 
-		media := &danmaku.Media{
-			Id:       v.Doc.Id,
-			Type:     mediaType,
-			TypeDesc: v.VideoInfo.TypeName,
-			Desc:     v.VideoInfo.Desc,
-			Title:    v.VideoInfo.Title,
-			Cover:    v.VideoInfo.ImgUrl,
-			Episodes: eps,
-			Platform: danmaku.Tencent,
-		}
+			var eps = make([]*danmaku.MediaEpisode, 0, v.VideoInfo.SubjectDoc.VideoNum)
+			for i, ep := range seriesItems {
+				if ep.ItemParams.IsTrailer == "1" {
+					continue
+				}
+				// 有可能vid为空
+				if ep.ItemParams.VID == "" {
+					continue
+				}
+				epTitle := ep.ItemParams.CTitleOutput
+				epId, e := strconv.ParseInt(epTitle, 10, 64)
+				if e == nil {
+					epTitle = strconv.FormatInt(epId, 10)
+				}
+				if epTitle == "" {
+					epTitle = strconv.FormatInt(int64(i+1), 10)
+				}
+				eps = append(eps, &danmaku.MediaEpisode{
+					Id:        ep.ItemParams.VID,
+					EpisodeId: epTitle,
+					Title:     ep.ItemParams.Title,
+				})
+			}
+			// 匹配剧场版 epId 暂时使用下标作为S00的epId 最新发布的在最前面
+			if ssId == 0 {
+				for i, ep := range eps {
+					ep.EpisodeId = strconv.FormatInt(int64(len(eps)-i), 10)
+				}
+			}
 
-		result = append(result, media)
+			media := &danmaku.Media{
+				Id:       v.Doc.Id,
+				Type:     mediaType,
+				TypeDesc: v.VideoInfo.TypeName,
+				Desc:     v.VideoInfo.Desc,
+				Title:    v.VideoInfo.Title,
+				Cover:    v.VideoInfo.ImgUrl,
+				Episodes: eps,
+				Platform: danmaku.Tencent,
+			}
+
+			lock.Lock()
+			result = append(result, media)
+			lock.Unlock()
+		}(v)
+
 	}
 
 	return result, nil

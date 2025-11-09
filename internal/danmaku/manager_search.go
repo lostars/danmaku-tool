@@ -3,8 +3,10 @@ package danmaku
 import (
 	"danmaku-tool/internal/config"
 	"danmaku-tool/internal/utils"
+	"fmt"
 	"sort"
 	"sync"
+	"time"
 )
 
 func MatchMedia(param MatchParam) []*Media {
@@ -54,10 +56,15 @@ func MatchMedia(param MatchParam) []*Media {
 				param.CheckEm = true
 			}
 			param.Platform = scraper.Platform()
+			start := time.Now()
 			media, err := scraper.Match(param)
 			if err != nil {
 				logger.Error(err.Error(), "platform", scraper.Platform(), "title", param.Title)
 				return
+			}
+			logger.Info(fmt.Sprintf("[%s] match done", s.Platform()), "cost_ms", time.Since(start).Milliseconds())
+			if len(media) < 1 {
+				logger.Debug(fmt.Sprintf("[%s] match no result", s.Platform()))
 			}
 
 			lock.Lock()
