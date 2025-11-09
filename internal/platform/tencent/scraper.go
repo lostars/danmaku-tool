@@ -90,9 +90,12 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 	// 并发处理 循环中需要获取剧集列表 4并发已足够再高就会触发限流
 	sem := make(chan struct{}, 4)
 	lock := sync.Mutex{}
+	wg := sync.WaitGroup{}
 	for _, v := range data {
+		wg.Add(1)
 		sem <- struct{}{}
 		go func(v SearchResultItem) {
+			defer wg.Done()
 			defer func() { <-sem }()
 
 			if tencentExcludeRegex.MatchString(v.VideoInfo.SubTitle) {
@@ -174,6 +177,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 		}(v)
 
 	}
+	wg.Wait()
 
 	return result, nil
 }
