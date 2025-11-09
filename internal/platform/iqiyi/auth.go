@@ -2,13 +2,19 @@ package iqiyi
 
 import (
 	"crypto/md5"
+	"encoding/hex"
 	"fmt"
+	"net/url"
+	"sort"
 	"strconv"
+	"strings"
 )
 
 const xorKey = 0x75706971676c
 const segmentInterval = 60
 const segmentSalt = "cbzuw1259a"
+const signSecret = "howcuteitis"
+const signKey = "secret_key"
 
 func parseToNumberId(id string) int64 {
 	num, err := strconv.ParseInt(id, 36, 64)
@@ -96,4 +102,25 @@ func buildSegmentUrl(tvId int64, segment int) string {
 	api := fmt.Sprintf("https://cmts.iqiyi.com/bullet/%s/%s/%s_%d_%s_%s.br", path1, path2, tvIdStr, segmentInterval, segmentStr, hash)
 
 	return api
+}
+
+func (c *client) sign(params url.Values) string {
+	signParams := map[string]string{}
+	var keys []string
+	for k, v := range params {
+		if k == "sign" {
+			continue
+		}
+		signParams[k] = v[0]
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	var parts = make([]string, 0, len(keys))
+	for _, k := range keys {
+		parts = append(parts, fmt.Sprintf("%s=%s", k, signParams[k]))
+	}
+
+	hash := md5.Sum([]byte(fmt.Sprintf("%s&%s=%s", strings.Join(parts, "&"), signKey, signSecret)))
+	return strings.ToUpper(hex.EncodeToString(hash[:]))
 }

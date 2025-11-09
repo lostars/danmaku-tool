@@ -2,19 +2,21 @@ package iqiyi
 
 import "regexp"
 
-var tvIdRegex = regexp.MustCompile(`^qips://tvid=(\d+);`)
-var albumRegex = regexp.MustCompile(`albumid=(\d+);$`)
+var tvIdRegex = regexp.MustCompile(`^qips://.*tvid=(\d+);`)
+var albumRegex = regexp.MustCompile(`albumid=(\d+);`)
 
 type VideoBaseInfoResult struct {
 	Code string `json:"code"` // A00000 成功
 	Data struct {
-		TVId        int64  `json:"tvId"`
-		AlbumId     int64  `json:"albumId"`
-		AlbumName   string `json:"albumName"`
-		Name        string `json:"name"`        // 武林外传第62集
-		VideoCount  int    `json:"videoCount"`  // 剧集集数
-		DurationSec int    `json:"durationSec"` // 视频长度 s
-		Order       int    `json:"order"`       // 排序 和集数对应
+		TVId          int64  `json:"tvId"`
+		AlbumId       int64  `json:"albumId"`
+		AlbumName     string `json:"albumName"`
+		Description   string `json:"description"`
+		AlbumImageUrl string `json:"albumImageUrl"`
+		Name          string `json:"name"`        // 武林外传第62集
+		VideoCount    int    `json:"videoCount"`  // 剧集集数
+		DurationSec   int    `json:"durationSec"` // 视频长度 s
+		Order         int    `json:"order"`       // 排序 和集数对应
 	} `json:"data"`
 }
 
@@ -58,8 +60,38 @@ type SearchTemplate struct {
 		// 以下是单个视频返回
 		DurationInMills int `json:"duration"` // ms时长 单个视频才返回
 	} `json:"albumInfo"`
+	// 以下是聚合类型数据
+	IntentName       string `json:"intentName"` //伍六七作品
+	IntentAlbumInfos []struct {
+		Channel     string `json:"channel"` // 动漫,4
+		Title       string `json:"title"`
+		PlayUrl     string `json:"playUrl"`
+		SiteId      string `json:"siteId"`
+		Superscript string `json:"superscript"` // 年份
+	} `json:"intentAlbumInfos"`
 }
 
 func (v *SearchResult) success() bool {
 	return v.Code == 0
+}
+
+type AlbumInfoResult struct {
+	Msg        string `json:"msg"`
+	StatusCode int    `json:"status_code"`
+	Timestamp  int64  `json:"timestamp"`
+	Data       struct {
+		EntityId int64 `json:"entity_id"`
+		Videos   struct {
+			FeatureCount int `json:"feature_count"`
+			FeaturePaged map[string][]struct {
+				AlbumOrder int    `json:"album_order"`
+				Title      string `json:"title"`
+				SubTitle   string `json:"subtitle"`
+				// qips://ischarge=False;tvid=13777730200; 可解析出tvid
+				PlayUrl string `json:"play_url"`
+				// https://www.iqiyi.com/v_19rxbvawhg.html
+				PageUrl string `json:"page_url"`
+			} `json:"feature_paged"`
+		} `json:"videos"`
+	} `json:"data"`
 }

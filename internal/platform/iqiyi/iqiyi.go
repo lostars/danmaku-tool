@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/andybalholm/brotli"
 	"google.golang.org/protobuf/proto"
@@ -40,7 +42,6 @@ func (c *client) Platform() danmaku.Platform {
 	https://www.iqiyi.com/v_19rrk2gwkw.html v_ 后面字符串就是 tvId
 	https://www.iqiyi.com/a_19rrk2hct9.html a_ 后面就是 albumId
 
-	不像其他平台，爱奇艺只有剧集才有albumId，电影是没有的。
 	电影 albumId 和 tvId 的数字id是相同的
 	同时保存弹幕文件使用的是数字id
 */
@@ -164,6 +165,90 @@ func (c *client) scrape(tvId int64, segment int) ([]*danmaku.StandardDanmaku, er
 				Mode:        danmaku.NormalMode,
 			})
 		}
+	}
+
+	return result, nil
+}
+
+func (c *client) Media(id string) (*danmaku.Media, error) {
+	nowTime := time.Now().UnixMilli()
+	params := url.Values{
+		"album_id":    {id},
+		"timestamp":   {strconv.FormatInt(nowTime, 10)},
+		"src":         {"lw"},
+		"user_id":     {""},
+		"vip_status":  {"0"},
+		"vip_type":    {"-1"},
+		"auth_cookie": {""},
+		"device_id":   {"72ce31e05a23b91ad92d36554614ec88"},
+		"app_version": {"13.111.23635"},
+		"scale":       {"200"},
+	}
+	params.Set("sign", c.sign(params))
+
+	api := "https://mesh.if.iqiyi.com/tvg/v2/selector?" + params.Encode()
+	req, _ := http.NewRequest(http.MethodGet, api, nil)
+	resp, err := c.common.DoReq(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var album AlbumInfoResult
+	err = json.NewDecoder(resp.Body).Decode(&album)
+	if err != nil {
+		return nil, err
+	}
+	if album.StatusCode != 0 {
+		return nil, fmt.Errorf("error: %d %s %s", album.StatusCode, album.Msg, id)
+	}
+	if album.Data.Videos.FeaturePaged == nil || len(album.Data.Videos.FeaturePaged) < 1 {
+		return nil, fmt.Errorf("%s no videos", id)
+	}
+
+	var eps = make([]*danmaku.MediaEpisode, 0, len(album.Data.Videos.FeaturePaged))
+	var baseInfo *VideoBaseInfoResult
+	for _, epValues := range album.Data.Videos.FeaturePaged {
+		for _, ep := range epValues {
+			epMatches := tvIdRegex.FindStringSubmatch(ep.PlayUrl)
+			if len(epMatches) < 2 {
+				continue
+			}
+			// 过滤掉预告
+			if ep.PageUrl == "" {
+				continue
+			}
+			if baseInfo == nil {
+				tvId, _ := strconv.ParseInt(epMatches[1], 10, 64)
+				baseInfo, _ = c.videoBaseInfo(tvId)
+			}
+			eps = append(eps, &danmaku.MediaEpisode{
+				Id:        epMatches[1],
+				EpisodeId: strconv.FormatInt(int64(ep.AlbumOrder), 10),
+				Title:     ep.Title,
+			})
+		}
+	}
+
+	if baseInfo == nil || !baseInfo.success() {
+		return nil, fmt.Errorf("%s fail to get album info", id)
+	}
+
+	var mediaType danmaku.MediaType
+	if baseInfo.Data.TVId == baseInfo.Data.AlbumId {
+		mediaType = danmaku.Movie
+	} else {
+		mediaType = danmaku.Series
+	}
+	result := &danmaku.Media{
+		Title:    baseInfo.Data.AlbumName,
+		Type:     mediaType,
+		TypeDesc: string(mediaType),
+		Id:       id,
+		Desc:     baseInfo.Data.Description,
+		CoverUrl: baseInfo.Data.AlbumImageUrl,
+		Episodes: eps,
+		Platform: danmaku.Iqiyi,
 	}
 
 	return result, nil

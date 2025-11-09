@@ -50,7 +50,7 @@ func MatchMedia(param MatchParam) []*Media {
 	for _, s := range scrapers {
 		go func(scraper Scraper) {
 			defer wg.Done()
-			if s.Platform() == Bilibili || s.Platform() == Tencent {
+			if s.Platform() == Bilibili {
 				param.CheckEm = true
 			}
 			param.Platform = scraper.Platform()

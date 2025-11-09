@@ -246,7 +246,7 @@ func (c *realTimeData) decodeGlobalID(globalID int64) (platform string, ssId, ep
 	return "", "", "", false
 }
 
-func (c *realTimeData) SearchAnime(title string) *DanDanResult {
+func (c *realTimeData) SearchAnime(title string) *DanDanAnimeResult {
 	param := danmaku.MatchParam{
 		Title: title,
 		Mode:  danmaku.Search,
@@ -262,11 +262,12 @@ func (c *realTimeData) SearchAnime(title string) *DanDanResult {
 			AnimeTitle:   m.Title,
 			Type:         parseDandanType(m.Type),
 			TypeDesc:     m.TypeDesc,
+			ImageUrl:     m.CoverUrl,
 			EpisodeCount: len(m.Episodes),
 		})
 	}
 
-	result := &DanDanResult{
+	result := &DanDanAnimeResult{
 		ErrorCode: 0,
 		Success:   true,
 		Anime:     anime,
@@ -275,7 +276,7 @@ func (c *realTimeData) SearchAnime(title string) *DanDanResult {
 	return result
 }
 
-func (c *realTimeData) AnimeInfo(id string) (*DanDanResult, error) {
+func (c *realTimeData) AnimeInfo(id string) (*DanDanAnimeInfoResult, error) {
 	globalId, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
 		return nil, err
@@ -310,11 +311,12 @@ func (c *realTimeData) AnimeInfo(id string) (*DanDanResult, error) {
 		AnimeTitle:   media.Title,
 		Type:         parseDandanType(media.Type),
 		TypeDesc:     media.TypeDesc,
+		ImageUrl:     media.CoverUrl,
 		EpisodeCount: len(media.Episodes),
 		Episodes:     eps,
 	}
 
-	result := &DanDanResult{
+	result := &DanDanAnimeInfoResult{
 		ErrorCode: 0,
 		Success:   true,
 		Bangumi:   anime,

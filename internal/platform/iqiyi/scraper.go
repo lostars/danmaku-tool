@@ -49,6 +49,36 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 
 	var media = make([]*danmaku.Media, 0, len(result.Data.Templates))
 	for i, t := range result.Data.Templates {
+		if t.Template == 112 {
+			// 112 内容聚合页面 单独处理
+			for _, intent := range t.IntentAlbumInfos {
+				if intent.SiteId != "iqiyi" {
+					continue
+				}
+				year, e := strconv.ParseInt(intent.Superscript, 10, 64)
+				if e == nil {
+					if !param.MatchYear(int(year)) {
+						continue
+					}
+				}
+				match := param.MatchTitle(intent.Title)
+				c.common.Logger.Debug(fmt.Sprintf("[%s] match [%s]: %v", intent.Title, param.Title, match))
+				if !match {
+					continue
+				}
+
+				albumMatches := albumRegex.FindStringSubmatch(intent.PlayUrl)
+				if len(albumMatches) < 2 {
+					continue
+				}
+				if m, e := c.Media(albumMatches[1]); e == nil {
+					media = append(media, m)
+				} else {
+					c.common.Logger.Error(e.Error())
+				}
+			}
+			continue
+		}
 		// 过滤非iqiyi平台数据
 		if t.AlbumInfo.SiteId != "iqiyi" {
 			continue
@@ -124,6 +154,8 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 				Title:     t.AlbumInfo.Title,
 			})
 
+		} else {
+			//
 		}
 
 		m := &danmaku.Media{
@@ -156,6 +188,7 @@ func (c *client) Scrape(idStr string) error {
 	if tvId <= 0 {
 		return nil
 	}
+	c.common.Logger.Debug(fmt.Sprintf("%s tvid: %d", idStr, tvId))
 	baseInfo, err := c.videoBaseInfo(tvId)
 	if err != nil {
 		return err
