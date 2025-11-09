@@ -35,10 +35,15 @@ var embyClient = http.Client{
 	Timeout: time.Second * 10,
 }
 
+const (
+	EmbyMovie  = "Movie"
+	EmbySeries = "Series"
+)
+
 func SearchEmby(fileName string, ssId int) (*EmbySearchResult, error) {
-	types := "Movie"
+	types := EmbyMovie
 	if ssId >= 0 {
-		types = "Series"
+		types = EmbySeries
 	}
 	params := url.Values{
 		"Fields":           {"ProductionYear", "Status", "EndDate", "BasicSyncInfo"},

@@ -81,7 +81,7 @@ func generateTokenSign(token, t, appKey, data string) string {
 func signPayload() (string, string) {
 	msgMap := map[string]interface{}{
 		"pid":   0,
-		"ctype": 10004, // TODO
+		"ctype": 10004,
 		"sver":  "3.1.0",
 		"cver":  "v1.0",
 		"ctime": time.Now().UnixMilli(),

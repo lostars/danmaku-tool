@@ -11,24 +11,21 @@ import (
 
 func MatchMedia(param MatchParam) []*Media {
 
-	// 匹配季
+	// 如果未设置季信息，则从标题中解析
 	if param.SeasonId < 0 {
 		param.SeasonId = MatchSeason(param.Title)
 	}
 	// 预处理标题
 	param.Title = ClearTitleAndSeason(param.Title)
-	// 从emby获取年份等信息
-	if config.EmbyEnabled() {
+	// 从emby获取年份等信息 搜索模式不作处理
+	if config.EmbyEnabled() && param.Mode != Search {
 		search, err := SearchEmby(param.Title, param.SeasonId)
 		if err == nil && search.Items != nil && len(search.Items) > 0 {
 			// 默认取第一个
 			item := search.Items[0]
-			if item.Type == "Movie" {
-				param.ProductionYear = item.ProductionYear
-			}
-			if item.Type == "Series" {
-				season, err := GetSeasons(item.Id, false)
-				if err == nil {
+			switch item.Type {
+			case EmbySeries:
+				if season, e := GetSeasons(item.Id, false); e == nil {
 					for _, s := range season.Items {
 						if s.IndexNumber == param.SeasonId {
 							param.ProductionYear = s.ProductionYear
@@ -36,6 +33,8 @@ func MatchMedia(param MatchParam) []*Media {
 						}
 					}
 				}
+			case EmbyMovie:
+				param.ProductionYear = item.ProductionYear
 			}
 		}
 	}

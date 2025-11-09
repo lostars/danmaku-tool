@@ -22,11 +22,19 @@ func CommentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO 这些参数暂时不处理
 	query := r.URL.Query()
-	query.Get("from")        // int64
-	query.Get("withRelated") // bool
-	query.Get("chConvert")   // bool
+	var from int64
+	if query.Get("from") != "" {
+		from, err = strconv.ParseInt(query.Get("from"), 10, 64)
+		if err != nil {
+			api.ResponseJSON(w, http.StatusBadRequest, map[string]string{
+				"message": "invalid from parameter",
+			})
+			return
+		}
+	}
+	convert, _ := strconv.ParseBool(query.Get("chConvert"))
+	withRelated, _ := strconv.ParseBool(query.Get("withRelated"))
 
 	dandanLogger := utils.GetComponentLogger("dandan-api")
 	dandanLogger.Info("comment api requested", "token", token, "id", id)
@@ -39,7 +47,10 @@ func CommentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	comment, err := mode.GetDanmaku(service.CommentParam{
-		Id: numId,
+		Id:          numId,
+		Convert:     convert,
+		WithRelated: withRelated,
+		From:        from,
 	})
 	if err != nil {
 		api.ResponseJSON(w, http.StatusBadRequest, map[string]string{
