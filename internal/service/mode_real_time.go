@@ -1,6 +1,7 @@
 package service
 
 import (
+	"compress/gzip"
 	"danmaku-tool/internal/config"
 	"danmaku-tool/internal/danmaku"
 	"danmaku-tool/internal/utils"
@@ -30,7 +31,7 @@ import (
 */
 
 var (
-	fileName = "data.gob"
+	fileName = "data.gob.gz"
 )
 
 func (c *realTimeData) Finalize() error {
@@ -44,10 +45,11 @@ func (c *realTimeData) Finalize() error {
 	}
 	defer file.Close()
 
-	encoder := gob.NewEncoder(file)
+	gz := gzip.NewWriter(file)
+	defer gz.Close()
 
-	if err := encoder.Encode(c); err != nil {
-		return fmt.Errorf("failed to encode data: %w", err)
+	if e := gob.NewEncoder(gz).Encode(c); e != nil {
+		return fmt.Errorf("failed to encode data: %w", e)
 	}
 
 	c.logger.Info("save map info to file success")
@@ -69,9 +71,17 @@ func (c *realTimeData) Load() (bool, error) {
 	}
 	defer file.Close()
 
-	if err := gob.NewDecoder(file).Decode(c); err != nil {
+	gz, err := gzip.NewReader(file)
+	if err != nil {
 		return false, fmt.Errorf("failed to decode data: %w", err)
 	}
+	defer gz.Close()
+
+	if e := gob.NewDecoder(gz).Decode(c); e != nil {
+		return false, fmt.Errorf("failed to decode data: %w", e)
+	}
+	fileInfo, _ := file.Stat()
+	c.logger.Info(fmt.Sprintf("data size: %dx2, next id: %d, cache file size: %d byte", len(c.ForwardMap), c.IdAllocator, fileInfo.Size()))
 
 	return true, nil
 }
