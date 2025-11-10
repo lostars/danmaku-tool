@@ -1,6 +1,9 @@
 package tencent
 
-import "regexp"
+import (
+	"regexp"
+	"strconv"
+)
 
 var tencentExcludeRegex = regexp.MustCompile(`(全网搜|外站)`)
 
@@ -16,6 +19,24 @@ type SeriesTab struct {
 	PageSize    string `json:"page_size"`
 }
 
+func (s SeriesItem) validEP() bool {
+	if s.ItemParams.IsTrailer == "1" {
+		return false
+	}
+	// 有可能vid为空
+	if s.ItemParams.VID == "" {
+		return false
+	}
+	if s.ItemParams.Title == "" {
+		return false
+	}
+	_, e := strconv.ParseInt(s.ItemParams.Title, 10, 64)
+	if e != nil {
+		return false
+	}
+	return true
+}
+
 type SeriesItem struct {
 	ItemId     string `json:"item_id"`
 	ItemType   string `json:"item_type"` // =28 一部电影的 多集？
@@ -23,7 +44,7 @@ type SeriesItem struct {
 		// 以下是 page_id=vsite_episode_list 返回的剧集ep信息
 		VID          string `json:"vid"`
 		Duration     string `json:"duration"`       // 时长：秒
-		CTitleOutput string `json:"c_title_output"` // 01
+		CTitleOutput string `json:"c_title_output"` // 01 用于展示的名称
 		// 该字段在 page_id=detail_page_introduction 返回剧集名称
 		// page_id=vsite_episode_list 返回ep集数
 		Title     string `json:"title"`      // 1

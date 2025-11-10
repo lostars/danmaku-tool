@@ -87,3 +87,7 @@ type SearchResult struct {
 		} `json:"result"`
 	} `json:"data"`
 }
+
+func isSeries(mediaType int) bool {
+	return mediaType != 2
+}

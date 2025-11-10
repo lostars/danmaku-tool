@@ -13,6 +13,7 @@ type VideoBaseInfoResult struct {
 		AlbumName     string `json:"albumName"`
 		Description   string `json:"description"`
 		AlbumImageUrl string `json:"albumImageUrl"`
+		ImageUrl      string `json:"imageUrl"`
 		Name          string `json:"name"`        // 武林外传第62集
 		VideoCount    int    `json:"videoCount"`  // 剧集集数
 		DurationSec   int    `json:"durationSec"` // 视频长度 s

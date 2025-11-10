@@ -30,15 +30,15 @@ import (
 	memory_cache 指的是 episodeId 和 实际剧集信息的映射关系，并不是指缓存弹幕数据或者剧集信息本身。
 */
 
-var (
-	fileName = "data.gob.gz"
+const (
+	localCacheFile = "data.gob.gz"
 )
 
 func (c *realTimeData) Finalize() error {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 
-	p := path.Join(strings.ReplaceAll(config.ConfPath, path.Base(config.ConfPath), ""), fileName)
+	p := path.Join(strings.ReplaceAll(config.ConfPath, path.Base(config.ConfPath), ""), localCacheFile)
 	file, err := os.Create(p)
 	if err != nil {
 		return fmt.Errorf("failed to create data file: %w", err)
@@ -61,7 +61,7 @@ func (c *realTimeData) Load() (bool, error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
-	p := path.Join(strings.ReplaceAll(config.ConfPath, path.Base(config.ConfPath), ""), fileName)
+	p := path.Join(strings.ReplaceAll(config.ConfPath, path.Base(config.ConfPath), ""), localCacheFile)
 	file, err := os.Open(p)
 	if err != nil {
 		c.ForwardMap = make(map[string]int64, 1000)

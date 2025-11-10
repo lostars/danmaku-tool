@@ -171,6 +171,30 @@ func (c *client) scrape(tvId int64, segment int) ([]*danmaku.StandardDanmaku, er
 }
 
 func (c *client) Media(id string) (*danmaku.Media, error) {
+	tvId, err := strconv.ParseInt(id, 10, 64)
+	if err == nil {
+		// 尝试当作tvId处理，如果报错则说明是albumId
+		if baseInfo, e := c.videoBaseInfo(tvId); e == nil && baseInfo.success() {
+			media := &danmaku.Media{
+				Id:       id,
+				Title:    baseInfo.Data.Name,
+				Cover:    baseInfo.Data.ImageUrl,
+				Platform: danmaku.Iqiyi,
+				Type:     danmaku.Movie,
+				Desc:     baseInfo.Data.Description,
+				TypeDesc: "电影",
+				Episodes: []*danmaku.MediaEpisode{
+					{
+						Id:        id,
+						Title:     baseInfo.Data.Name,
+						EpisodeId: "1",
+					},
+				},
+			}
+			return media, nil
+		}
+	}
+
 	nowTime := time.Now().UnixMilli()
 	params := url.Values{
 		"album_id":    {id},
@@ -218,6 +242,10 @@ func (c *client) Media(id string) (*danmaku.Media, error) {
 			if ep.PageUrl == "" {
 				continue
 			}
+			// 过滤花絮
+			if ep.AlbumOrder >= 1000000 {
+				continue
+			}
 			if baseInfo == nil {
 				tvId, _ := strconv.ParseInt(epMatches[1], 10, 64)
 				baseInfo, _ = c.videoBaseInfo(tvId)
@@ -234,16 +262,10 @@ func (c *client) Media(id string) (*danmaku.Media, error) {
 		return nil, fmt.Errorf("%s fail to get album info", id)
 	}
 
-	var mediaType danmaku.MediaType
-	if baseInfo.Data.TVId == baseInfo.Data.AlbumId {
-		mediaType = danmaku.Movie
-	} else {
-		mediaType = danmaku.Series
-	}
 	result := &danmaku.Media{
 		Title:    baseInfo.Data.AlbumName,
-		Type:     mediaType,
-		TypeDesc: string(mediaType),
+		Type:     danmaku.Series,
+		TypeDesc: "剧集",
 		Id:       id,
 		Desc:     baseInfo.Data.Description,
 		Cover:    baseInfo.Data.AlbumImageUrl,

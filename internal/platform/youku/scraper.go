@@ -18,7 +18,6 @@ func (c *client) Scrape(id string) error {
 
 func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 	keyword := param.Title
-	ssId := int64(param.SeasonId)
 
 	params := map[string]interface{}{
 		"searchType": 1,
@@ -70,7 +69,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 			continue
 		}
 		mediaInfo := n.Nodes[0].Nodes[0].Data
-		if mediaInfo.IsYouku == 0 || mediaInfo.IsTrailer == 1 {
+		if mediaInfo.IsYouku != 1 || mediaInfo.IsTrailer == 1 {
 			continue
 		}
 		// 过滤标签
@@ -86,11 +85,10 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 		yearMatches := yearMatchRegex.FindStringSubmatch(mediaInfo.FeatureDTO.Text)
 		if len(yearMatches) < 2 {
 			continue
-		} else {
-			year, _ := strconv.ParseInt(yearMatches[1], 10, 64)
-			if !param.MatchYear(int(year)) {
-				continue
-			}
+		}
+		year, _ := strconv.ParseInt(yearMatches[1], 10, 64)
+		if !param.MatchYear(int(year)) {
+			continue
 		}
 		match := param.MatchTitle(mediaInfo.TempTitle)
 		c.common.Logger.Debug(fmt.Sprintf("[%s] match [%s]: %v", mediaInfo.TempTitle, param.Title, match))
@@ -109,9 +107,6 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 
 		if mediaInfo.Cats == "电影" {
 			// 电影
-			if ssId >= 0 {
-				continue
-			}
 			media.Type = danmaku.Movie
 			// 获取videoId
 			vid := c.getVID(mediaInfo.RealShowId)
@@ -131,9 +126,6 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 			media.Episodes = eps
 		} else {
 			// 剧集
-			if ssId < 0 {
-				continue
-			}
 			data := n.Nodes[0]
 			if len(n.Nodes) > 1 {
 				data = n.Nodes[1]

@@ -13,12 +13,6 @@ import (
 
 func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 	keyword := param.Title
-	ssId := int64(param.SeasonId)
-	// 为了防止 template == 112 出现（此时Videos无数据），带上季信息进行搜索
-	if ssId > 0 && ssId <= int64(len(danmaku.ChineseNumberSlice)) {
-		keyword += fmt.Sprintf("第%s季", danmaku.ChineseNumberSlice[ssId-1])
-	}
-
 	api := "https://mesh.if.iqiyi.com/portal/lw/search/homePageV3?"
 	params := url.Values{
 		"key":      {keyword},
@@ -48,7 +42,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 	}
 
 	var media = make([]*danmaku.Media, 0, len(result.Data.Templates))
-	for i, t := range result.Data.Templates {
+	for _, t := range result.Data.Templates {
 		if t.Template == 112 {
 			// 112 内容聚合页面 单独处理
 			for _, intent := range t.IntentAlbumInfos {
@@ -96,19 +90,32 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 		}
 
 		match := param.MatchTitle(t.AlbumInfo.Title)
-		c.common.Logger.Debug(fmt.Sprintf("[%s] match [%s]: %v index: %d", t.AlbumInfo.Title, param.Title, match, i))
+		c.common.Logger.Debug(fmt.Sprintf("[%s] match [%s]: %v", t.AlbumInfo.Title, param.Title, match))
 		if !match {
 			continue
 		}
 
 		var eps []*danmaku.MediaEpisode
 		var mediaType danmaku.MediaType
-		var mediaId string
-		if t.Template == 101 {
-			// 剧集
-			if ssId < 0 {
+		var mediaId, typeName string
+		switch t.Template {
+		case 103:
+			// 匹配到tvId
+			playUrlMatches := tvIdRegex.FindStringSubmatch(t.AlbumInfo.PlayUrl)
+			if len(playUrlMatches) < 2 {
 				continue
 			}
+			// 电影没有albumId 使用的是tvId
+			mediaId = playUrlMatches[1]
+			mediaType = danmaku.Movie
+			typeName = "电影"
+			eps = append(eps, &danmaku.MediaEpisode{
+				Id:        playUrlMatches[1],
+				EpisodeId: t.AlbumInfo.Title,
+				Title:     t.AlbumInfo.Title,
+			})
+		case 101:
+			// 剧集
 			if t.AlbumInfo.Videos == nil || len(t.AlbumInfo.Videos) <= 0 {
 				continue
 			}
@@ -118,6 +125,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 				continue
 			}
 			mediaType = danmaku.Series
+			typeName = "剧集"
 			eps = make([]*danmaku.MediaEpisode, 0, len(t.AlbumInfo.Videos))
 			mediaId = albumMatches[1]
 			for _, v := range t.AlbumInfo.Videos {
@@ -125,43 +133,22 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 				if len(epMatches) < 2 {
 					continue
 				}
-				epTitle := v.Number
-				if epTitle == "" {
-					epTitle = strconv.FormatInt(int64(i+1), 10)
+				// 如果不是数字类型，则可能是花絮一类
+				if _, e := strconv.ParseInt(v.Number, 10, 64); e != nil {
+					continue
 				}
 				eps = append(eps, &danmaku.MediaEpisode{
 					Id:        epMatches[1],
-					EpisodeId: epTitle,
+					EpisodeId: v.Number,
 					Title:     v.Subtitle,
 				})
 			}
-
-		} else if t.Template == 103 {
-			// 电影
-			if ssId >= 0 {
-				continue
-			}
-			// 匹配到tvId
-			playUrlMatches := tvIdRegex.FindStringSubmatch(t.AlbumInfo.PlayUrl)
-			if len(playUrlMatches) < 2 {
-				continue
-			}
-			mediaId = playUrlMatches[1]
-			mediaType = danmaku.Movie
-			eps = append(eps, &danmaku.MediaEpisode{
-				Id:        playUrlMatches[1],
-				EpisodeId: t.AlbumInfo.Title,
-				Title:     t.AlbumInfo.Title,
-			})
-
-		} else {
-			//
 		}
 
 		m := &danmaku.Media{
 			Id:       mediaId,
 			Type:     mediaType,
-			TypeDesc: t.S3,
+			TypeDesc: typeName,
 			Platform: danmaku.Iqiyi,
 			Title:    t.AlbumInfo.Title,
 			Desc:     t.AlbumInfo.Introduction,

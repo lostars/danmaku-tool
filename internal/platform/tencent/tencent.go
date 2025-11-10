@@ -99,7 +99,7 @@ func (c *client) series(cid string) ([]*SeriesItem, error) {
 		return nil, err
 	}
 
-	// 并发获取 可能会出现超长tabs 比如火影
+	// 并发获取 可能会出现超长tabs 比如火影 同时可能导致集数顺序混乱
 	lock := sync.Mutex{}
 	wg := sync.WaitGroup{}
 	wg.Add(len(tabs))
@@ -327,25 +327,13 @@ func (c *client) Media(id string) (*danmaku.Media, error) {
 		return nil, err
 	}
 	var eps []*danmaku.MediaEpisode
-	for i, ep := range items {
-		if ep.ItemParams.IsTrailer == "1" {
+	for _, ep := range items {
+		if !ep.validEP() {
 			continue
-		}
-		// 有可能vid为空
-		if ep.ItemParams.VID == "" {
-			continue
-		}
-		epTitle := ep.ItemParams.CTitleOutput
-		epId, e := strconv.ParseInt(epTitle, 10, 64)
-		if e == nil {
-			epTitle = strconv.FormatInt(epId, 10)
-		}
-		if epTitle == "" {
-			epTitle = strconv.FormatInt(int64(i+1), 10)
 		}
 		eps = append(eps, &danmaku.MediaEpisode{
 			Id:        ep.ItemParams.VID,
-			EpisodeId: epTitle,
+			EpisodeId: ep.ItemParams.Title,
 			Title:     ep.ItemParams.CTitleOutput,
 		})
 	}

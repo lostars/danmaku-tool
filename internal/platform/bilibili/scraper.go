@@ -4,7 +4,6 @@ import (
 	"danmaku-tool/internal/config"
 	"danmaku-tool/internal/danmaku"
 	"fmt"
-	"math"
 	"path"
 	"path/filepath"
 	"strconv"
@@ -87,8 +86,6 @@ func (c *client) Scrape(realId string) error {
 
 func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 	keyword := param.Title
-	var ssId = int64(param.SeasonId)
-
 	var data = make([]*danmaku.Media, 0, 10)
 	var result SearchResult
 	// 分类搜索接口 搜索类型无法区分真人剧集和电影 因为都是 media_ft 只能搜索两次
@@ -120,25 +117,12 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 		var eps []*danmaku.MediaEpisode
 		// 分两类处理
 		/*
-			1. 有EP信息 可能是剧集 也可能是一部电影的多部
-				1.1 如果带了ssId进行搜索，则按照剧集进行处理
-				1.2 否则就当作一部电影的多部曲来处理
-					所以如果剧集故意不带ssId进行搜索 则不会出相关数据
-			2. 无EP信息 丛url解析epId 则只可能是电影一类单视频
+			1. 有EP信息 可能是剧集 也可能是电影不同的语言或配音版本
+				只要不是电影类型都按照剧集处理
+			2. 无EP信息 从url解析epId 则只可能是电影一类单视频
 		*/
 		if bangumi.EPs != nil && len(bangumi.EPs) > 0 {
-			if ssId >= 0 {
-				// 获取第一集检查时长
-				if param.DurationSeconds > 0 {
-					ss, err := c.baseInfo(strconv.FormatInt(bangumi.EPs[0].Id, 10), "")
-					if err == nil && ss.Result.Episodes != nil {
-						durationMills := ss.Result.Episodes[0].Duration
-						if math.Abs(float64(durationMills/1000-param.DurationSeconds)) > 300 {
-							continue
-						}
-					}
-				}
-
+			if isSeries(bangumi.MediaType) {
 				for i, ep := range bangumi.EPs {
 					// 如果发现 ep.Title 不是从1开始，常见的就是 第二季 36集 开始计数
 					// 则从数组下标开始计数
@@ -156,29 +140,13 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 					})
 				}
 			} else {
-				for _, v := range bangumi.EPs {
-					episodeId := "1"
-					match := false
-					// 匹配搜索版本
-					if danmaku.MatchLanguage.MatchString(keyword) {
-						if strings.Contains(keyword, v.Title) {
-							match = true
-						}
-					} else {
-						// 匹配原版
-						if strings.Contains(v.Title, "原版") {
-							match = true
-						}
+				for i, v := range bangumi.EPs {
+					ep := &danmaku.MediaEpisode{
+						Id:        strconv.FormatInt(v.Id, 10),
+						EpisodeId: strconv.FormatInt(int64(i), 10),
+						Title:     v.Title,
 					}
-					if match {
-						ep := &danmaku.MediaEpisode{
-							Id:        strconv.FormatInt(v.Id, 10),
-							EpisodeId: episodeId,
-							Title:     v.Title,
-						}
-						eps = append(eps, ep)
-						break
-					}
+					eps = append(eps, ep)
 				}
 			}
 

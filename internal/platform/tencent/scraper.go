@@ -98,8 +98,8 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 			defer wg.Done()
 			defer func() { <-sem }()
 
+			// 黑名单 基本都是外站视频
 			if tencentExcludeRegex.MatchString(v.VideoInfo.SubTitle) {
-				// 命中黑名单 则代表搜索不到
 				c.common.Logger.Info("title in blacklist", "subTitle", v.VideoInfo.SubTitle)
 				return
 			}
@@ -114,7 +114,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 			}
 
 			var mediaType danmaku.MediaType
-			if ssId < 0 {
+			if v.VideoInfo.TypeName == "电影" {
 				mediaType = danmaku.Movie
 			} else {
 				if v.VideoInfo.SubjectDoc.VideoNum <= 0 {
@@ -140,8 +140,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 					continue
 				}
 				epTitle := ep.ItemParams.CTitleOutput
-				epId, e := strconv.ParseInt(epTitle, 10, 64)
-				if e == nil {
+				if epId, e := strconv.ParseInt(epTitle, 10, 64); e == nil {
 					epTitle = strconv.FormatInt(epId, 10)
 				}
 				if epTitle == "" {
@@ -223,13 +222,7 @@ func (c *client) Scrape(idStr string) error {
 		if onlyCurrentVID && ep.ItemParams.VID != idStr {
 			continue
 		}
-		if ep.ItemParams.IsTrailer == "1" {
-			c.common.Logger.Info("ep skipped because of trailer type", "vid", ep.ItemParams.VID)
-			continue
-		}
-		// 有可能vid为空
-		if ep.ItemParams.VID == "" {
-			c.common.Logger.Debug("skipped because of empty vid")
+		if !ep.validEP() {
 			continue
 		}
 
