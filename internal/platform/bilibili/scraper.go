@@ -103,7 +103,8 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 	}
 
 	for _, bangumi := range result.Data.Result {
-		if !param.MatchYear(time.Unix(bangumi.PubTime, 0).Year()) {
+		year := time.Unix(bangumi.PubTime, 0).Year()
+		if !param.MatchYear(year) {
 			continue
 		}
 
@@ -174,6 +175,8 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 			Title:    clearTitle,
 			Cover:    bangumi.Cover,
 			Episodes: eps,
+			PubTime:  bangumi.PubTime,
+			Year:     year,
 			Platform: danmaku.Bilibili,
 		}
 		data = append(data, b)

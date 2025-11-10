@@ -267,14 +267,17 @@ func (c *realTimeData) SearchAnime(title string) *DanDanAnimeResult {
 	anime := make([]AnimeResult, 0, len(media))
 	for _, m := range media {
 		id := c.getGlobalID(string(m.Platform), m.Id, "")
+		animeTitle := fmt.Sprintf("%s [%s]", m.Title, m.Platform)
 		anime = append(anime, AnimeResult{
 			AnimeId:      id,
 			BangumiId:    strconv.FormatInt(id, 10),
-			AnimeTitle:   m.Title,
+			AnimeTitle:   animeTitle,
 			Type:         parseDandanType(m.Type),
 			TypeDesc:     m.TypeDesc,
 			ImageUrl:     m.Cover,
 			EpisodeCount: len(m.Episodes),
+			// 该字段必须返回，否则 Yamby 闪退
+			StartDate: m.FormatPubTime(true),
 		})
 	}
 

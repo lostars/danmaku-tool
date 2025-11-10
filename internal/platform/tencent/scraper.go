@@ -166,6 +166,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 				Desc:     v.VideoInfo.Desc,
 				Title:    v.VideoInfo.Title,
 				Cover:    v.VideoInfo.ImgUrl,
+				Year:     v.VideoInfo.Year,
 				Episodes: eps,
 				Platform: danmaku.Tencent,
 			}

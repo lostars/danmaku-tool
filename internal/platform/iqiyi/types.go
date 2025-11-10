@@ -40,6 +40,7 @@ type SearchTemplate struct {
 	AlbumInfo struct {
 		SiteId       string `json:"siteId"`       // 站点id miguvideo iqiyi 可以用于过滤非本站视频
 		Introduction string `json:"introduction"` // 简介
+		Img          string `json:"img"`
 		// 电影存放的是tvId 剧集则是第一集的tvId 格式：剧集里这个字段一样
 		// qips://tvid=1625689363120100;vid=401ee768727dbc42c41286bfa24c8715;ischarge=true;vtype=0;ht=2;lt=2;
 		// 剧集的playUrl 能解析到 albumId

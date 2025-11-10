@@ -69,7 +69,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 			continue
 		}
 		mediaInfo := n.Nodes[0].Nodes[0].Data
-		if mediaInfo.IsYouku != 1 || mediaInfo.IsTrailer == 1 {
+		if mediaInfo.HasYouku != 1 || mediaInfo.IsYouku != 1 || mediaInfo.IsTrailer == 1 {
 			continue
 		}
 		// 过滤标签
@@ -95,12 +95,17 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 		if !match {
 			continue
 		}
+		// 再次过滤优酷特有的垃圾标题
+		if blacklistTitleRegex.MatchString(mediaInfo.TempTitle) {
+			continue
+		}
 
 		media := &danmaku.Media{
 			Id:       mediaInfo.RealShowId,
 			Title:    mediaInfo.TempTitle,
 			Desc:     mediaInfo.Info,
 			TypeDesc: mediaInfo.Cats,
+			Year:     int(year),
 			Cover:    mediaInfo.ThumbUrl,
 			Platform: danmaku.Youku,
 		}

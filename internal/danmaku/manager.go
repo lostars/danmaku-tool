@@ -3,6 +3,7 @@ package danmaku
 import (
 	"log/slog"
 	"net/http"
+	"time"
 )
 
 type MediaType string
@@ -19,8 +20,28 @@ type Media struct {
 	Title    string
 	Desc     string
 	Cover    string
+	Year     int
+	PubTime  int64 // unix seconds
 	Episodes []*MediaEpisode
 	Platform Platform
+}
+
+func (m *Media) FormatPubTime(force bool) string {
+	var pubTime time.Time
+	if m.PubTime > 0 {
+		pubTime = time.Unix(m.PubTime, 0)
+	} else {
+		if m.Year > 0 {
+			pubTime = time.Date(m.Year, 1, 1, 0, 0, 0, 0_000_000, time.UTC)
+		} else {
+			if force {
+				pubTime = time.Now()
+			} else {
+				return ""
+			}
+		}
+	}
+	return pubTime.Format(time.RFC3339Nano)
 }
 
 type MediaEpisode struct {

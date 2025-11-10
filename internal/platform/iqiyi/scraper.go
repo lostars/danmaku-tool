@@ -151,6 +151,8 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 			TypeDesc: typeName,
 			Platform: danmaku.Iqiyi,
 			Title:    t.AlbumInfo.Title,
+			Cover:    t.AlbumInfo.Img,
+			Year:     int(year),
 			Desc:     t.AlbumInfo.Introduction,
 			Episodes: eps,
 		}

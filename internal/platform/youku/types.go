@@ -10,8 +10,9 @@ var pageRegex = regexp.MustCompile(`<script>window\.__PAGE_CONF__\s=(\{.*});`)
 var matchVIDRegex = regexp.MustCompile(`/v_show/id_([a-zA-Z0-9=]+)\.html`)
 
 var blacklistRegex = regexp.MustCompile(`短剧`)
-var blacklistCatsRegex = regexp.MustCompile(`游戏`)
+var blacklistCatsRegex = regexp.MustCompile(`游戏|文化`)
 var yearMatchRegex = regexp.MustCompile(`\s(\d{4})\s·`)
+var blacklistTitleRegex = regexp.MustCompile(`解读|剖析|揭秘|音频|观影指南`)
 
 type APIResult struct {
 	API  string `json:"api"`
@@ -39,7 +40,8 @@ type APIResult struct {
 
 type NodeData struct {
 	// show info
-	IsYouku        int    `json:"isYouku"`    // 是否优酷平台剧集
+	IsYouku        int    `json:"isYouku"` // 是否优酷平台剧集
+	HasYouku       int    `json:"hasYouku"`
 	SourceName     string `json:"sourceName"` // 来源 优酷/腾讯 ...
 	IsTrailer      int    `json:"isTrailer"`
 	RealShowId     string `json:"realShowId"`     // showId
