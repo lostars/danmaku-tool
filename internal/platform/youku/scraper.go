@@ -139,10 +139,13 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 
 			media.Type = danmaku.Series
 			var eps = make([]*danmaku.MediaEpisode, 0, len(data.Nodes))
-			for i, epInfo := range data.Nodes {
+			for _, epInfo := range data.Nodes {
 				episodeId := epInfo.Data.ShowVideoStage
 				if episodeId == "" {
-					episodeId = strconv.FormatInt(int64(i+1), 10)
+					continue
+				}
+				if danmaku.InvalidEpTitle(epInfo.Data.Title) {
+					continue
 				}
 				eps = append(eps, &danmaku.MediaEpisode{
 					Id:        epInfo.Data.VideoId,

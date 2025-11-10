@@ -29,6 +29,9 @@ func (c *client) Media(id string) (*danmaku.Media, error) {
 
 	var eps = make([]*danmaku.MediaEpisode, 0, len(series.Result.Episodes))
 	for _, ep := range series.Result.Episodes {
+		if danmaku.InvalidEpTitle(ep.ShowTitle) {
+			continue
+		}
 		eps = append(eps, &danmaku.MediaEpisode{
 			Id:        strconv.FormatInt(ep.EPId, 10),
 			EpisodeId: ep.Title,

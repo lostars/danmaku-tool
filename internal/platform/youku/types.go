@@ -141,6 +141,13 @@ type ShowInfoFromHtml struct {
 				ActionValue string `json:"action_value"` // vid 字符串
 				Title       string `json:"title"`        // 司藤 第1集
 				StageIndex  int    `json:"stageIndex"`   // 2 编号
+				// 10013是花絮正剧一类 10115是推荐广告 10311则是电影
+				Type int `json:"type"`
+				// 可能是推荐广告 Text=推荐
+				Mark struct {
+					Color string `json:"color"`
+					Text  string `json:"text"`
+				} `json:"mark"`
 			} `json:"itemList"`
 		} `json:"components"`
 	} `json:"moduleList"`

@@ -252,6 +252,9 @@ func (c *client) Media(id string) (*danmaku.Media, error) {
 			if ep.AlbumOrder >= 1000000 {
 				continue
 			}
+			if danmaku.InvalidEpTitle(ep.Title) {
+				continue
+			}
 			if baseInfo == nil {
 				tvId, _ := strconv.ParseInt(epMatches[1], 10, 64)
 				baseInfo, _ = c.videoBaseInfo(tvId)

@@ -135,6 +135,9 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 				if len(epMatches) < 2 {
 					continue
 				}
+				if danmaku.InvalidEpTitle(v.Subtitle) {
+					continue
+				}
 				// 如果不是数字类型，则可能是花絮一类
 				if _, e := strconv.ParseInt(v.Number, 10, 64); e != nil {
 					continue

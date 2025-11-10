@@ -127,6 +127,9 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 				for i, ep := range bangumi.EPs {
 					// 如果发现 ep.Title 不是从1开始，常见的就是 第二季 36集 开始计数
 					// 则从数组下标开始计数
+					if danmaku.InvalidEpTitle(ep.Title) {
+						continue
+					}
 					epTitle := ep.Title
 					id, e := strconv.ParseInt(epTitle, 10, 64)
 					if e == nil && id > 1 {

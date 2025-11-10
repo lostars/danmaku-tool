@@ -1,8 +1,8 @@
 package tencent
 
 import (
+	"danmaku-tool/internal/danmaku"
 	"regexp"
-	"strconv"
 )
 
 var tencentExcludeRegex = regexp.MustCompile(`(全网搜|外站)`)
@@ -30,8 +30,7 @@ func (s SeriesItem) validEP() bool {
 	if s.ItemParams.Title == "" {
 		return false
 	}
-	_, e := strconv.ParseInt(s.ItemParams.Title, 10, 64)
-	return e == nil
+	return !danmaku.InvalidEpTitle(s.ItemParams.Title)
 }
 
 type SeriesItem struct {
