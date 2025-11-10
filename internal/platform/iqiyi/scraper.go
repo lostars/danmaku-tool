@@ -4,6 +4,7 @@ import (
 	"danmaku-tool/internal/config"
 	"danmaku-tool/internal/danmaku"
 	"danmaku-tool/internal/utils"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -106,8 +107,8 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 			if len(playUrlMatches) < 2 {
 				continue
 			}
-			// 电影没有albumId 使用的是tvId
-			mediaId = playUrlMatches[1]
+			// 电影没有albumId 使用的是base64(tvId) 方便在获取详情时区分是albumId还是tvId
+			mediaId = base64.StdEncoding.EncodeToString([]byte(playUrlMatches[1]))
 			mediaType = danmaku.Movie
 			typeName = "电影"
 			eps = append(eps, &danmaku.MediaEpisode{

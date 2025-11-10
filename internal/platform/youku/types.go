@@ -12,7 +12,7 @@ var matchVIDRegex = regexp.MustCompile(`/v_show/id_([a-zA-Z0-9=]+)\.html`)
 var blacklistRegex = regexp.MustCompile(`短剧`)
 var blacklistCatsRegex = regexp.MustCompile(`游戏|文化`)
 var yearMatchRegex = regexp.MustCompile(`\s(\d{4})\s·`)
-var blacklistTitleRegex = regexp.MustCompile(`解读|剖析|揭秘|音频|观影指南`)
+var blacklistTitleRegex = regexp.MustCompile(`幕后|赏析|解析|解读|剖析|揭秘|音频|观影指南`)
 
 type APIResult struct {
 	API  string `json:"api"`

@@ -136,10 +136,6 @@ func (p MatchParam) MatchTitle(title string) bool {
 			title = ClearTitle(title)
 		}
 	}
-	// 如果是搜索模式，则匹配到命中搜索词结束
-	if p.Mode == Search {
-		return true
-	}
 	matchMode := string(p.Mode)
 	// 黑名单 正则匹配替换
 	if config.GetConfig().Tokenizer.Enable && config.GetConfig().Tokenizer.Blacklist != nil {
@@ -162,6 +158,12 @@ func (p MatchParam) MatchTitle(title string) bool {
 				break
 			}
 		}
+	}
+	// 如果是搜索模式，则匹配到命中搜索词结束
+	if p.Mode == Search {
+		lowerClearTitle := strings.ToLower(ClearTitleAndSeason(title))
+		targetLowerTitle := strings.ToLower(ClearTitleAndSeason(p.Title))
+		return strings.Contains(lowerClearTitle, targetLowerTitle)
 	}
 	// 处理 S0
 	if p.SeasonId == 0 {

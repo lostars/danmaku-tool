@@ -3,6 +3,7 @@ package iqiyi
 import (
 	"danmaku-tool/internal/danmaku"
 	"danmaku-tool/internal/utils"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -172,28 +173,32 @@ func (c *client) scrape(tvId int64, segment int) ([]*danmaku.StandardDanmaku, er
 }
 
 func (c *client) Media(id string) (*danmaku.Media, error) {
-	tvId, err := strconv.ParseInt(id, 10, 64)
-	if err == nil {
-		// 尝试当作tvId处理，如果报错则说明是albumId
-		if baseInfo, e := c.videoBaseInfo(tvId); e == nil && baseInfo.success() {
-			media := &danmaku.Media{
-				Id:       id,
-				Title:    baseInfo.Data.Name,
-				Cover:    baseInfo.Data.ImageUrl,
-				Platform: danmaku.Iqiyi,
-				Type:     danmaku.Movie,
-				Desc:     baseInfo.Data.Description,
-				TypeDesc: "电影",
-				Episodes: []*danmaku.MediaEpisode{
-					{
-						Id:        id,
-						Title:     baseInfo.Data.Name,
-						EpisodeId: "1",
-					},
-				},
-			}
-			return media, nil
+	if tvIdBytes, err := base64.StdEncoding.DecodeString(id); err == nil {
+		tvId, _ := strconv.ParseInt(string(tvIdBytes), 10, 64)
+		baseInfo, e := c.videoBaseInfo(tvId)
+		if e != nil {
+			return nil, e
 		}
+		if !baseInfo.success() {
+			return nil, fmt.Errorf("get base info fail: %s", baseInfo.Code)
+		}
+		media := &danmaku.Media{
+			Id:       id,
+			Title:    baseInfo.Data.Name,
+			Cover:    baseInfo.Data.ImageUrl,
+			Platform: danmaku.Iqiyi,
+			Type:     danmaku.Movie,
+			Desc:     baseInfo.Data.Description,
+			TypeDesc: "电影",
+			Episodes: []*danmaku.MediaEpisode{
+				{
+					Id:        id,
+					Title:     baseInfo.Data.Name,
+					EpisodeId: "1",
+				},
+			},
+		}
+		return media, nil
 	}
 
 	nowTime := time.Now().UnixMilli()
