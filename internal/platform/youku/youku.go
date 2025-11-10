@@ -3,6 +3,7 @@ package youku
 import (
 	"danmaku-tool/internal/config"
 	"danmaku-tool/internal/danmaku"
+	"danmaku-tool/internal/utils"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -56,7 +57,7 @@ func (c *client) videoInfo(vid string) (*VideoInfoFromHtml, *ShowInfoFromHtml, e
 	if err != nil {
 		return nil, nil, err
 	}
-	defer resp.Body.Close()
+	defer utils.SafeClose(resp.Body)
 
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -107,7 +108,7 @@ func (c *client) scrapeDanmaku(vid string, segmentsLen int) []*danmaku.StandardD
 					c.common.Logger.Error(fmt.Sprintf("%s scrape segment %d error: %s", t.vid, t.segment, e.Error()))
 					continue
 				}
-				if data == nil || len(data) <= 0 {
+				if len(data) <= 0 {
 					continue
 				}
 				lock.Lock()
@@ -188,7 +189,7 @@ func (c *client) scrape(vid string, segment int) ([]*danmaku.StandardDanmaku, er
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer utils.SafeClose(resp.Body)
 
 	var apiResult APIResult
 	err = json.NewDecoder(resp.Body).Decode(&apiResult)
@@ -241,7 +242,7 @@ func (c *client) getVID(showId string) string {
 	if err != nil {
 		return ""
 	}
-	defer resp.Body.Close()
+	defer utils.SafeClose(resp.Body)
 	location := resp.Header.Get("Location")
 	// /v_show/id_XNjM2OTM4MjY0NA==.html?s=ecba3364afbe46aaa122
 	matches := matchVIDRegex.FindStringSubmatch(location)

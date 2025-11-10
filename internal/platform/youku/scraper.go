@@ -2,6 +2,7 @@ package youku
 
 import (
 	"danmaku-tool/internal/danmaku"
+	"danmaku-tool/internal/utils"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -45,7 +46,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer utils.SafeClose(resp.Body)
 
 	var apiResult APIResult
 	err = json.NewDecoder(resp.Body).Decode(&apiResult)
@@ -55,17 +56,17 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 	if !apiResult.success() {
 		return nil, fmt.Errorf("match request fail: %s", strings.Join(apiResult.Ret, ","))
 	}
-	if apiResult.Data.Nodes == nil || len(apiResult.Data.Nodes) < 1 {
+	if len(apiResult.Data.Nodes) < 1 {
 		return nil, fmt.Errorf("empty nodes: %s", keyword)
 	}
 
 	var result []*danmaku.Media
 	for _, n := range apiResult.Data.Nodes {
-		if n.Nodes == nil || len(n.Nodes) == 0 {
+		if len(n.Nodes) == 0 {
 			continue
 		}
 		// 没有基础信息
-		if n.Nodes[0].Nodes == nil || len(n.Nodes[0].Nodes) < 1 {
+		if len(n.Nodes[0].Nodes) < 1 {
 			continue
 		}
 		mediaInfo := n.Nodes[0].Nodes[0].Data

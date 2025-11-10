@@ -2,6 +2,7 @@ package youku
 
 import (
 	"crypto/md5"
+	"danmaku-tool/internal/utils"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -21,12 +22,12 @@ func (c *client) refreshToken() {
 	if e != nil {
 		return
 	}
-	defer cnaResp.Body.Close()
+	defer utils.SafeClose(cnaResp.Body)
 	if cnaResp.StatusCode != http.StatusOK {
 		return
 	}
 	etags := cnaResp.Header.Values("etag")
-	if etags == nil || len(etags) < 1 {
+	if len(etags) < 1 {
 		return
 	}
 	c.cna = etags[0]
@@ -38,12 +39,12 @@ func (c *client) refreshToken() {
 	if err != nil {
 		return
 	}
-	defer resp.Body.Close()
+	defer utils.SafeClose(resp.Body)
 	if resp.StatusCode != http.StatusOK {
 		return
 	}
 	cookies := resp.Header.Values("set-cookie")
-	if cookies == nil || len(cookies) < 2 {
+	if len(cookies) < 2 {
 		return
 	}
 	for _, cookie := range cookies {

@@ -3,6 +3,7 @@ package iqiyi
 import (
 	"danmaku-tool/internal/config"
 	"danmaku-tool/internal/danmaku"
+	"danmaku-tool/internal/utils"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -27,7 +28,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer utils.SafeClose(resp.Body)
 
 	var result SearchResult
 	err = json.NewDecoder(resp.Body).Decode(&result)
@@ -37,7 +38,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 	if !result.success() {
 		return nil, fmt.Errorf("search error: %d", result.Code)
 	}
-	if result.Data.Templates == nil || len(result.Data.Templates) <= 0 {
+	if len(result.Data.Templates) <= 0 {
 		return nil, fmt.Errorf("search empty templates: %s", keyword)
 	}
 
@@ -116,7 +117,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 			})
 		case 101:
 			// 剧集
-			if t.AlbumInfo.Videos == nil || len(t.AlbumInfo.Videos) <= 0 {
+			if len(t.AlbumInfo.Videos) <= 0 {
 				continue
 			}
 			// 匹配 albumId
@@ -164,6 +165,9 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 
 func (c *client) GetDanmaku(id string) ([]*danmaku.StandardDanmaku, error) {
 	tvId, err := strconv.ParseInt(id, 10, 64)
+	if err != nil {
+		return nil, err
+	}
 	baseInfo, err := c.videoBaseInfo(tvId)
 	if err != nil {
 		return nil, err

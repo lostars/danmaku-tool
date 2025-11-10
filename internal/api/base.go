@@ -18,11 +18,10 @@ func ResponseJSON(w http.ResponseWriter, status int, result interface{}) {
 		http.Error(w, fmt.Sprintf("encode json error: %s", err), http.StatusInternalServerError)
 		utils.GetComponentLogger("base").Error(err.Error())
 	}
-	return
 }
 
 func DecodeJSONBody(w http.ResponseWriter, r *http.Request, target interface{}) error {
-	defer r.Body.Close()
+	defer utils.SafeClose(r.Body)
 	if r.Header.Get("Content-Type") != "application/json" {
 		http.Error(w, "content type must be application/json", http.StatusUnsupportedMediaType)
 		return fmt.Errorf("content type must be application/json")

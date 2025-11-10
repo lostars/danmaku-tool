@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"danmaku-tool/internal/config"
 	"danmaku-tool/internal/danmaku"
+	"danmaku-tool/internal/utils"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"path/filepath"
@@ -48,7 +48,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer utils.SafeClose(resp.Body)
 
 	var searchResult SearchResult
 	err = json.NewDecoder(resp.Body).Decode(&searchResult)
@@ -56,10 +56,10 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New(fmt.Sprintf("search http status: %s", resp.Status))
+		return nil, fmt.Errorf("search http status: %s", resp.Status)
 	}
 	if searchResult.Ret != 0 {
-		return nil, errors.New(fmt.Sprintf("search ret code: %v %s", searchResult.Ret, searchResult.Msg))
+		return nil, fmt.Errorf("search ret code: %v %s", searchResult.Ret, searchResult.Msg)
 	}
 
 	var itemList []SearchResultItem

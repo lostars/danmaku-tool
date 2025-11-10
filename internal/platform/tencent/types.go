@@ -31,10 +31,7 @@ func (s SeriesItem) validEP() bool {
 		return false
 	}
 	_, e := strconv.ParseInt(s.ItemParams.Title, 10, 64)
-	if e != nil {
-		return false
-	}
-	return true
+	return e == nil
 }
 
 type SeriesItem struct {

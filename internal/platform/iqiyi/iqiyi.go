@@ -2,6 +2,7 @@ package iqiyi
 
 import (
 	"danmaku-tool/internal/danmaku"
+	"danmaku-tool/internal/utils"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -56,7 +57,7 @@ func (c *client) videoBaseInfo(tvId int64) (*VideoBaseInfoResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer utils.SafeClose(resp.Body)
 
 	var baseInfo VideoBaseInfoResult
 	e := json.NewDecoder(resp.Body).Decode(&baseInfo)
@@ -90,7 +91,7 @@ func (c *client) scrapeDanmaku(baseInfo *VideoBaseInfoResult, tvId int64) []*dan
 					c.common.Logger.Error(fmt.Sprintf("%d scrape segment %d error: %s", tvId, t.segment, err.Error()))
 					continue
 				}
-				if data == nil || len(data) <= 0 {
+				if len(data) <= 0 {
 					continue
 				}
 				lock.Lock()
@@ -126,7 +127,7 @@ func (c *client) scrape(tvId int64, segment int) ([]*danmaku.StandardDanmaku, er
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer utils.SafeClose(resp.Body)
 	if resp.StatusCode != 200 {
 		return nil, fmt.Errorf("scrape danmaku error: %s", resp.Status)
 	}
@@ -216,7 +217,7 @@ func (c *client) Media(id string) (*danmaku.Media, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer utils.SafeClose(resp.Body)
 
 	var album AlbumInfoResult
 	err = json.NewDecoder(resp.Body).Decode(&album)
@@ -226,7 +227,7 @@ func (c *client) Media(id string) (*danmaku.Media, error) {
 	if album.StatusCode != 0 {
 		return nil, fmt.Errorf("error: %d %s %s", album.StatusCode, album.Msg, id)
 	}
-	if album.Data.Videos.FeaturePaged == nil || len(album.Data.Videos.FeaturePaged) < 1 {
+	if len(album.Data.Videos.FeaturePaged) < 1 {
 		return nil, fmt.Errorf("%s no videos", id)
 	}
 

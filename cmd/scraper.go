@@ -31,7 +31,7 @@ func scraperCmd() *cobra.Command {
 
 		var p = danmaku.GetScraper(platform.Value)
 		if p == nil {
-			return errors.New(fmt.Sprintf("unsupported platform: %s", platform.Value))
+			return fmt.Errorf("unsupported platform: %s", platform.Value)
 		}
 		logger := utils.GetComponentLogger("scrape-cmd")
 		start := time.Now()

@@ -159,10 +159,10 @@ func checkPersistPath(fullPath, filename string) error {
 		if os.IsNotExist(fileStatError) {
 			mkdirError := os.MkdirAll(fullPath, os.ModePerm)
 			if mkdirError != nil {
-				return errors.New(fmt.Sprintf("create path %s error: %s", fullPath, mkdirError.Error()))
+				return fmt.Errorf("create path %s error: %s", fullPath, mkdirError.Error())
 			}
 		} else {
-			return errors.New(fmt.Sprintf("create path %s error: %s", fullPath, fileStatError.Error()))
+			return fmt.Errorf("create path %s error: %s", fullPath, fileStatError.Error())
 		}
 	}
 	return nil
@@ -230,7 +230,7 @@ func (a *DataAssPersist) Serialize(data *SerializerData) error {
 	if e != nil {
 		return e
 	}
-	defer file.Close()
+	defer utils.SafeClose(file)
 	assStr := strings.Join([]string{scriptInfo, styles, events}, "\n\n")
 	if _, err := file.WriteString(assStr); err != nil {
 		return err

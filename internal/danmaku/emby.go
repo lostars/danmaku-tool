@@ -2,6 +2,7 @@ package danmaku
 
 import (
 	"danmaku-tool/internal/config"
+	"danmaku-tool/internal/utils"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -72,7 +73,7 @@ func doEmbyGet[T any](api string) (*T, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer utils.SafeClose(resp.Body)
 
 	var result T
 	err = json.NewDecoder(resp.Body).Decode(&result)

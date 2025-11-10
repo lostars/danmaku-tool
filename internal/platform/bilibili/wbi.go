@@ -3,9 +3,9 @@ package bilibili
 import (
 	"bytes"
 	"crypto/md5"
+	"danmaku-tool/internal/utils"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -25,7 +25,7 @@ func (c *client) setToken() error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer utils.SafeClose(resp.Body)
 
 	var nav navInfo
 	err = json.NewDecoder(resp.Body).Decode(&nav)
@@ -33,12 +33,12 @@ func (c *client) setToken() error {
 		return err
 	}
 	if nav.Code != 0 {
-		return errors.New(fmt.Sprintf("get nav fail: %v %s", nav.Code, nav.Message))
+		return fmt.Errorf("get nav fail: %v %s", nav.Code, nav.Message)
 	}
 	matchImg := tokenRegex.FindStringSubmatch(nav.Data.WbiImg.ImgUrl)
 	matchSub := tokenRegex.FindStringSubmatch(nav.Data.WbiImg.SubUrl)
 	if len(matchImg) <= 1 || len(matchSub) <= 1 {
-		return errors.New(fmt.Sprintf("wrong img url token %s", nav.Data.WbiImg.ImgUrl))
+		return fmt.Errorf("wrong img url token %s", nav.Data.WbiImg.ImgUrl)
 	}
 	c.token.imgKey = matchImg[1]
 	c.token.subKey = matchSub[1]

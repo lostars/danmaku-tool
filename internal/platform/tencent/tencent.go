@@ -3,6 +3,7 @@ package tencent
 import (
 	"bytes"
 	"danmaku-tool/internal/danmaku"
+	"danmaku-tool/internal/utils"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -62,7 +63,7 @@ func (c *client) doSeriesRequest(cid, vid string, pageId, pageContent string) (*
 	if err != nil {
 		return nil, err
 	}
-	defer seriesResp.Body.Close()
+	defer utils.SafeClose(seriesResp.Body)
 
 	var seriesResult SeriesResult
 	err = json.NewDecoder(seriesResp.Body).Decode(&seriesResult)
@@ -154,7 +155,7 @@ func (c *client) getDanmakuByVid(vid string) ([]*danmaku.StandardDanmaku, error)
 	if e != nil {
 		return nil, e
 	}
-	resp.Body.Close()
+	utils.SafeClose(resp.Body)
 	var segmentsLen = len(segmentResult.Data.SegmentIndex)
 	if segmentResult.Data.SegmentIndex == nil || segmentsLen <= 0 {
 		return nil, fmt.Errorf("no segments vid: %s", vid)
@@ -171,7 +172,7 @@ func (c *client) getDanmakuByVid(vid string) ([]*danmaku.StandardDanmaku, error)
 			defer wg.Done()
 			for t := range tasks {
 				data := c.scrape(t.vid, t.segment)
-				if data == nil || len(data) <= 0 {
+				if len(data) <= 0 {
 					continue
 				}
 				lock.Lock()
@@ -215,7 +216,7 @@ func (c *client) scrape(vid, segment string) []*danmaku.StandardDanmaku {
 		c.common.Logger.Error(err.Error())
 		return nil
 	}
-	defer resp.Body.Close()
+	defer utils.SafeClose(resp.Body)
 
 	var danmakuResult DanmakuResult
 	err = json.NewDecoder(resp.Body).Decode(&danmakuResult)
@@ -244,7 +245,7 @@ func (c *client) scrape(vid, segment string) []*danmaku.StandardDanmaku {
 				mode = danmaku.BottomMode
 			}
 			var colorStr = color.Color
-			if color.GradientColors != nil && len(color.GradientColors) > 0 {
+			if len(color.GradientColors) > 0 {
 				colorStr = color.GradientColors[0]
 			}
 			value, err := strconv.ParseUint(colorStr, 16, 32)
@@ -281,18 +282,18 @@ func (s *SeriesResult) series() ([]*SeriesItem, error) {
 	var eps = make([]*SeriesItem, 0, 500)
 	// 返回结果检查
 	if s.Ret != 0 {
-		return nil, errors.New(fmt.Sprintf("series result: %v %s", s.Ret, s.Msg))
+		return nil, fmt.Errorf("series result: %v %s", s.Ret, s.Msg)
 	}
-	if s.Data.ModuleListData == nil || len(s.Data.ModuleListData) <= 0 {
-		return nil, errors.New("empty ModuleListData")
+	if len(s.Data.ModuleListData) <= 0 {
+		return nil, fmt.Errorf("empty ModuleListData")
 	}
 	d := s.Data.ModuleListData[0]
-	if d.ModuleData == nil || len(d.ModuleData) <= 0 {
+	if len(d.ModuleData) <= 0 {
 		return nil, errors.New("empty ModuleData")
 	}
 
 	piece := d.ModuleData[0].ItemDataLists.ItemData
-	if piece == nil || len(piece) <= 0 {
+	if len(piece) <= 0 {
 		return eps, nil
 	}
 
@@ -311,7 +312,7 @@ func (c *client) Media(id string) (*danmaku.Media, error) {
 	if err != nil {
 		return nil, err
 	}
-	if infoItems == nil || len(infoItems) < 1 {
+	if len(infoItems) < 1 {
 		return nil, fmt.Errorf("no base info found: %s", id)
 	}
 	info := infoItems[0].ItemParams

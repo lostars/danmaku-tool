@@ -43,10 +43,10 @@ func (c *realTimeData) Finalize() error {
 	if err != nil {
 		return fmt.Errorf("failed to create data file: %w", err)
 	}
-	defer file.Close()
+	defer utils.SafeClose(file)
 
 	gz := gzip.NewWriter(file)
-	defer gz.Close()
+	defer utils.SafeClose(gz)
 
 	if e := gob.NewEncoder(gz).Encode(c); e != nil {
 		return fmt.Errorf("failed to encode data: %w", e)
@@ -69,13 +69,13 @@ func (c *realTimeData) Load() (bool, error) {
 		c.IdAllocator = int64(1)
 		return false, err
 	}
-	defer file.Close()
+	defer utils.SafeClose(file)
 
 	gz, err := gzip.NewReader(file)
 	if err != nil {
 		return false, fmt.Errorf("failed to decode data: %w", err)
 	}
-	defer gz.Close()
+	defer utils.SafeClose(gz)
 
 	if e := gob.NewDecoder(gz).Decode(c); e != nil {
 		return false, fmt.Errorf("failed to decode data: %w", e)
@@ -128,7 +128,7 @@ func (c *realTimeData) Match(param MatchParam) (*DanDanResult, error) {
 	media := danmaku.MatchMedia(searchParam)
 	// 客户端只会使用第一个结果 但依旧匹配所有搜索结果用于接口调试
 	for _, m := range media {
-		if m.Episodes == nil || len(m.Episodes) == 0 {
+		if len(m.Episodes) == 0 {
 			continue
 		}
 		if searchMovies {

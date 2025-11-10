@@ -19,7 +19,7 @@ type FPropertyRegister interface {
 }
 
 func (f *FProperty[T]) RegisterCompletion(cmd *cobra.Command) {
-	if f.Options != nil && len(f.Options) > 0 {
+	if len(f.Options) > 0 {
 		_ = cmd.RegisterFlagCompletionFunc(f.Flag, func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 			return f.Options, cobra.ShellCompDirectiveNoFileComp
 		})

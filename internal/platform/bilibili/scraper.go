@@ -122,7 +122,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 				只要不是电影类型都按照剧集处理
 			2. 无EP信息 从url解析epId 则只可能是电影一类单视频
 		*/
-		if bangumi.EPs != nil && len(bangumi.EPs) > 0 {
+		if len(bangumi.EPs) > 0 {
 			if isSeries(bangumi.MediaType) {
 				for i, ep := range bangumi.EPs {
 					// 如果发现 ep.Title 不是从1开始，常见的就是 第二季 36集 开始计数

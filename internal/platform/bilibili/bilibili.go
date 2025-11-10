@@ -3,8 +3,8 @@ package bilibili
 import (
 	"compress/gzip"
 	"danmaku-tool/internal/danmaku"
+	"danmaku-tool/internal/utils"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -91,9 +91,9 @@ func (c *client) searchByType(searchType string, keyword string) (*SearchResult,
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer utils.SafeClose(resp.Body)
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New(fmt.Sprintf("http status: %s", resp.Status))
+		return nil, fmt.Errorf("http status: %s", resp.Status)
 	}
 
 	var result SearchResult
@@ -102,7 +102,7 @@ func (c *client) searchByType(searchType string, keyword string) (*SearchResult,
 		return nil, err
 	}
 	if result.Code != 0 {
-		return nil, errors.New(fmt.Sprintf("http result code: %v %s", result.Code, result.Message))
+		return nil, fmt.Errorf("http result code: %v %s", result.Code, result.Message)
 	}
 
 	return &result, nil
@@ -126,7 +126,7 @@ func (c *client) baseInfo(epId string, ssId string) (*SeriesInfo, error) {
 	if err != nil {
 		return nil, fmt.Errorf("get season err: %s", err.Error())
 	}
-	defer resp.Body.Close()
+	defer utils.SafeClose(resp.Body)
 
 	var series SeriesInfo
 	err = json.NewDecoder(resp.Body).Decode(&series)
@@ -163,7 +163,7 @@ func (c *client) scrape(oid, pid, segmentIndex int64) []*DanmakuElem {
 		c.common.Logger.Info(fmt.Sprintf("request failed: %s", err))
 		return nil
 	}
-	defer resp.Body.Close()
+	defer utils.SafeClose(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
 		c.common.Logger.Info("request not ok", "code", resp.Status)
@@ -192,7 +192,7 @@ func (c *client) scrape(oid, pid, segmentIndex int64) []*DanmakuElem {
 		c.common.Logger.Error(fmt.Sprintf("failed to create gzip reader: %v", err))
 		return nil
 	}
-	defer gzipReader.Close()
+	defer utils.SafeClose(gzipReader)
 	reply := &DmSegMobileReply{}
 	jsonBytes, err := io.ReadAll(gzipReader)
 	if err != nil {

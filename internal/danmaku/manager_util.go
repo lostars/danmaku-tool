@@ -75,7 +75,7 @@ func (p *PlatformClient) DoReq(req *http.Request) (*http.Response, error) {
 	return p.HttpClient.Do(req)
 }
 
-var SeriesRegex = regexp.MustCompile("(.*)\\sS(\\d{1,3})E(\\d{1,3})$")
+var SeriesRegex = regexp.MustCompile(`(.*)\sS(\d{1,3})E(\d{1,3})$`)
 var ChineseNumber = "一|二|三|四|五|六|七|八|九|十|十一|十二|十三|十四|十五|十六|十七|十八|十九|二十"
 var ChineseNumberSlice = strings.Split(ChineseNumber, "|")
 var MarkRegex = regexp.MustCompile(`[\p{P}\p{S}]`)
