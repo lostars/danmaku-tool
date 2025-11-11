@@ -36,7 +36,7 @@ func scraperCmd() *cobra.Command {
 		err := p.Scrape(id)
 		utils.DebugLog(scrapeCmdC, "scrape cmd done", "cost_ms", time.Since(start).Milliseconds())
 		if err != nil {
-			utils.InfoLog(scrapeCmdC, err.Error())
+			utils.ErrorLog(scrapeCmdC, err.Error())
 		}
 
 		return nil
@@ -45,7 +45,7 @@ func scraperCmd() *cobra.Command {
 	return cmd
 }
 
-var scrapeCmdC = "scrape_cmd"
+const scrapeCmdC = "scrape_cmd"
 
 func init() {
 	rootCmd.AddCommand(scraperCmd())

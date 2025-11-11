@@ -105,7 +105,7 @@ func (c *client) searchByType(searchType string, keyword string) (*SearchResult,
 		return nil, err
 	}
 	if result.Code != 0 {
-		return nil, fmt.Errorf("http result code: %v %s", result.Code, result.Message)
+		return nil, fmt.Errorf("searchByType: %v %s", result.Code, result.Message)
 	}
 
 	return &result, nil
@@ -123,18 +123,18 @@ func (c *client) baseInfo(epId string, ssId string) (*SeriesInfo, error) {
 	api := "https://api.bilibili.com/pgc/view/web/season?" + params.Encode()
 	req, err := http.NewRequest(http.MethodGet, api, nil)
 	if err != nil {
-		return nil, fmt.Errorf("create season request err: %s", err.Error())
+		return nil, err
 	}
 	resp, err := c.common.DoReq(req)
 	if err != nil {
-		return nil, fmt.Errorf("get season err: %s", err.Error())
+		return nil, err
 	}
 	defer utils.SafeClose(resp.Body)
 
 	var series SeriesInfo
 	err = json.NewDecoder(resp.Body).Decode(&series)
 	if err != nil {
-		return nil, fmt.Errorf("decode season resp err: %s", err.Error())
+		return nil, err
 	}
 	if series.Code != 0 {
 		return nil, fmt.Errorf("season resp error code: %v, message: %s", series.Code, series.Message)
@@ -169,7 +169,7 @@ func (c *client) scrape(oid, pid, segmentIndex int64) []*DanmakuElem {
 	defer utils.SafeClose(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
-		utils.ErrorLog(danmaku.Bilibili, "request not ok", "code", resp.Status)
+		utils.ErrorLog(danmaku.Bilibili, fmt.Sprintf("scrape segment status: %s", resp.Status))
 		return nil
 	}
 

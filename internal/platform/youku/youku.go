@@ -1,7 +1,6 @@
 package youku
 
 import (
-	"danmaku-tool/internal/config"
 	"danmaku-tool/internal/danmaku"
 	"danmaku-tool/internal/utils"
 	"encoding/json"
@@ -9,7 +8,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -132,38 +130,6 @@ func (c *client) scrapeDanmaku(vid string, segmentsLen int) []*danmaku.StandardD
 	return result
 }
 
-func (c *client) scrapeVideo(vid string) {
-	info, _, err := c.videoInfo(vid)
-	if err != nil {
-		utils.ErrorLog(danmaku.Youku, fmt.Sprintf("%s video info error", err.Error()))
-		return
-	}
-
-	durationInSeconds, err := strconv.ParseFloat(info.Seconds, 64)
-	if err != nil {
-		return
-	}
-	// 1分钟分片
-	segmentsLen := int(durationInSeconds/60 + 1)
-
-	var result = c.scrapeDanmaku(vid, segmentsLen)
-
-	serializer := &danmaku.SerializerData{
-		EpisodeId:       vid,
-		Data:            result,
-		DurationInMills: int64(durationInSeconds * 1000),
-	}
-
-	path := filepath.Join(config.GetConfig().SavePath, danmaku.Youku, info.ShowId)
-	title := ""
-	epId, err := strconv.ParseInt(info.ShowVideoStage, 10, 64)
-	if err == nil && epId > 0 {
-		title = strconv.FormatInt(epId, 10) + "_"
-	}
-	filename := title + vid
-	danmaku.WriteFile(danmaku.Youku, serializer, path, filename)
-}
-
 type task struct {
 	vid     string
 	segment int
@@ -240,6 +206,7 @@ func (c *client) getVID(showId string) string {
 	}
 	resp, err := c.common.DoReq(req)
 	if err != nil {
+		utils.WarnLog(danmaku.Youku, fmt.Sprintf("get vid req fail: %s", err.Error()))
 		return ""
 	}
 	defer utils.SafeClose(resp.Body)
@@ -249,6 +216,7 @@ func (c *client) getVID(showId string) string {
 	if len(matches) > 1 {
 		return matches[1]
 	}
+	utils.WarnLog(danmaku.Youku, fmt.Sprintf("get vid match fail: %s", location))
 	return ""
 }
 

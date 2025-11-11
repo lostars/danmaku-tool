@@ -100,7 +100,6 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 
 			// 黑名单 基本都是外站视频
 			if tencentExcludeRegex.MatchString(v.VideoInfo.SubTitle) {
-				utils.InfoLog(danmaku.Tencent, "title in blacklist", "subTitle", v.VideoInfo.SubTitle)
 				return
 			}
 			if v.VideoInfo.Year <= 0 || !param.MatchYear(v.VideoInfo.Year) {
@@ -244,12 +243,7 @@ func (c *client) Scrape(idStr string) error {
 		}
 
 		path := filepath.Join(config.GetConfig().SavePath, danmaku.Tencent, ep.ItemParams.CID)
-		title := ""
-		if _, err := strconv.ParseInt(ep.ItemParams.Title, 10, 64); err == nil {
-			title = ep.ItemParams.Title + "_"
-		}
-		filename := title + ep.ItemParams.VID
-		danmaku.WriteFile(danmaku.Tencent, serializer, path, filename)
+		danmaku.WriteFile(danmaku.Tencent, serializer, path, ep.ItemParams.VID)
 
 		utils.InfoLog(danmaku.Tencent, "ep scraped done", "vid", ep.ItemParams.VID, "size", len(data))
 	}

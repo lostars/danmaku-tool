@@ -163,6 +163,7 @@ func (c *realTimeData) GetDanmaku(param CommentParam) (*CommentResult, error) {
 	}
 	data, err := scraper.GetDanmaku(epId)
 	if err != nil {
+		utils.ErrorLog(realTimeServiceC, err.Error())
 		return nil, err
 	}
 
@@ -301,6 +302,7 @@ func (c *realTimeData) AnimeInfo(id string) (*DanDanAnimeInfoResult, error) {
 	}
 	media, err := mediaService.Media(ssId)
 	if err != nil {
+		utils.ErrorLog(realTimeServiceC, err.Error())
 		return nil, err
 	}
 

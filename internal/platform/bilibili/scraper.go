@@ -70,9 +70,7 @@ func (c *client) Scrape(realId string) error {
 			ResY:            ep.Dimension.Height,
 		}
 
-		filename := strconv.FormatInt(ep.EPId, 10)
-		danmaku.WriteFile(danmaku.Bilibili, serializer, savePath, filename)
-
+		danmaku.WriteFile(danmaku.Bilibili, serializer, savePath, strconv.FormatInt(ep.EPId, 10))
 		utils.InfoLog(danmaku.Bilibili, "ep scraped done", "epId", ep.EPId, "size", len(data))
 	}
 
@@ -98,9 +96,11 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 	if e2 == nil {
 		result.Data.Result = append(result.Data.Result, result2.Data.Result...)
 	}
+	if result.Code != 0 {
+		return data, fmt.Errorf("%d %s", result.Code, result.Message)
+	}
 	if result.Data.Result == nil {
-		utils.InfoLog(danmaku.Bilibili, "search no result", "keyword", keyword)
-		return data, nil
+		return data, fmt.Errorf("search nil result")
 	}
 
 	for _, bangumi := range result.Data.Result {

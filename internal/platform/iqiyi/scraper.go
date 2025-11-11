@@ -179,7 +179,7 @@ func (c *client) GetDanmaku(id string) ([]*danmaku.StandardDanmaku, error) {
 func (c *client) Scrape(idStr string) error {
 	tvId := parseToNumberId(idStr)
 	if tvId <= 0 {
-		return nil
+		return fmt.Errorf("invalid id: %s", idStr)
 	}
 	utils.DebugLog(danmaku.Iqiyi, fmt.Sprintf("%s tvid: %d", idStr, tvId))
 	baseInfo, err := c.videoBaseInfo(tvId)
@@ -195,12 +195,7 @@ func (c *client) Scrape(idStr string) error {
 	}
 
 	path := filepath.Join(config.GetConfig().SavePath, danmaku.Iqiyi, strconv.FormatInt(baseInfo.Data.AlbumId, 10))
-	title := ""
-	if baseInfo.Data.Order > 0 {
-		title = strconv.FormatInt(int64(baseInfo.Data.Order), 10) + "_"
-	}
-	filename := title + strconv.FormatInt(baseInfo.Data.TVId, 10)
-	danmaku.WriteFile(danmaku.Iqiyi, serializer, path, filename)
+	danmaku.WriteFile(danmaku.Iqiyi, serializer, path, strconv.FormatInt(baseInfo.Data.TVId, 10))
 
 	return nil
 }

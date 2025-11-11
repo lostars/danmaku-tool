@@ -181,11 +181,9 @@ func GetInitializers() []interface{} {
 }
 
 func GetPlatforms() []string {
-	var result []string
-	for _, v := range adapter.scrapers {
-		result = append(result, string(v.Platform()))
+	return []string{
+		Bilibili, Tencent, Youku, Iqiyi,
 	}
-	return result
 }
 
 func RegisterScraper(s Scraper) {

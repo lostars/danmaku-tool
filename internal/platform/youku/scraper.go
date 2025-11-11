@@ -1,18 +1,40 @@
 package youku
 
 import (
+	"danmaku-tool/internal/config"
 	"danmaku-tool/internal/danmaku"
 	"danmaku-tool/internal/utils"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
 
-func (c *client) Scrape(id string) error {
+func (c *client) Scrape(vid string) error {
+	info, _, err := c.videoInfo(vid)
+	if err != nil {
+		return err
+	}
 
-	c.scrapeVideo(id)
+	durationInSeconds, err := strconv.ParseFloat(info.Seconds, 64)
+	if err != nil {
+		return err
+	}
+	// 1分钟分片
+	segmentsLen := int(durationInSeconds/60 + 1)
+
+	var result = c.scrapeDanmaku(vid, segmentsLen)
+
+	serializer := &danmaku.SerializerData{
+		EpisodeId:       vid,
+		Data:            result,
+		DurationInMills: int64(durationInSeconds * 1000),
+	}
+
+	path := filepath.Join(config.GetConfig().SavePath, danmaku.Youku, info.ShowId)
+	danmaku.WriteFile(danmaku.Youku, serializer, path, vid)
 
 	return nil
 }
@@ -29,7 +51,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 		"appScene":   "mobile_multi",
 		// 只搜索 影视 分类
 		"categories": "2007",
-		// 重要 不同版本返回了不同字段 注意调试时候和浏览器环境保持一致
+		// 重要 不同版本返回了不同字段 注意和调试时候保持一致
 		"sdkver":       313,
 		"pcKuFlixMode": 1,
 	}
@@ -166,7 +188,6 @@ func (c *client) GetDanmaku(id string) ([]*danmaku.StandardDanmaku, error) {
 
 	info, _, err := c.videoInfo(id)
 	if err != nil {
-		utils.ErrorLog(danmaku.Youku, fmt.Sprintf("%s video info error", err.Error()))
 		return nil, err
 	}
 
