@@ -230,6 +230,17 @@ func (p MatchParam) MatchYear(year int) bool {
 	return true
 }
 
+func (p MatchParam) MatchYearString(year string) (int, bool) {
+	y, e := strconv.ParseInt(year, 10, 64)
+	if e != nil {
+		return 0, false
+	}
+	if p.MatchYear(int(y)) {
+		return int(y), true
+	}
+	return int(y), false
+}
+
 func InitPlatformClient(platform Platform) (*PlatformClient, error) {
 	conf := config.GetConfig().GetPlatformConfig(string(platform))
 	if conf == nil || conf.Name == "" {

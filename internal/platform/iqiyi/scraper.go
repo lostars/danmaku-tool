@@ -51,11 +51,9 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 				if intent.SiteId != "iqiyi" {
 					continue
 				}
-				year, e := strconv.ParseInt(intent.Superscript, 10, 64)
-				if e == nil {
-					if !param.MatchYear(int(year)) {
-						continue
-					}
+				year, ok := param.MatchYearString(intent.Superscript)
+				if !ok {
+					continue
 				}
 				match := param.MatchTitle(intent.Title)
 				c.common.Logger.Debug(fmt.Sprintf("[%s] match [%s]: %v", intent.Title, param.Title, match))
@@ -68,6 +66,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 					continue
 				}
 				if m, e := c.Media(albumMatches[1]); e == nil {
+					m.Year = year
 					media = append(media, m)
 				} else {
 					c.common.Logger.Error(e.Error())
@@ -83,11 +82,8 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 			continue
 		}
 		// Subtitle 是年份
-		year, err := strconv.ParseInt(t.AlbumInfo.Subtitle, 10, 64)
-		if err != nil {
-			continue
-		}
-		if !param.MatchYear(int(year)) {
+		year, ok := param.MatchYearString(t.AlbumInfo.Subtitle)
+		if !ok {
 			continue
 		}
 
@@ -157,7 +153,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 			Platform: danmaku.Iqiyi,
 			Title:    t.AlbumInfo.Title,
 			Cover:    t.AlbumInfo.Img,
-			Year:     int(year),
+			Year:     year,
 			Desc:     t.AlbumInfo.Introduction,
 			Episodes: eps,
 		}
