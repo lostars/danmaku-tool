@@ -119,19 +119,23 @@ func NormalConvert(s *SerializerData) *DataXML {
 	return result
 }
 
+const serializerC = "serializer"
+
 func WriteFile(platform Platform, data *SerializerData, savePath, filename string) {
-	conf := config.GetConfig().GetPlatformConfig(string(platform))
+	conf := config.GetPlatformConfig(string(platform))
 	if conf == nil {
+		utils.ErrorLog(serializerC, "config not exists", "platform", platform)
 		return
 	}
 	// 合并弹幕
-	mergedMills := config.GetConfig().GetPlatformConfig(string(platform)).MergeDanmakuInMills
+	mergedMills := conf.MergeDanmakuInMills
 	if mergedMills > 0 {
 		data.Data = MergeDanmaku(data.Data, mergedMills, data.DurationInMills)
 	}
 	for _, s := range conf.Persists {
 		serializer := adapter.serializers[s]
 		if serializer == nil {
+			utils.ErrorLog(serializerC, "serializer not impl", "platform", platform, "serializer", s)
 			continue
 		}
 
@@ -140,7 +144,7 @@ func WriteFile(platform Platform, data *SerializerData, savePath, filename strin
 		data.filename = filename
 		err := serializer.Serialize(data)
 		if err != nil {
-			utils.InfoLog("serializer", fmt.Sprintf("%s %s serialize error: %s", platform, serializer.Type(), err.Error()))
+			utils.ErrorLog(serializerC, err.Error(), "platform", platform, "serializer", serializer.Type())
 		}
 	}
 }

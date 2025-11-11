@@ -243,7 +243,7 @@ func (p MatchParam) MatchYearString(year string) (int, bool) {
 }
 
 func InitPlatformClient(platform Platform) (*PlatformClient, error) {
-	conf := config.GetConfig().GetPlatformConfig(string(platform))
+	conf := config.GetPlatformConfig(string(platform))
 	if conf == nil || conf.Name == "" {
 		return nil, fmt.Errorf("[%s] is not configured", platform)
 	}

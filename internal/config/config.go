@@ -64,8 +64,8 @@ func loadDefaultConfig(path string) []byte {
 	return nil
 }
 
-func (c *DanmakuConfig) GetPlatformConfig(platform string) *PlatformConfig {
-	for _, v := range c.Platforms {
+func GetPlatformConfig(platform string) *PlatformConfig {
+	for _, v := range GetConfig().Platforms {
 		if v.Name == platform {
 			return &v
 		}

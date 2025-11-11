@@ -23,7 +23,7 @@ func MatchMedia(param MatchParam) []*Media {
 		search, err := SearchEmby(param.Title, param.SeasonId)
 		if err == nil && len(search.Items) > 0 {
 			if len(search.Items) > 1 {
-				utils.InfoLog(searchMediaC, fmt.Sprintf("[%s] match more than 1 emby media", param.Title))
+				utils.WarnLog(searchMediaC, fmt.Sprintf("[%s] match more than 1 emby media", param.Title))
 			}
 			// 默认取第一个
 			item := search.Items[0]
@@ -76,10 +76,9 @@ func MatchMedia(param MatchParam) []*Media {
 	wg.Wait()
 
 	// 结果排序
-	conf := config.GetConfig()
 	sort.Slice(result, func(i, j int) bool {
-		a := conf.GetPlatformConfig(string(result[i].Platform))
-		b := conf.GetPlatformConfig(string(result[j].Platform))
+		a := config.GetPlatformConfig(string(result[i].Platform))
+		b := config.GetPlatformConfig(string(result[j].Platform))
 		return a.Priority < b.Priority
 	})
 

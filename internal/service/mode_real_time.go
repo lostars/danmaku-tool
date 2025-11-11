@@ -167,7 +167,7 @@ func (c *realTimeData) GetDanmaku(param CommentParam) (*CommentResult, error) {
 	}
 
 	// merge danmaku
-	mergeMills := config.GetConfig().GetPlatformConfig(string(scraper.Platform())).MergeDanmakuInMills
+	mergeMills := config.GetPlatformConfig(string(scraper.Platform())).MergeDanmakuInMills
 	if mergeMills > 0 {
 		data = danmaku.MergeDanmaku(data, mergeMills, 0)
 	}

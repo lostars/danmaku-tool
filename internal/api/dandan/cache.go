@@ -55,7 +55,7 @@ func CacheMiddleware(next http.Handler) http.Handler {
 			cacheData := rr.body.Bytes()
 			success := cache.SetWithTTL(cacheKey, cacheData, int64(len(cacheData)), time.Second*3600) // 1h to expire
 			if !success {
-				utils.DebugLog(dandanApiCacheC, "cache set failed", "cacheKey", cacheKey)
+				utils.ErrorLog(dandanApiCacheC, "cache set failed", "cacheKey", cacheKey)
 			}
 		}
 	})
