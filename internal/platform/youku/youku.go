@@ -70,7 +70,6 @@ func (c *client) videoInfo(vid string) (*VideoInfoFromHtml, *ShowInfoFromHtml, e
 	if len(showMatches) < 2 {
 		return nil, nil, fmt.Errorf("%s match show info json fail from html", vid)
 	}
-	fmt.Println(showMatches[1])
 	var showInfo ShowInfoFromHtml
 	err = json.Unmarshal([]byte(showMatches[1]), &showInfo)
 	if err != nil {

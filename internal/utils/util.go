@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"fmt"
 	"io"
 	"regexp"
 )
@@ -14,6 +13,6 @@ func StripHTMLTags(htmlStr string) string {
 
 func SafeClose(c io.Closer) {
 	if e := c.Close(); e != nil {
-		fmt.Println(e.Error())
+		ErrorLog("utils", e.Error())
 	}
 }

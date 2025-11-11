@@ -6,8 +6,6 @@ import (
 	"danmaku-tool/internal/danmaku"
 	"danmaku-tool/internal/service"
 	"danmaku-tool/internal/utils"
-	"fmt"
-	"os"
 )
 
 func Init() {
@@ -19,7 +17,7 @@ func Init() {
 	for _, init := range danmaku.GetInitializers() {
 		if i, ok := init.(danmaku.Initializer); ok {
 			if err := i.Init(); err != nil {
-				_, _ = fmt.Fprintf(os.Stdout, "initialize info: %v\n", err)
+				utils.InfoLog("init", err.Error())
 			}
 		}
 	}
@@ -30,7 +28,7 @@ func InitServer() {
 	for _, init := range danmaku.GetInitializers() {
 		if i, ok := init.(danmaku.ServerInitializer); ok {
 			if err := i.ServerInit(); err != nil {
-				_, _ = fmt.Fprintf(os.Stdout, "server initialize info: %v\n", err)
+				utils.ErrorLog("init_server", err.Error())
 			}
 		}
 	}
@@ -41,7 +39,7 @@ func Release() {
 	if re, ok := mode.(danmaku.Finalizer); ok {
 		err := re.Finalize()
 		if err != nil {
-			_, _ = fmt.Fprintf(os.Stdout, "release source error: %v\n", err)
+			utils.ErrorLog("release", err.Error())
 		}
 	}
 }

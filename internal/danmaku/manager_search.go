@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-const searchMediaC = "search-media"
+const searchMediaC = "search_media"
 
 func MatchMedia(param MatchParam) []*Media {
 	// 如果未设置季信息，则从标题中解析

@@ -3,13 +3,10 @@ package service
 import (
 	"danmaku-tool/internal/config"
 	"danmaku-tool/internal/danmaku"
-	"sync"
 )
 
 func init() {
-	cacheMapper := &realTimeData{
-		lock: sync.RWMutex{},
-	}
+	cacheMapper := &realTimeData{}
 	danmaku.RegisterInitializer(cacheMapper)
 	sourceModes = map[string]DandanSourceMode{string(cacheMapper.Mode()): cacheMapper}
 }

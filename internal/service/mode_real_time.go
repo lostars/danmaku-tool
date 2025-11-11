@@ -20,10 +20,7 @@ import (
 	episodeId -> memory_cache -> [platform]\x00[id]\x00[id] -> platform scraper
 
 	最终用于获取弹幕的都是各平台视频id字符串，方便后续服务以无状态运行。
-
-	唯一的问题就是每次重启服务会导致同一集的 episodeId 发生变化，因为这个完全是按照请求的次序来编码id的。
-	同时依赖于api /match /comment/{id} 的成对调用，match命中后缓存映射关系，然后返回映射好的 episodeId。
-	有些前端js插件会缓存 episodeId，服务重启后映射关系丢失，导致查询不到弹幕。
+	映射关系通过gob写入文件并gzip压缩进行持久化
 
 	memory_cache 指的是 episodeId 和 实际剧集信息的映射关系，并不是指缓存弹幕数据或者剧集信息本身。
 */
@@ -50,7 +47,7 @@ func (c *realTimeData) Finalize() error {
 		return fmt.Errorf("failed to encode data: %w", e)
 	}
 
-	utils.InfoLog(realTimeServiceC, "save map info to file success")
+	utils.InfoLog(realTimeServiceC, "save mapping cache to file success")
 
 	return nil
 }
@@ -195,15 +192,18 @@ func (c *realTimeData) Mode() Mode {
 }
 
 type realTimeData struct {
+	// 持久化的字段需要export
 	ForwardMap  map[string]int64
 	ReverseMap  map[int64]string
 	IdAllocator int64
 	lock        sync.RWMutex
 }
 
+const keySeparator = "\x00"
+
 func combineKey(platform, ssID, epID string) string {
 	// ASCII 0
-	return platform + "\x00" + ssID + "\x00" + epID
+	return platform + keySeparator + ssID + keySeparator + epID
 }
 
 func (c *realTimeData) getGlobalID(platform, ssID, epID string) int64 {
@@ -245,7 +245,7 @@ func (c *realTimeData) decodeGlobalID(globalID int64) (platform string, ssId, ep
 	if !found {
 		return "", "", "", false
 	}
-	parts := strings.Split(key, "\x00")
+	parts := strings.Split(key, keySeparator)
 	if len(parts) == 3 {
 		return parts[0], parts[1], parts[2], true
 	}
