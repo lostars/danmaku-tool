@@ -100,7 +100,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 
 			// 黑名单 基本都是外站视频
 			if tencentExcludeRegex.MatchString(v.VideoInfo.SubTitle) {
-				c.common.Logger.Info("title in blacklist", "subTitle", v.VideoInfo.SubTitle)
+				utils.InfoLog(danmaku.Tencent, "title in blacklist", "subTitle", v.VideoInfo.SubTitle)
 				return
 			}
 			if v.VideoInfo.Year <= 0 || !param.MatchYear(v.VideoInfo.Year) {
@@ -108,7 +108,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 			}
 
 			match := param.MatchTitle(v.VideoInfo.Title)
-			c.common.Logger.Debug(fmt.Sprintf("[%s] match [%s]: %v", v.VideoInfo.Title, param.Title, match))
+			utils.DebugLog(danmaku.Tencent, fmt.Sprintf("[%s] match [%s]: %v", v.VideoInfo.Title, param.Title, match))
 			if !match {
 				return
 			}
@@ -126,7 +126,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 
 			seriesItems, e := c.series(v.Doc.Id)
 			if e != nil {
-				c.common.Logger.Error(e.Error())
+				utils.ErrorLog(danmaku.Tencent, e.Error())
 				return
 			}
 
@@ -213,7 +213,7 @@ func (c *client) Scrape(idStr string) error {
 	if err != nil {
 		return err
 	}
-	c.common.Logger.Info("get ep done", "cid", cid, "size", len(eps))
+	utils.InfoLog(danmaku.Tencent, "get ep done", "cid", cid, "size", len(eps))
 	if len(eps) <= 0 {
 		return nil
 	}
@@ -229,7 +229,7 @@ func (c *client) Scrape(idStr string) error {
 
 		data, e := c.getDanmakuByVid(ep.ItemParams.VID)
 		if e != nil {
-			c.common.Logger.Error(fmt.Sprintf("get danmaku by vid error: %s", e.Error()))
+			utils.ErrorLog(danmaku.Tencent, fmt.Sprintf("get danmaku by vid error: %s", e.Error()))
 			continue
 		}
 		serializer := &danmaku.SerializerData{
@@ -240,7 +240,7 @@ func (c *client) Scrape(idStr string) error {
 		if err == nil {
 			serializer.DurationInMills = v * 1000
 		} else {
-			c.common.Logger.Error("duration is not number", "vid", ep.ItemParams.VID, "duration", ep.ItemParams.Duration)
+			utils.ErrorLog(danmaku.Tencent, "duration is not number", "vid", ep.ItemParams.VID, "duration", ep.ItemParams.Duration)
 		}
 
 		path := filepath.Join(config.GetConfig().SavePath, danmaku.Tencent, ep.ItemParams.CID)
@@ -251,10 +251,10 @@ func (c *client) Scrape(idStr string) error {
 		filename := title + ep.ItemParams.VID
 		danmaku.WriteFile(danmaku.Tencent, serializer, path, filename)
 
-		c.common.Logger.Info("ep scraped done", "vid", ep.ItemParams.VID, "size", len(data))
+		utils.InfoLog(danmaku.Tencent, "ep scraped done", "vid", ep.ItemParams.VID, "size", len(data))
 	}
 
-	c.common.Logger.Info("danmaku scraped done", "cid", cid)
+	utils.InfoLog(danmaku.Tencent, "danmaku scraped done", "cid", cid)
 
 	return nil
 }

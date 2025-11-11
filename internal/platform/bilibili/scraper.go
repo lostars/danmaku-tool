@@ -3,6 +3,7 @@ package bilibili
 import (
 	"danmaku-tool/internal/config"
 	"danmaku-tool/internal/danmaku"
+	"danmaku-tool/internal/utils"
 	"fmt"
 	"path"
 	"path/filepath"
@@ -34,7 +35,7 @@ func (c *client) Scrape(realId string) error {
 		return err
 	}
 
-	c.common.Logger.Info("scrape start", "id", realId)
+	utils.InfoLog(danmaku.Bilibili, "scrape start", "id", realId)
 	// savePath/{platform}/{ssid}/{epid}.xml : ./bilibili/1234/11234
 	savePath := filepath.Join(config.GetConfig().SavePath, danmaku.Bilibili, strconv.FormatInt(series.Result.SeasonId, 10))
 
@@ -49,13 +50,13 @@ func (c *client) Scrape(realId string) error {
 
 		// 排除掉预告，b站会把预告也放入其中
 		if ep.SectionType == 1 {
-			c.common.Logger.Debug("scrape skipped because of section type of 1", "epId", ep.EPId)
+			utils.DebugLog(danmaku.Bilibili, "scrape skipped because of section type of 1", "epId", ep.EPId)
 			continue
 		}
 
 		data, err := c.GetDanmaku(strconv.FormatInt(ep.EPId, 10))
 		if err != nil {
-			c.common.Logger.Info(fmt.Sprintf("%d scrape error: %s", ep.EPId, err.Error()))
+			utils.InfoLog(danmaku.Bilibili, fmt.Sprintf("%d scrape error: %s", ep.EPId, err.Error()))
 			continue
 		}
 		epTitle = ep.Title
@@ -72,14 +73,14 @@ func (c *client) Scrape(realId string) error {
 		filename := strconv.FormatInt(ep.EPId, 10)
 		danmaku.WriteFile(danmaku.Bilibili, serializer, savePath, filename)
 
-		c.common.Logger.Info("ep scraped done", "epId", ep.EPId, "size", len(data))
+		utils.InfoLog(danmaku.Bilibili, "ep scraped done", "epId", ep.EPId, "size", len(data))
 	}
 
 	var t = series.Result.Title
 	if isEP {
 		t += epTitle
 	}
-	c.common.Logger.Info("danmaku scraped done", "title", t)
+	utils.InfoLog(danmaku.Bilibili, "danmaku scraped done", "title", t)
 
 	return nil
 }
@@ -98,7 +99,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 		result.Data.Result = append(result.Data.Result, result2.Data.Result...)
 	}
 	if result.Data.Result == nil {
-		c.common.Logger.Info("search no result", "keyword", keyword)
+		utils.InfoLog(danmaku.Bilibili, "search no result", "keyword", keyword)
 		return data, nil
 	}
 
@@ -109,7 +110,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 		}
 
 		match := param.MatchTitle(bangumi.Title)
-		c.common.Logger.Debug(fmt.Sprintf("[%s] match [%s]: %v", bangumi.Title, param.Title, match))
+		utils.DebugLog(danmaku.Bilibili, fmt.Sprintf("[%s] match [%s]: %v", bangumi.Title, param.Title, match))
 		if !match {
 			continue
 		}
@@ -251,7 +252,7 @@ func (c *client) GetDanmaku(realId string) ([]*danmaku.StandardDanmaku, error) {
 		wg.Wait()
 	}
 
-	c.common.Logger.Info("get danmaku done", "size", len(result))
+	utils.InfoLog(danmaku.Bilibili, "get danmaku done", "size", len(result))
 
 	return result, nil
 }

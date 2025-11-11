@@ -5,7 +5,6 @@ import (
 	"danmaku-tool/internal/danmaku"
 	"danmaku-tool/internal/utils"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -91,7 +90,7 @@ func (c *client) series(cid string) ([]*SeriesItem, error) {
 	// 解析剧集信息，可能会有多个tab
 	tabStr := seriesResult.Data.ModuleListData[0].ModuleData[0].ModuleParams.Tabs
 	if tabStr == "" {
-		c.common.Logger.Debug("series has no tabs", "cid", cid)
+		utils.DebugLog(danmaku.Tencent, "series has no tabs", "cid", cid)
 		return eps, nil
 	}
 	var tabs []SeriesTab
@@ -112,12 +111,12 @@ func (c *client) series(cid string) ([]*SeriesItem, error) {
 			}
 			tabSeries, e := c.doSeriesRequest(cid, "", SeriesEPPageId, tab.PageContext)
 			if e != nil {
-				c.common.Logger.Error(e.Error())
+				utils.ErrorLog(danmaku.Tencent, e.Error())
 				return
 			}
 			d, e := tabSeries.series()
 			if e != nil {
-				c.common.Logger.Error(e.Error())
+				utils.ErrorLog(danmaku.Tencent, e.Error())
 				return
 			}
 
@@ -160,7 +159,7 @@ func (c *client) getDanmakuByVid(vid string) ([]*danmaku.StandardDanmaku, error)
 	if segmentResult.Data.SegmentIndex == nil || segmentsLen <= 0 {
 		return nil, fmt.Errorf("no segments vid: %s", vid)
 	}
-	c.common.Logger.Debug(fmt.Sprintf("danmaku segments size: %v", segmentsLen), "vid", vid, "size", segmentsLen)
+	utils.DebugLog(danmaku.Tencent, fmt.Sprintf("danmaku segments size: %v", segmentsLen), "vid", vid, "size", segmentsLen)
 
 	var result []*danmaku.StandardDanmaku
 	lock := sync.Mutex{}
@@ -208,12 +207,12 @@ func (c *client) scrape(vid, segment string) []*danmaku.StandardDanmaku {
 
 	req, err := http.NewRequest(http.MethodGet, api, nil)
 	if err != nil {
-		c.common.Logger.Error(err.Error())
+		utils.ErrorLog(danmaku.Tencent, err.Error())
 		return nil
 	}
 	resp, err := c.common.DoReq(req)
 	if err != nil {
-		c.common.Logger.Error(err.Error())
+		utils.ErrorLog(danmaku.Tencent, err.Error())
 		return nil
 	}
 	defer utils.SafeClose(resp.Body)
@@ -221,7 +220,7 @@ func (c *client) scrape(vid, segment string) []*danmaku.StandardDanmaku {
 	var danmakuResult DanmakuResult
 	err = json.NewDecoder(resp.Body).Decode(&danmakuResult)
 	if err != nil {
-		c.common.Logger.Error(err.Error())
+		utils.ErrorLog(danmaku.Tencent, err.Error())
 		return nil
 	}
 
@@ -229,7 +228,7 @@ func (c *client) scrape(vid, segment string) []*danmaku.StandardDanmaku {
 	for _, v := range danmakuResult.BarrageList {
 		offset, err := strconv.ParseInt(v.TimeOffset, 10, 64)
 		if err != nil {
-			c.common.Logger.Error("invalid offset", "vid", vid, "offset", v.TimeOffset)
+			utils.ErrorLog(danmaku.Tencent, "invalid offset", "vid", vid, "offset", v.TimeOffset)
 			continue
 		}
 
@@ -289,7 +288,7 @@ func (s *SeriesResult) series() ([]*SeriesItem, error) {
 	}
 	d := s.Data.ModuleListData[0]
 	if len(d.ModuleData) <= 0 {
-		return nil, errors.New("empty ModuleData")
+		return nil, fmt.Errorf("empty ModuleData")
 	}
 
 	piece := d.ModuleData[0].ItemDataLists.ItemData

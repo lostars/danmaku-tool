@@ -11,6 +11,8 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+const dandanApiC = "dandan_api"
+
 func CommentHandler(w http.ResponseWriter, r *http.Request) {
 
 	token := chi.URLParam(r, "token")
@@ -36,8 +38,7 @@ func CommentHandler(w http.ResponseWriter, r *http.Request) {
 	convert, _ := strconv.ParseBool(query.Get("chConvert"))
 	withRelated, _ := strconv.ParseBool(query.Get("withRelated"))
 
-	dandanLogger := utils.GetComponentLogger("dandan-api")
-	dandanLogger.Info("comment api requested", "token", token, "id", id)
+	utils.InfoLog(dandanApiC, "comment api requested", "token", token, "id", id)
 
 	mode := service.GetDandanSourceMode()
 	if mode == nil {
@@ -79,7 +80,7 @@ func MatchHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	result, err := mode.Match(param)
-	utils.GetComponentLogger("dandan-api").Debug(fmt.Sprintf("request original param: %v", param))
+	utils.DebugLog(dandanApiC, fmt.Sprintf("request original param: %v", param))
 	if err != nil {
 		api.ResponseJSON(w, http.StatusBadRequest, map[string]string{
 			"message": err.Error(),

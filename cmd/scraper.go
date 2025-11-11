@@ -4,7 +4,6 @@ import (
 	"danmaku-tool/cmd/flags"
 	"danmaku-tool/internal/danmaku"
 	"danmaku-tool/internal/utils"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -26,19 +25,18 @@ func scraperCmd() *cobra.Command {
 		Init()
 		id := args[0]
 		if id == "" {
-			return errors.New("id is empty")
+			return fmt.Errorf("id is empty")
 		}
 
 		var p = danmaku.GetScraper(platform.Value)
 		if p == nil {
 			return fmt.Errorf("unsupported platform: %s", platform.Value)
 		}
-		logger := utils.GetComponentLogger("scrape-cmd")
 		start := time.Now()
 		err := p.Scrape(id)
-		logger.Debug("scrape cmd done", "cost_ms", time.Since(start).Milliseconds())
+		utils.DebugLog(scrapeCmdC, "scrape cmd done", "cost_ms", time.Since(start).Milliseconds())
 		if err != nil {
-			logger.Info(err.Error())
+			utils.InfoLog(scrapeCmdC, err.Error())
 		}
 
 		return nil
@@ -46,6 +44,8 @@ func scraperCmd() *cobra.Command {
 
 	return cmd
 }
+
+var scrapeCmdC = "scrape_cmd"
 
 func init() {
 	rootCmd.AddCommand(scraperCmd())

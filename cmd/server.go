@@ -32,7 +32,6 @@ func serverCmd() *cobra.Command {
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		Init()
 		InitServer()
-		logger = utils.GetComponentLogger("web-server")
 		r := chi.NewRouter()
 
 		r.Use(LoggerMiddleware)
@@ -63,9 +62,9 @@ func serverCmd() *cobra.Command {
 		quit := make(chan os.Signal, 1)
 		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 		go func() {
-			logger.Info("web server started", "port", port)
+			utils.InfoLog(webServerC, "web server started", "port", port)
 			if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-				logger.Error("server failed to start", "error", err)
+				utils.ErrorLog(webServerC, "server failed to start", "error", err)
 				quit <- syscall.SIGTERM
 			}
 		}()
@@ -75,7 +74,7 @@ func serverCmd() *cobra.Command {
 		defer cancel()
 
 		if err := srv.Shutdown(ctx); err != nil {
-			logger.Error("server forced to shutdown", "error", err)
+			utils.ErrorLog(webServerC, "server forced to shutdown", "error", err)
 		}
 
 		Release()
@@ -98,25 +97,25 @@ func RecoverMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-var logger *slog.Logger
+const webServerC = "web_server"
 
 func LoggerMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		reqLogger := logger.With(
-			slog.String("http_method", r.Method),
-			slog.String("path", r.URL.Path),
-		)
 		requestId := r.Header.Get("X-Request-ID")
+		var requestAttr slog.Attr
 		if requestId != "" {
-			reqLogger = logger.With("request_id", requestId)
+			requestAttr = slog.String("request_id", requestId)
 		}
 
 		ww := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
 
 		next.ServeHTTP(ww, r)
 
-		reqLogger.Info("request completed",
+		utils.InfoLog(webServerC, "request completed",
+			slog.String("http_method", r.Method),
+			slog.String("path", r.URL.Path),
+			requestAttr,
 			slog.Int("status_code", ww.status),
 			slog.Int64("latency_ms", time.Since(start).Milliseconds()),
 		)

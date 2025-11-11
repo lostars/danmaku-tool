@@ -106,7 +106,7 @@ func (c *client) scrapeDanmaku(vid string, segmentsLen int) []*danmaku.StandardD
 			for t := range tasks {
 				data, e := c.scrape(t.vid, t.segment)
 				if e != nil {
-					c.common.Logger.Error(fmt.Sprintf("%s scrape segment %d error: %s", t.vid, t.segment, e.Error()))
+					utils.ErrorLog(danmaku.Youku, fmt.Sprintf("%s scrape segment %d error: %s", t.vid, t.segment, e.Error()))
 					continue
 				}
 				if len(data) <= 0 {
@@ -136,7 +136,7 @@ func (c *client) scrapeDanmaku(vid string, segmentsLen int) []*danmaku.StandardD
 func (c *client) scrapeVideo(vid string) {
 	info, _, err := c.videoInfo(vid)
 	if err != nil {
-		c.common.Logger.Error(fmt.Sprintf("%s video info error", err.Error()))
+		utils.ErrorLog(danmaku.Youku, fmt.Sprintf("%s video info error", err.Error()))
 		return
 	}
 

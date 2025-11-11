@@ -153,7 +153,7 @@ func (c *client) scrape(oid, pid, segmentIndex int64) []*DanmakuElem {
 
 	req, err := http.NewRequest(http.MethodGet, api, nil)
 	if err != nil {
-		c.common.Logger.Info(fmt.Sprintf("create request error: %s", err))
+		utils.ErrorLog(danmaku.Bilibili, err.Error())
 		return nil
 	}
 
@@ -163,13 +163,13 @@ func (c *client) scrape(oid, pid, segmentIndex int64) []*DanmakuElem {
 
 	resp, err := c.common.DoReq(req)
 	if err != nil {
-		c.common.Logger.Info(fmt.Sprintf("request failed: %s", err))
+		utils.ErrorLog(danmaku.Bilibili, err.Error())
 		return nil
 	}
 	defer utils.SafeClose(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
-		c.common.Logger.Info("request not ok", "code", resp.Status)
+		utils.ErrorLog(danmaku.Bilibili, "request not ok", "code", resp.Status)
 		return nil
 	}
 
@@ -180,30 +180,30 @@ func (c *client) scrape(oid, pid, segmentIndex int64) []*DanmakuElem {
 			var raw = json.RawMessage{}
 			err = json.NewDecoder(resp.Body).Decode(&raw)
 			if err != nil {
-				c.common.Logger.Error(err.Error())
+				utils.ErrorLog(danmaku.Bilibili, err.Error())
 			} else {
-				c.common.Logger.Error(fmt.Sprintf("unknown error: %s", string(raw)))
+				utils.ErrorLog(danmaku.Bilibili, fmt.Sprintf("unknown error: %s", string(raw)))
 			}
 		} else {
-			c.common.Logger.Error(fmt.Sprintf("unknown content type: %s", contentType))
+			utils.ErrorLog(danmaku.Bilibili, fmt.Sprintf("unknown content type: %s", contentType))
 		}
 		return nil
 	}
 
 	gzipReader, err := gzip.NewReader(resp.Body)
 	if err != nil {
-		c.common.Logger.Error(fmt.Sprintf("failed to create gzip reader: %v", err))
+		utils.ErrorLog(danmaku.Bilibili, err.Error())
 		return nil
 	}
 	defer utils.SafeClose(gzipReader)
 	reply := &DmSegMobileReply{}
 	jsonBytes, err := io.ReadAll(gzipReader)
 	if err != nil {
-		c.common.Logger.Error(err.Error())
+		utils.ErrorLog(danmaku.Bilibili, err.Error())
 		return nil
 	}
 	if err := proto.Unmarshal(jsonBytes, reply); err != nil {
-		c.common.Logger.Error(err.Error())
+		utils.ErrorLog(danmaku.Bilibili, err.Error())
 		return nil
 	}
 	return reply.GetElems()

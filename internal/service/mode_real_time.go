@@ -6,9 +6,7 @@ import (
 	"danmaku-tool/internal/danmaku"
 	"danmaku-tool/internal/utils"
 	"encoding/gob"
-	"errors"
 	"fmt"
-	"log/slog"
 	"os"
 	"path"
 	"strconv"
@@ -52,7 +50,7 @@ func (c *realTimeData) Finalize() error {
 		return fmt.Errorf("failed to encode data: %w", e)
 	}
 
-	c.logger.Info("save map info to file success")
+	utils.InfoLog(realTimeServiceC, "save map info to file success")
 
 	return nil
 }
@@ -81,20 +79,19 @@ func (c *realTimeData) Load() (bool, error) {
 		return false, fmt.Errorf("failed to decode data: %w", e)
 	}
 	fileInfo, _ := file.Stat()
-	c.logger.Info(fmt.Sprintf("data size: %dx2, next id: %d, cache file size: %d byte", len(c.ForwardMap), c.IdAllocator, fileInfo.Size()))
+	utils.InfoLog(realTimeServiceC, fmt.Sprintf("data size: %dx2, next id: %d, cache file size: %d byte", len(c.ForwardMap), c.IdAllocator, fileInfo.Size()))
 
 	return true, nil
 }
 
+const realTimeServiceC = "real_time_service"
+
 func (c *realTimeData) ServerInit() error {
-	c.logger = utils.GetComponentLogger("real_time_service")
 	success, err := c.Load()
 	if err != nil {
 		return err
 	}
-	if success {
-		c.logger.Info("restore data from file success")
-	}
+	utils.InfoLog(realTimeServiceC, fmt.Sprintf("restore data from file success: %v", success))
 	return nil
 }
 
@@ -138,12 +135,12 @@ func (c *realTimeData) Match(param MatchParam) (*DanDanResult, error) {
 				AnimeTitle:   m.Title + " [" + string(m.Platform) + "]",
 				EpisodeTitle: m.Episodes[0].Title,
 			})
-			c.logger.Info("movie match success", "platform", m.Platform, "title", param.FileName)
+			utils.InfoLog(realTimeServiceC, "movie match success", "platform", m.Platform, "title", param.FileName)
 		} else {
 			for _, ep := range m.Episodes {
 				epStr := strconv.FormatInt(epId, 10)
 				if ep.EpisodeId == epStr {
-					c.logger.Info("ep match success", "platform", m.Platform, "title", param.FileName, "ep", ep.EpisodeId)
+					utils.InfoLog(realTimeServiceC, "ep match success", "platform", m.Platform, "title", param.FileName, "ep", ep.EpisodeId)
 					result.IsMatched = true
 					result.Matches = append(result.Matches, Match{
 						EpisodeId:    c.getGlobalID(string(m.Platform), m.Id, ep.Id),
@@ -165,7 +162,7 @@ func (c *realTimeData) GetDanmaku(param CommentParam) (*CommentResult, error) {
 	}
 	var scraper = danmaku.GetScraper(platform)
 	if scraper == nil {
-		return nil, errors.New("invalid param")
+		return nil, fmt.Errorf("unknown platform")
 	}
 	data, err := scraper.GetDanmaku(epId)
 	if err != nil {
@@ -202,7 +199,6 @@ type realTimeData struct {
 	ReverseMap  map[int64]string
 	IdAllocator int64
 	lock        sync.RWMutex
-	logger      *slog.Logger
 }
 
 func combineKey(platform, ssID, epID string) string {

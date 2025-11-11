@@ -1,7 +1,6 @@
 package danmaku
 
 import (
-	"log/slog"
 	"net/http"
 	"time"
 )
@@ -56,8 +55,6 @@ type PlatformClient struct {
 	MaxWorker  int
 	Cookie     string
 	HttpClient *http.Client
-
-	Logger *slog.Logger
 }
 
 type Scraper interface {

@@ -56,7 +56,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 					continue
 				}
 				match := param.MatchTitle(intent.Title)
-				c.common.Logger.Debug(fmt.Sprintf("[%s] match [%s]: %v", intent.Title, param.Title, match))
+				utils.DebugLog(danmaku.Iqiyi, fmt.Sprintf("[%s] match [%s]: %v", intent.Title, param.Title, match))
 				if !match {
 					continue
 				}
@@ -69,7 +69,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 					m.Year = year
 					media = append(media, m)
 				} else {
-					c.common.Logger.Error(e.Error())
+					utils.ErrorLog(danmaku.Iqiyi, e.Error())
 				}
 			}
 			continue
@@ -88,7 +88,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 		}
 
 		match := param.MatchTitle(t.AlbumInfo.Title)
-		c.common.Logger.Debug(fmt.Sprintf("[%s] match [%s]: %v", t.AlbumInfo.Title, param.Title, match))
+		utils.DebugLog(danmaku.Iqiyi, fmt.Sprintf("[%s] match [%s]: %v", t.AlbumInfo.Title, param.Title, match))
 		if !match {
 			continue
 		}
@@ -181,7 +181,7 @@ func (c *client) Scrape(idStr string) error {
 	if tvId <= 0 {
 		return nil
 	}
-	c.common.Logger.Debug(fmt.Sprintf("%s tvid: %d", idStr, tvId))
+	utils.DebugLog(danmaku.Iqiyi, fmt.Sprintf("%s tvid: %d", idStr, tvId))
 	baseInfo, err := c.videoBaseInfo(tvId)
 	if err != nil {
 		return err

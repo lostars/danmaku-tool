@@ -9,8 +9,9 @@ import (
 	"time"
 )
 
-func MatchMedia(param MatchParam) []*Media {
+const searchMediaC = "search-media"
 
+func MatchMedia(param MatchParam) []*Media {
 	// 如果未设置季信息，则从标题中解析
 	if param.SeasonId < 0 {
 		param.SeasonId = MatchSeason(param.Title)
@@ -20,7 +21,10 @@ func MatchMedia(param MatchParam) []*Media {
 	// 从emby获取年份等信息
 	if config.EmbyEnabled() {
 		search, err := SearchEmby(param.Title, param.SeasonId)
-		if err == nil && search.Items != nil && len(search.Items) > 0 {
+		if err == nil && len(search.Items) > 0 {
+			if len(search.Items) > 1 {
+				utils.InfoLog(searchMediaC, fmt.Sprintf("[%s] match more than 1 emby media", param.Title))
+			}
 			// 默认取第一个
 			item := search.Items[0]
 			switch item.Type {
@@ -39,16 +43,11 @@ func MatchMedia(param MatchParam) []*Media {
 		}
 	}
 
-	scrapers := adapter.scrapers
-
-	logger := utils.GetComponentLogger("search-media")
-
 	var result []*Media
-
 	lock := sync.Mutex{}
 	wg := sync.WaitGroup{}
-	wg.Add(len(scrapers))
-	for _, s := range scrapers {
+	wg.Add(len(adapter.scrapers))
+	for _, s := range adapter.scrapers {
 		go func(scraper Scraper) {
 			defer wg.Done()
 			// 并发 复制参数进行处理
@@ -61,12 +60,12 @@ func MatchMedia(param MatchParam) []*Media {
 			start := time.Now()
 			media, err := scraper.Match(searchParam)
 			if err != nil {
-				logger.Error(err.Error(), "platform", scraper.Platform(), "title", param.Title)
+				utils.ErrorLog(searchMediaC, err.Error(), "platform", scraper.Platform(), "title", param.Title)
 				return
 			}
-			logger.Info(fmt.Sprintf("[%s] match done", s.Platform()), "cost_ms", time.Since(start).Milliseconds())
+			utils.InfoLog(searchMediaC, fmt.Sprintf("[%s] match done", s.Platform()), "cost_ms", time.Since(start).Milliseconds())
 			if len(media) < 1 {
-				logger.Debug(fmt.Sprintf("[%s] match no result", s.Platform()))
+				utils.DebugLog(searchMediaC, fmt.Sprintf("[%s] match no result", s.Platform()))
 			}
 
 			lock.Lock()

@@ -63,7 +63,7 @@ func (c *client) videoBaseInfo(tvId int64) (*VideoBaseInfoResult, error) {
 	var baseInfo VideoBaseInfoResult
 	e := json.NewDecoder(resp.Body).Decode(&baseInfo)
 	if e != nil {
-		c.common.Logger.Error(e.Error())
+		utils.ErrorLog(danmaku.Iqiyi, e.Error())
 		return nil, e
 	}
 	if !baseInfo.success() {
@@ -89,7 +89,7 @@ func (c *client) scrapeDanmaku(baseInfo *VideoBaseInfoResult, tvId int64) []*dan
 			for t := range tasks {
 				data, err := c.scrape(t.tvId, t.segment)
 				if err != nil {
-					c.common.Logger.Error(fmt.Sprintf("%d scrape segment %d error: %s", tvId, t.segment, err.Error()))
+					utils.ErrorLog(danmaku.Iqiyi, fmt.Sprintf("%d scrape segment %d error: %s", tvId, t.segment, err.Error()))
 					continue
 				}
 				if len(data) <= 0 {
@@ -129,7 +129,7 @@ func (c *client) scrape(tvId int64, segment int) ([]*danmaku.StandardDanmaku, er
 		return nil, err
 	}
 	defer utils.SafeClose(resp.Body)
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("scrape danmaku error: %s", resp.Status)
 	}
 

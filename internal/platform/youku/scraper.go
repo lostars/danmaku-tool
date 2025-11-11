@@ -92,7 +92,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 			continue
 		}
 		match := param.MatchTitle(mediaInfo.TempTitle)
-		c.common.Logger.Debug(fmt.Sprintf("[%s] match [%s]: %v", mediaInfo.TempTitle, param.Title, match))
+		utils.DebugLog(danmaku.Youku, fmt.Sprintf("[%s] match [%s]: %v", mediaInfo.TempTitle, param.Title, match))
 		if !match {
 			continue
 		}
@@ -166,7 +166,7 @@ func (c *client) GetDanmaku(id string) ([]*danmaku.StandardDanmaku, error) {
 
 	info, _, err := c.videoInfo(id)
 	if err != nil {
-		c.common.Logger.Error(fmt.Sprintf("%s video info error", err.Error()))
+		utils.ErrorLog(danmaku.Youku, fmt.Sprintf("%s video info error", err.Error()))
 		return nil, err
 	}
 

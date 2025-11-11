@@ -4,7 +4,6 @@ import (
 	"danmaku-tool/internal/config"
 	"danmaku-tool/internal/utils"
 	"encoding/xml"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -78,7 +77,7 @@ func (x *DataXMLPersist) Serialize(s *SerializerData) error {
 		return err
 	}
 
-	utils.GetComponentLogger(XMLSerializer).Info("file save success", "file", writeFile)
+	utils.InfoLog(XMLSerializer, "file save success", "file", writeFile)
 	return nil
 }
 
@@ -121,8 +120,6 @@ func NormalConvert(s *SerializerData) *DataXML {
 }
 
 func WriteFile(platform Platform, data *SerializerData, savePath, filename string) {
-	logger := utils.GetComponentLogger("serializer")
-
 	conf := config.GetConfig().GetPlatformConfig(string(platform))
 	if conf == nil {
 		return
@@ -143,14 +140,14 @@ func WriteFile(platform Platform, data *SerializerData, savePath, filename strin
 		data.filename = filename
 		err := serializer.Serialize(data)
 		if err != nil {
-			logger.Info(fmt.Sprintf("%s %s serialize error: %s", platform, serializer.Type(), err.Error()))
+			utils.InfoLog("serializer", fmt.Sprintf("%s %s serialize error: %s", platform, serializer.Type(), err.Error()))
 		}
 	}
 }
 
 func checkPersistPath(fullPath, filename string) error {
 	if fullPath == "" || filename == "" {
-		return errors.New("empty save path or filename")
+		return fmt.Errorf("empty save path or filename")
 	}
 
 	// check path
@@ -180,11 +177,10 @@ func (a *DataAssPersist) Serialize(data *SerializerData) error {
 	if e := checkPersistPath(savePath, filename); e != nil {
 		return e
 	}
-	logger := utils.GetComponentLogger(ASSSerializer)
 	if data.ResX == 0 || data.ResY == 0 {
 		data.ResX = 1920
 		data.ResY = 1080
-		logger.Warn(fmt.Sprintf("ass serializer fallback to default resolution, episodeId: %s", data.EpisodeId))
+		utils.WarnLog(ASSSerializer, fmt.Sprintf("ass serializer fallback to default resolution, episodeId: %s", data.EpisodeId))
 	}
 
 	scriptInfoLines := []string{
@@ -235,7 +231,7 @@ func (a *DataAssPersist) Serialize(data *SerializerData) error {
 	if _, err := file.WriteString(assStr); err != nil {
 		return err
 	}
-	logger.Info("file save success", "file", writeFile)
+	utils.InfoLog(ASSSerializer, "file save success", "file", writeFile)
 	return nil
 }
 

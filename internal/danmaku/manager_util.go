@@ -11,19 +11,20 @@ import (
 	"time"
 )
 
+const managerUtilC = "manager_util"
+
 func MergeDanmaku(dms []*StandardDanmaku, mergedInMills int64, durationInMills int64) []*StandardDanmaku {
 	var start = time.Now()
-	logger := utils.GetComponentLogger("manager-util")
-	logger.Debug("danmaku size merge start", "size", len(dms))
+	utils.DebugLog(managerUtilC, "danmaku size merge start", "size", len(dms))
 	if mergedInMills <= 0 {
-		logger.Debug("danmaku size merge no merge mills set")
+		utils.DebugLog(managerUtilC, "danmaku size merge no merge mills set")
 		return dms
 	}
 	var initBuckets int64
 	if durationInMills > 0 {
 		initBuckets = durationInMills/mergedInMills + 1
 	} else {
-		logger.Debug("danmaku size merge no duration mills set")
+		utils.DebugLog(managerUtilC, "danmaku size merge no duration mills set")
 		initBuckets = 7200 // 2h
 	}
 	buckets := make(map[int64]map[string]bool, initBuckets)
@@ -46,7 +47,7 @@ func MergeDanmaku(dms []*StandardDanmaku, mergedInMills int64, durationInMills i
 		buckets[bid][d.Content] = true
 	}
 
-	logger.Debug("danmaku size merge end", "size", len(result), "cost_ms", time.Since(start).Milliseconds())
+	utils.DebugLog(managerUtilC, "danmaku size merge end", "size", len(result), "cost_ms", time.Since(start).Milliseconds())
 
 	return result
 }
@@ -262,7 +263,6 @@ func InitPlatformClient(platform Platform) (*PlatformClient, error) {
 		timeout = 60
 	}
 	c.HttpClient = &http.Client{Timeout: time.Duration(timeout * 1e9)}
-	c.Logger = utils.GetPlatformLogger(string(platform))
 
 	return c, nil
 }

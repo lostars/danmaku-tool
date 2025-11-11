@@ -5,19 +5,34 @@ import (
 	"os"
 )
 
-type LoggerConfig struct {
-	jsonHandler *slog.JSONHandler
+var logger *slog.Logger
+
+func InfoLog(component string, msg string, args ...any) {
+	logger.Info(msg, append([]any{"component", component}, args...)...)
 }
 
-var LoggerConf = &LoggerConfig{}
+func DebugLog(component string, msg string, args ...any) {
+	logger.Debug(msg, append([]any{"component", component}, args...)...)
+}
 
-func (c *LoggerConfig) InitLogger(debug bool) {
+func ErrorLog(component string, msg string, args ...any) {
+	logger.Error(msg, append([]any{"component", component}, args...)...)
+}
+
+func WarnLog(component string, msg string, args ...any) {
+	logger.Warn(msg, append([]any{"component", component}, args...)...)
+}
+
+func InitLogger(debug bool) {
+	if logger != nil {
+		return
+	}
 	var level = slog.LevelInfo
 	if debug {
 		level = slog.LevelDebug
 	}
 
-	c.jsonHandler = slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+	jsonHandler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: level,
 		ReplaceAttr: func(groups []string, attr slog.Attr) slog.Attr {
 			if attr.Key == slog.TimeKey {
@@ -27,23 +42,5 @@ func (c *LoggerConfig) InitLogger(debug bool) {
 			return attr
 		},
 	})
-}
-
-func getLogger(m map[string]string) *slog.Logger {
-	logger := slog.New(LoggerConf.jsonHandler)
-	for k, v := range m {
-		logger = logger.With(k, v)
-	}
-	return logger
-}
-
-func GetComponentLogger(component string) *slog.Logger {
-	return getLogger(map[string]string{"component": component})
-}
-
-func GetPlatformLogger(platform string) *slog.Logger {
-	m := map[string]string{
-		"platform": platform,
-	}
-	return getLogger(m)
+	logger = slog.New(jsonHandler)
 }

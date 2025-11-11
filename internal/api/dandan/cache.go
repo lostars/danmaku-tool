@@ -33,16 +33,17 @@ func (d *DanmakuCache) ServerInit() error {
 	return nil
 }
 
+const dandanApiCacheC = "dandan_api_cache"
+
 func CacheMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var cacheKey = ""
-		cacheLogger := utils.GetComponentLogger("dandan-api-cache")
 		if strings.Contains(r.URL.Path, "/comment/") {
 			// episodeId
 			cacheKey = path.Base(r.URL.Path)
 			if cachedData, found := cache.Get(cacheKey); found {
 				_, _ = w.Write(cachedData)
-				cacheLogger.Debug("cache loaded", "cacheKey", cacheKey)
+				utils.DebugLog(dandanApiCacheC, "cache loaded", "cacheKey", cacheKey)
 				return
 			}
 		}
@@ -54,7 +55,7 @@ func CacheMiddleware(next http.Handler) http.Handler {
 			cacheData := rr.body.Bytes()
 			success := cache.SetWithTTL(cacheKey, cacheData, int64(len(cacheData)), time.Second*3600) // 1h to expire
 			if !success {
-				cacheLogger.Debug("cache set failed", "cacheKey", cacheKey)
+				utils.DebugLog(dandanApiCacheC, "cache set failed", "cacheKey", cacheKey)
 			}
 		}
 	})
