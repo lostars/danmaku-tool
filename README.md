@@ -1,5 +1,7 @@
 ## A new danmaku scraper developed by Go
 
+[中文](USAGE.md)
+
 You can run as CLI to scrape danmaku locally and save as xml file.
 Or run as a web server to provide DanDanPlay API and enjoy with your compatible player.
 
@@ -31,7 +33,8 @@ Get a better match with Emby API enabled.
 #### Phase 2: supporting DanDanPlay API
 - [x] `/match`
 - [x] `/comment/{id}`
-- [ ] media search
+- [x] `/search/anime`
+- [x] `/bangumi/{id}`
 
 #### Phase 3: offering management APIs and web UI
 
@@ -108,7 +111,12 @@ ghcr.io/lostars/danmaku-tool:latest
 
 ### Web API
 
-Only support DandanPlay `/match` and `/comment/{id}` API currently which is enough to most scenarios.
+- [x] `/match`
+- [x] `/comment/{id}`
+- [x] `/search/anime`
+- [x] `/bangumi/{id}`
+
+API above is enough to most scenarios currently.
 
 
 ### Reference
