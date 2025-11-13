@@ -5,7 +5,6 @@ import (
 	"danmaku-tool/internal/danmaku"
 	"danmaku-tool/internal/utils"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -29,10 +28,9 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer utils.SafeClose(resp.Body)
 
 	var result SearchResult
-	err = json.NewDecoder(resp.Body).Decode(&result)
+	err = utils.SafeDecodeOkResp(resp, &result)
 	if err != nil {
 		return nil, err
 	}

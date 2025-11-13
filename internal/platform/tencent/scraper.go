@@ -48,15 +48,11 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer utils.SafeClose(resp.Body)
 
 	var searchResult SearchResult
-	err = json.NewDecoder(resp.Body).Decode(&searchResult)
+	err = utils.SafeDecodeOkResp(resp, &searchResult)
 	if err != nil {
 		return nil, err
-	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("search http status: %s", resp.Status)
 	}
 	if searchResult.Ret != 0 {
 		return nil, fmt.Errorf("search ret code: %v %s", searchResult.Ret, searchResult.Msg)

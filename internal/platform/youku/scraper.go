@@ -68,10 +68,9 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer utils.SafeClose(resp.Body)
 
 	var apiResult APIResult
-	err = json.NewDecoder(resp.Body).Decode(&apiResult)
+	err = utils.SafeDecodeOkResp(resp, &apiResult)
 	if err != nil {
 		return nil, err
 	}

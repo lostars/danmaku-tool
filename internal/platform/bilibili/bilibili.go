@@ -92,13 +92,9 @@ func (c *client) searchByType(searchType string, keyword string) (*SearchResult,
 	if err != nil {
 		return nil, err
 	}
-	defer utils.SafeClose(resp.Body)
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("http status: %s", resp.Status)
-	}
 
 	var result SearchResult
-	err = json.NewDecoder(resp.Body).Decode(&result)
+	err = utils.SafeDecodeOkResp(resp, &result)
 	if err != nil {
 		return nil, err
 	}
@@ -127,10 +123,9 @@ func (c *client) baseInfo(epId string, ssId string) (*SeriesInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer utils.SafeClose(resp.Body)
 
 	var series SeriesInfo
-	err = json.NewDecoder(resp.Body).Decode(&series)
+	err = utils.SafeDecodeOkResp(resp, &series)
 	if err != nil {
 		return nil, err
 	}

@@ -5,7 +5,6 @@ import (
 	"crypto/md5"
 	"danmaku-tool/internal/utils"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -25,10 +24,9 @@ func (c *client) setToken() error {
 	if err != nil {
 		return err
 	}
-	defer utils.SafeClose(resp.Body)
 
 	var nav navInfo
-	err = json.NewDecoder(resp.Body).Decode(&nav)
+	err = utils.SafeDecodeOkResp(resp, &nav)
 	if err != nil {
 		return err
 	}

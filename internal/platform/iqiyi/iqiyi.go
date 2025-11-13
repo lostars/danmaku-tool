@@ -4,7 +4,6 @@ import (
 	"danmaku-tool/internal/danmaku"
 	"danmaku-tool/internal/utils"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -56,10 +55,9 @@ func (c *client) videoBaseInfo(tvId int64) (*VideoBaseInfoResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer utils.SafeClose(resp.Body)
 
 	var baseInfo VideoBaseInfoResult
-	e := json.NewDecoder(resp.Body).Decode(&baseInfo)
+	e := utils.SafeDecodeOkResp(resp, &baseInfo)
 	if e != nil {
 		utils.ErrorLog(danmaku.Iqiyi, e.Error())
 		return nil, e
@@ -220,10 +218,9 @@ func (c *client) Media(id string) (*danmaku.Media, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer utils.SafeClose(resp.Body)
 
 	var album AlbumInfoResult
-	err = json.NewDecoder(resp.Body).Decode(&album)
+	err = utils.SafeDecodeOkResp(resp, &album)
 	if err != nil {
 		return nil, err
 	}

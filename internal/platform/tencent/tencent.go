@@ -60,10 +60,9 @@ func (c *client) doSeriesRequest(cid, vid string, pageId, pageContent string) (*
 	if err != nil {
 		return nil, err
 	}
-	defer utils.SafeClose(seriesResp.Body)
 
 	var seriesResult SeriesResult
-	err = json.NewDecoder(seriesResp.Body).Decode(&seriesResult)
+	err = utils.SafeDecodeOkResp(seriesResp, &seriesResult)
 	if err != nil {
 		return nil, err
 	}
@@ -148,11 +147,10 @@ func (c *client) getDanmakuByVid(vid string) ([]*danmaku.StandardDanmaku, error)
 		return nil, e
 	}
 	var segmentResult DanmakuSegmentResult
-	e = json.NewDecoder(resp.Body).Decode(&segmentResult)
+	e = utils.SafeDecodeOkResp(resp, &segmentResult)
 	if e != nil {
 		return nil, e
 	}
-	utils.SafeClose(resp.Body)
 	var segmentsLen = len(segmentResult.Data.SegmentIndex)
 	if segmentResult.Data.SegmentIndex == nil || segmentsLen <= 0 {
 		return nil, fmt.Errorf("no segments vid: %s", vid)
@@ -213,10 +211,9 @@ func (c *client) scrape(vid, segment string) []*danmaku.StandardDanmaku {
 		utils.ErrorLog(danmaku.Tencent, err.Error())
 		return nil
 	}
-	defer utils.SafeClose(resp.Body)
 
 	var danmakuResult DanmakuResult
-	err = json.NewDecoder(resp.Body).Decode(&danmakuResult)
+	err = utils.SafeDecodeOkResp(resp, &danmakuResult)
 	if err != nil {
 		utils.ErrorLog(danmaku.Tencent, err.Error())
 		return nil
