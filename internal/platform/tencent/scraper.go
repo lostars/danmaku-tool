@@ -44,7 +44,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 	}
 	c.setRequest(searchReq)
 
-	resp, err := c.common.DoReq(searchReq)
+	resp, err := c.DoReq(searchReq)
 	if err != nil {
 		return nil, err
 	}

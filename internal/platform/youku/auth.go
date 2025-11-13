@@ -18,7 +18,7 @@ func (c *client) refreshToken() {
 	// cna https://log.mmstat.com/eg.js etag "C2CHIZvOsxUCAQAAAADMJgVh"
 	cnaUrl := "https://log.mmstat.com/eg.js"
 	cnaReq, _ := http.NewRequest(http.MethodGet, cnaUrl, nil)
-	cnaResp, e := c.common.DoReq(cnaReq)
+	cnaResp, e := c.DoReq(cnaReq)
 	if e != nil {
 		return
 	}
@@ -35,7 +35,7 @@ func (c *client) refreshToken() {
 	api := "https://acs.youku.com/h5/mtop.com.youku.aplatform.weakget/1.0/?jsv=2.5.1&appKey=24679788"
 	req, _ := http.NewRequest(http.MethodGet, api, nil)
 	req.Header.Set("cookie", "cna="+c.cna)
-	resp, err := c.common.DoReq(req)
+	resp, err := c.DoReq(req)
 	if err != nil {
 		return
 	}

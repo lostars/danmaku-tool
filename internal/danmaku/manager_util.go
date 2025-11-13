@@ -242,16 +242,14 @@ func (p MatchParam) MatchYearString(year string) (int, bool) {
 	return int(y), false
 }
 
-func InitPlatformClient(platform Platform) (*PlatformClient, error) {
+func InitPlatformClient(c *PlatformClient, platform Platform) error {
 	conf := config.GetPlatformConfig(string(platform))
 	if conf == nil || conf.Name == "" {
-		return nil, fmt.Errorf("[%s] is not configured", platform)
+		return fmt.Errorf("[%s] is not configured", platform)
 	}
 	if conf.Priority < 0 {
-		return nil, fmt.Errorf("[%s] is disabled", platform)
+		return fmt.Errorf("[%s] is disabled", platform)
 	}
-
-	c := &PlatformClient{}
 
 	c.Cookie = conf.Cookie
 	c.MaxWorker = conf.MaxWorker
@@ -264,5 +262,5 @@ func InitPlatformClient(platform Platform) (*PlatformClient, error) {
 	}
 	c.HttpClient = &http.Client{Timeout: time.Duration(timeout * 1e9)}
 
-	return c, nil
+	return nil
 }

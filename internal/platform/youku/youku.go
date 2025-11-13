@@ -15,7 +15,7 @@ import (
 )
 
 type client struct {
-	common               *danmaku.PlatformClient
+	danmaku.PlatformClient
 	token, tokenEnc, cna string
 	tkLastUpdate         time.Time
 }
@@ -25,11 +25,9 @@ func init() {
 }
 
 func (c *client) Init() error {
-	common, err := danmaku.InitPlatformClient(danmaku.Youku)
-	if err != nil {
+	if err := danmaku.InitPlatformClient(&c.PlatformClient, danmaku.Youku); err != nil {
 		return err
 	}
-	c.common = common
 	danmaku.RegisterScraper(c)
 	return nil
 }
@@ -51,7 +49,7 @@ func (c *client) videoInfo(vid string) (*VideoInfoFromHtml, *ShowInfoFromHtml, e
 	if err != nil {
 		return nil, nil, err
 	}
-	resp, err := c.common.DoReq(req)
+	resp, err := c.DoReq(req)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -96,7 +94,7 @@ func (c *client) scrapeDanmaku(vid string, segmentsLen int) []*danmaku.StandardD
 	c.refreshToken()
 	lock := sync.Mutex{}
 	var wg sync.WaitGroup
-	for w := 0; w < c.common.MaxWorker; w++ {
+	for w := 0; w < c.MaxWorker; w++ {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
@@ -151,7 +149,7 @@ func (c *client) scrape(vid string, segment int) ([]*danmaku.StandardDanmaku, er
 	req, _ := http.NewRequest(http.MethodPost, fullURL, strings.NewReader(reqBody))
 	c.setReq(req)
 
-	resp, err := c.common.DoReq(req)
+	resp, err := c.DoReq(req)
 	if err != nil {
 		return nil, err
 	}
@@ -201,10 +199,10 @@ func (c *client) scrape(vid string, segment int) ([]*danmaku.StandardDanmaku, er
 func (c *client) getVID(showId string) string {
 	//	https://v.youku.com/video?s=ecba3364afbe46aaa122 会 302 到视频地址
 	req, _ := http.NewRequest(http.MethodGet, "https://v.youku.com/video?s="+showId, nil)
-	c.common.HttpClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+	c.HttpClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		return http.ErrUseLastResponse
 	}
-	resp, err := c.common.DoReq(req)
+	resp, err := c.DoReq(req)
 	if err != nil {
 		utils.WarnLog(danmaku.Youku, fmt.Sprintf("get vid req fail: %s", err.Error()))
 		return ""

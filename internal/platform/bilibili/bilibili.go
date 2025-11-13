@@ -15,7 +15,7 @@ import (
 )
 
 type client struct {
-	common *danmaku.PlatformClient
+	danmaku.PlatformClient
 
 	// 接口签名token信息
 	token tokenKey
@@ -53,11 +53,9 @@ func (c *client) Media(id string) (*danmaku.Media, error) {
 }
 
 func (c *client) Init() error {
-	common, err := danmaku.InitPlatformClient(danmaku.Bilibili)
-	if err != nil {
+	if err := danmaku.InitPlatformClient(&c.PlatformClient, danmaku.Bilibili); err != nil {
 		return err
 	}
-	c.common = common
 	danmaku.RegisterScraper(c)
 	return nil
 }
@@ -89,8 +87,8 @@ func (c *client) searchByType(searchType string, keyword string) (*SearchResult,
 		return nil, err
 	}
 
-	req.Header.Set("Cookie", c.common.Cookie)
-	resp, err := c.common.DoReq(req)
+	req.Header.Set("Cookie", c.Cookie)
+	resp, err := c.DoReq(req)
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +123,7 @@ func (c *client) baseInfo(epId string, ssId string) (*SeriesInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	resp, err := c.common.DoReq(req)
+	resp, err := c.DoReq(req)
 	if err != nil {
 		return nil, err
 	}
@@ -159,9 +157,9 @@ func (c *client) scrape(oid, pid, segmentIndex int64) []*DanmakuElem {
 
 	// 2. 【关键】设置 Accept-Encoding: gzip，告诉服务器客户端支持 Gzip 压缩
 	req.Header.Set("Accept-Encoding", "gzip")
-	req.Header.Set("Cookie", c.common.Cookie)
+	req.Header.Set("Cookie", c.Cookie)
 
-	resp, err := c.common.DoReq(req)
+	resp, err := c.DoReq(req)
 	if err != nil {
 		utils.ErrorLog(danmaku.Bilibili, err.Error())
 		return nil

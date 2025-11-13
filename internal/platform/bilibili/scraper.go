@@ -213,7 +213,7 @@ func (c *client) GetDanmaku(realId string) ([]*danmaku.StandardDanmaku, error) {
 
 		tasks := make(chan task, segments)
 		var wg sync.WaitGroup
-		for w := 0; w < c.common.MaxWorker; w++ {
+		for w := 0; w < c.MaxWorker; w++ {
 			wg.Add(1)
 			go func(i int) {
 				defer wg.Done()

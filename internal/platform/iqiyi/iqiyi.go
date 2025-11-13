@@ -18,7 +18,7 @@ import (
 )
 
 type client struct {
-	common *danmaku.PlatformClient
+	danmaku.PlatformClient
 }
 
 func init() {
@@ -26,11 +26,9 @@ func init() {
 }
 
 func (c *client) Init() error {
-	common, err := danmaku.InitPlatformClient(danmaku.Iqiyi)
-	if err != nil {
+	if err := danmaku.InitPlatformClient(&c.PlatformClient, danmaku.Iqiyi); err != nil {
 		return err
 	}
-	c.common = common
 	danmaku.RegisterScraper(c)
 	return nil
 }
@@ -54,7 +52,7 @@ func (c *client) videoBaseInfo(tvId int64) (*VideoBaseInfoResult, error) {
 
 	baseInfoAPI := "https://pcw-api.iqiyi.com/video/video/baseinfo/" + strconv.FormatInt(tvId, 10)
 	req, _ := http.NewRequest(http.MethodGet, baseInfoAPI, nil)
-	resp, err := c.common.DoReq(req)
+	resp, err := c.DoReq(req)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +80,7 @@ func (c *client) scrapeDanmaku(baseInfo *VideoBaseInfoResult, tvId int64) []*dan
 	tasks := make(chan task, segmentsLen)
 	lock := sync.Mutex{}
 	var wg sync.WaitGroup
-	for w := 0; w < c.common.MaxWorker; w++ {
+	for w := 0; w < c.MaxWorker; w++ {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
@@ -124,7 +122,7 @@ type task struct {
 
 func (c *client) scrape(tvId int64, segment int) ([]*danmaku.StandardDanmaku, error) {
 	req, _ := http.NewRequest(http.MethodGet, buildSegmentUrl(tvId, segment), nil)
-	resp, err := c.common.DoReq(req)
+	resp, err := c.DoReq(req)
 	if err != nil {
 		return nil, err
 	}
@@ -218,7 +216,7 @@ func (c *client) Media(id string) (*danmaku.Media, error) {
 
 	api := "https://mesh.if.iqiyi.com/tvg/v2/selector?" + params.Encode()
 	req, _ := http.NewRequest(http.MethodGet, api, nil)
-	resp, err := c.common.DoReq(req)
+	resp, err := c.DoReq(req)
 	if err != nil {
 		return nil, err
 	}

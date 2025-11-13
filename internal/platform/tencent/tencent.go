@@ -12,11 +12,9 @@ import (
 )
 
 func (c *client) Init() error {
-	common, err := danmaku.InitPlatformClient(danmaku.Tencent)
-	if err != nil {
+	if err := danmaku.InitPlatformClient(&c.PlatformClient, danmaku.Tencent); err != nil {
 		return err
 	}
-	c.common = common
 	danmaku.RegisterScraper(c)
 	return nil
 }
@@ -26,7 +24,7 @@ func init() {
 }
 
 type client struct {
-	common *danmaku.PlatformClient
+	danmaku.PlatformClient
 }
 
 func (c *client) Platform() danmaku.Platform {
@@ -58,7 +56,7 @@ func (c *client) doSeriesRequest(cid, vid string, pageId, pageContent string) (*
 		return nil, err
 	}
 	c.setRequest(seriesReq)
-	seriesResp, err := c.common.DoReq(seriesReq)
+	seriesResp, err := c.DoReq(seriesReq)
 	if err != nil {
 		return nil, err
 	}
@@ -145,7 +143,7 @@ func (c *client) getDanmakuByVid(vid string) ([]*danmaku.StandardDanmaku, error)
 		return nil, err
 	}
 	c.setRequest(danmakuConfigReq)
-	resp, e := c.common.DoReq(danmakuConfigReq)
+	resp, e := c.DoReq(danmakuConfigReq)
 	if e != nil {
 		return nil, e
 	}
@@ -165,7 +163,7 @@ func (c *client) getDanmakuByVid(vid string) ([]*danmaku.StandardDanmaku, error)
 	lock := sync.Mutex{}
 	tasks := make(chan task, segmentsLen)
 	var wg sync.WaitGroup
-	for w := 0; w < c.common.MaxWorker; w++ {
+	for w := 0; w < c.MaxWorker; w++ {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
@@ -210,7 +208,7 @@ func (c *client) scrape(vid, segment string) []*danmaku.StandardDanmaku {
 		utils.ErrorLog(danmaku.Tencent, err.Error())
 		return nil
 	}
-	resp, err := c.common.DoReq(req)
+	resp, err := c.DoReq(req)
 	if err != nil {
 		utils.ErrorLog(danmaku.Tencent, err.Error())
 		return nil
@@ -267,7 +265,7 @@ func (c *client) scrape(vid, segment string) []*danmaku.StandardDanmaku {
 }
 
 func (c *client) setRequest(req *http.Request) {
-	req.Header.Set("Cookie", c.common.Cookie)
+	req.Header.Set("Cookie", c.Cookie)
 	req.Header.Set("Origin", "https://v.qq.com/")
 	req.Header.Set("Referer", "https://v.qq.com/")
 	// 注意如果json请求不设置该请求头，则会导致部分接口异常返回400，哪怕参数全部正常。

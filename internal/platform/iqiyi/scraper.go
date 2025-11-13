@@ -25,7 +25,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 	req, _ := http.NewRequest(http.MethodGet, api+params.Encode(), nil)
 	req.Header.Set("Origin", "https://www.iqiyi.com")
 	req.Header.Set("Referer", "https://www.iqiyi.com")
-	resp, err := c.common.DoReq(req)
+	resp, err := c.DoReq(req)
 	if err != nil {
 		return nil, err
 	}

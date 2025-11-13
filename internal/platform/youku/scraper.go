@@ -64,7 +64,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 	req, _ := http.NewRequest(http.MethodGet, api, nil)
 	c.setReq(req)
 
-	resp, err := c.common.DoReq(req)
+	resp, err := c.DoReq(req)
 	if err != nil {
 		return nil, err
 	}
