@@ -33,6 +33,16 @@ func (s SeriesItem) validEP() bool {
 	return !danmaku.InvalidEpTitle(s.ItemParams.Title)
 }
 
+func (s SeriesItem) Title() string {
+	if s.ItemParams.VideoSubtitle != "" {
+		return s.ItemParams.VideoSubtitle
+	}
+	if s.ItemParams.PlayTitle != "" {
+		return s.ItemParams.PlayTitle
+	}
+	return s.ItemParams.CTitleOutput
+}
+
 type SeriesItem struct {
 	ItemId     string `json:"item_id"`
 	ItemType   string `json:"item_type"` // =28 一部电影的 多集？
@@ -46,7 +56,9 @@ type SeriesItem struct {
 		Title     string `json:"title"`      // 1
 		IsTrailer string `json:"is_trailer"` // 1=预告 0=否
 		CID       string `json:"cid"`
-
+		// 下面两个字段 优先使用 video_subtitle 然后 play_title
+		VideoSubtitle string `json:"video_subtitle"`
+		PlayTitle     string `json:"play_title"`
 		// 以下是 page_id=detail_page_introduction 返回的剧集信息
 		ReportCID string `json:"report.cid"`
 		// 2=剧集 1=电影 10=综艺 3=动漫 9=纪录片 4=体育

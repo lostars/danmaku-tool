@@ -131,6 +131,10 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 					if danmaku.InvalidEpTitle(ep.Title) {
 						continue
 					}
+					// 排除预告
+					if len(ep.Badges) > 0 && danmaku.InvalidEpTitle(ep.Badges[0].Text) {
+						continue
+					}
 					epTitle := ep.Title
 					id, e := strconv.ParseInt(epTitle, 10, 64)
 					if e == nil && id > 1 {

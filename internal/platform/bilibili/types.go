@@ -83,6 +83,10 @@ type SearchResult struct {
 				Title      string `json:"title"`       // 第几集 13
 				IndexTitle string `json:"index_title"` // 和 title 一样？
 				LongTitle  string `json:"long_title"`  // 初入星海11
+				Badges     []struct {
+					// 预告/会员
+					Text string `json:"text"`
+				} `json:"badges"`
 			} `json:"eps"` // 完整数据
 		} `json:"result"`
 	} `json:"data"`

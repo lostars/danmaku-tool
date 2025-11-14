@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
+	"sort"
 	"strconv"
 	"sync"
 )
@@ -50,13 +52,15 @@ func (c *client) doSeriesRequest(cid, vid string, pageId, pageContent string) (*
 		return nil, err
 	}
 	// url 参数需要保留
-	seriesAPI := "https://pbaccess.video.qq.com/trpc.universal_backend_service.page_server_rpc.PageServer/GetPageData?video_appid=3000010&vversion_name=8.2.96&vversion_platform=2"
-	seriesReq, err := http.NewRequest(http.MethodPost, seriesAPI, bytes.NewBuffer(jsonBytes))
-	if err != nil {
-		return nil, err
+	query := url.Values{
+		"video_appid":       {"3000010"},
+		"vversion_name":     {"8.2.96"},
+		"vversion_platform": {"2"},
 	}
-	c.setRequest(seriesReq)
-	seriesResp, err := c.DoReq(seriesReq)
+	seriesAPI := "https://pbaccess.video.qq.com/trpc.universal_backend_service.page_server_rpc.PageServer/GetPageData?" + query.Encode()
+	req, _ := http.NewRequest(http.MethodPost, seriesAPI, bytes.NewBuffer(jsonBytes))
+	c.setRequest(req)
+	seriesResp, err := c.DoReq(req)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +100,7 @@ func (c *client) series(cid string) ([]*SeriesItem, error) {
 		return nil, err
 	}
 
-	// 并发获取 可能会出现超长tabs 比如火影 同时可能导致集数顺序混乱
+	// 并发获取 可能会出现超长tabs 比如火影
 	lock := sync.Mutex{}
 	wg := sync.WaitGroup{}
 	wg.Add(len(tabs))
@@ -124,6 +128,13 @@ func (c *client) series(cid string) ([]*SeriesItem, error) {
 	}
 	wg.Wait()
 
+	// 重新排序
+	sort.Slice(eps, func(i, j int) bool {
+		iVal, _ := strconv.ParseInt(eps[i].ItemParams.Title, 10, 64)
+		jVal, _ := strconv.ParseInt(eps[j].ItemParams.Title, 10, 64)
+		return iVal < jVal
+	})
+
 	return eps, nil
 }
 
@@ -137,12 +148,9 @@ func (c *client) getDanmakuByVid(vid string) ([]*danmaku.StandardDanmaku, error)
 		return nil, err
 	}
 	configAPI := "https://pbaccess.video.qq.com/trpc.barrage.custom_barrage.CustomBarrage/GetDMStartUpConfig"
-	danmakuConfigReq, err := http.NewRequest(http.MethodPost, configAPI, bytes.NewBuffer(configBytes))
-	if err != nil {
-		return nil, err
-	}
-	c.setRequest(danmakuConfigReq)
-	resp, e := c.DoReq(danmakuConfigReq)
+	req, _ := http.NewRequest(http.MethodPost, configAPI, bytes.NewBuffer(configBytes))
+	c.setRequest(req)
+	resp, e := c.DoReq(req)
 	if e != nil {
 		return nil, e
 	}
@@ -329,7 +337,7 @@ func (c *client) Media(id string) (*danmaku.Media, error) {
 		eps = append(eps, &danmaku.MediaEpisode{
 			Id:        ep.ItemParams.VID,
 			EpisodeId: ep.ItemParams.Title,
-			Title:     ep.ItemParams.CTitleOutput,
+			Title:     ep.Title(),
 		})
 	}
 	media.Episodes = eps

@@ -144,7 +144,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 				eps = append(eps, &danmaku.MediaEpisode{
 					Id:        ep.ItemParams.VID,
 					EpisodeId: epTitle,
-					Title:     ep.ItemParams.Title,
+					Title:     ep.Title(),
 				})
 			}
 			// 匹配剧场版 epId 暂时使用下标作为S00的epId 最新发布的在最前面
