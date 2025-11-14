@@ -48,26 +48,26 @@ type MatchParam struct {
 }
 
 type DanDanResult struct {
-	Success      bool   `json:"success"`
-	ErrorCode    int    `json:"errorCode"`
-	ErrorMessage string `json:"errorMessage"`
+	DanDanResultInfo
 	// match result
 	IsMatched bool    `json:"isMatched"`
 	Matches   []Match `json:"matches"`
 }
 
+type DanDanResultInfo struct {
+	Success      bool   `json:"success"`
+	ErrorCode    int    `json:"errorCode"`
+	ErrorMessage string `json:"errorMessage"`
+}
+
 type DanDanAnimeResult struct {
-	Success      bool          `json:"success"`
-	ErrorCode    int           `json:"errorCode"`
-	ErrorMessage string        `json:"errorMessage"`
-	Anime        []AnimeResult `json:"animes"`
+	DanDanResultInfo
+	Anime []AnimeResult `json:"animes"`
 }
 
 type DanDanAnimeInfoResult struct {
-	Success      bool         `json:"success"`
-	ErrorCode    int          `json:"errorCode"`
-	ErrorMessage string       `json:"errorMessage"`
-	Bangumi      *AnimeResult `json:"bangumi"`
+	DanDanResultInfo
+	Bangumi *AnimeResult `json:"bangumi"`
 }
 
 type AnimeResult struct {

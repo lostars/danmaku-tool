@@ -115,8 +115,8 @@ func (c *realTimeData) Match(param MatchParam) (*DanDanResult, error) {
 	}
 
 	var result = &DanDanResult{
-		Matches: make([]Match, 0, 10),
-		Success: true,
+		Matches:          make([]Match, 0, 10),
+		DanDanResultInfo: DanDanResultInfo{Success: true},
 	}
 
 	media := danmaku.MatchMedia(searchParam)
@@ -279,9 +279,8 @@ func (c *realTimeData) SearchAnime(title string) *DanDanAnimeResult {
 	}
 
 	result := &DanDanAnimeResult{
-		ErrorCode: 0,
-		Success:   true,
-		Anime:     anime,
+		DanDanResultInfo: DanDanResultInfo{Success: true},
+		Anime:            anime,
 	}
 
 	return result
@@ -329,9 +328,8 @@ func (c *realTimeData) AnimeInfo(id string) (*DanDanAnimeInfoResult, error) {
 	}
 
 	result := &DanDanAnimeInfoResult{
-		ErrorCode: 0,
-		Success:   true,
-		Bangumi:   anime,
+		DanDanResultInfo: DanDanResultInfo{Success: true},
+		Bangumi:          anime,
 	}
 	return result, nil
 }

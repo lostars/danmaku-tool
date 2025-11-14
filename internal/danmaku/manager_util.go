@@ -254,13 +254,18 @@ func InitPlatformClient(c *PlatformClient, platform Platform) error {
 	c.Cookie = conf.Cookie
 	c.MaxWorker = conf.MaxWorker
 	if c.MaxWorker <= 0 {
-		c.MaxWorker = 8
+		c.MaxWorker = defaultMaxWorker
 	}
 	var timeout = conf.Timeout
 	if timeout <= 0 {
-		timeout = 60
+		timeout = defaultTimeoutInSeconds
 	}
 	c.HttpClient = &http.Client{Timeout: time.Duration(timeout * 1e9)}
 
 	return nil
 }
+
+const (
+	defaultMaxWorker        = 4
+	defaultTimeoutInSeconds = 30
+)

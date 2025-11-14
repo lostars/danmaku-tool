@@ -21,6 +21,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// timeout in seconds
+const (
+	defaultServerPort    = 8089
+	defaultServerTimeout = 60
+	defaultTimeout       = 120
+	defaultReadTimeout   = 10
+	defaultWriteTimeout  = 10
+	defaultCancelTimeout = 5
+)
+
 func serverCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "server",
@@ -38,9 +48,12 @@ func serverCmd() *cobra.Command {
 		if port <= 0 {
 			port = config.GetConfig().Server.Port
 		}
+		if port <= 0 {
+			port = defaultServerPort
+		}
 		timeout := config.GetConfig().Server.Timeout
 		if timeout <= 0 {
-			timeout = 60
+			timeout = defaultServerTimeout
 		}
 		r.Use(middleware.Timeout(time.Duration(1e9 * timeout)))
 
@@ -54,9 +67,9 @@ func serverCmd() *cobra.Command {
 		srv := &http.Server{
 			Addr:         ":" + strconv.FormatInt(int64(port), 10),
 			Handler:      RecoverMiddleware(r),
-			IdleTimeout:  120 * time.Second,
-			ReadTimeout:  10 * time.Second,
-			WriteTimeout: 10 * time.Second,
+			IdleTimeout:  defaultTimeout * time.Second,
+			ReadTimeout:  defaultReadTimeout * time.Second,
+			WriteTimeout: defaultWriteTimeout * time.Second,
 		}
 
 		quit := make(chan os.Signal, 1)
@@ -70,7 +83,7 @@ func serverCmd() *cobra.Command {
 		}()
 		<-quit
 
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), defaultCancelTimeout*time.Second)
 		defer cancel()
 
 		if err := srv.Shutdown(ctx); err != nil {
