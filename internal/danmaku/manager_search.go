@@ -29,7 +29,8 @@ func MatchMedia(param MatchParam) []*Media {
 			item := search.Items[0]
 			switch item.Type {
 			case EmbySeries:
-				if season, e := GetSeasons(item.Id, false); e == nil {
+				// 只有多季的剧集才获取单季发布年份
+				if season, e := GetSeasons(item.Id, false); e == nil && len(season.Items) > 1 {
 					for _, s := range season.Items {
 						if s.IndexNumber == param.SeasonId {
 							param.ProductionYear = s.ProductionYear
