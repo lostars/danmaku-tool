@@ -187,7 +187,8 @@ func (c *client) Scrape(idStr string) error {
 	result := c.scrapeDanmaku(baseInfo, tvId)
 
 	serializer := &danmaku.SerializerData{
-		EpisodeId:       idStr,
+		EpisodeId:       strconv.FormatInt(baseInfo.Data.TVId, 10),
+		SeasonId:        strconv.FormatInt(baseInfo.Data.AlbumId, 10),
 		Data:            result,
 		DurationInMills: int64(baseInfo.Data.DurationSec * 1000),
 	}

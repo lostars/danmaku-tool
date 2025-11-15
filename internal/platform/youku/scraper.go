@@ -29,6 +29,7 @@ func (c *client) Scrape(vid string) error {
 
 	serializer := &danmaku.SerializerData{
 		EpisodeId:       vid,
+		SeasonId:        info.ShowId,
 		Data:            result,
 		DurationInMills: int64(durationInSeconds * 1000),
 	}

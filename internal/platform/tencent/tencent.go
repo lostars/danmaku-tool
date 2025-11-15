@@ -163,7 +163,7 @@ func (c *client) getDanmakuByVid(vid string) ([]*danmaku.StandardDanmaku, error)
 	if segmentResult.Data.SegmentIndex == nil || segmentsLen <= 0 {
 		return nil, fmt.Errorf("no segments vid: %s", vid)
 	}
-	utils.DebugLog(danmaku.Tencent, fmt.Sprintf("danmaku segments size: %v", segmentsLen), "vid", vid, "size", segmentsLen)
+	utils.DebugLog(danmaku.Tencent, fmt.Sprintf("danmaku segments size: %v", segmentsLen), "vid", vid)
 
 	var result []*danmaku.StandardDanmaku
 	lock := sync.Mutex{}

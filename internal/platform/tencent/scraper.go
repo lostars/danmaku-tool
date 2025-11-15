@@ -208,7 +208,6 @@ func (c *client) Scrape(idStr string) error {
 	if err != nil {
 		return err
 	}
-	utils.InfoLog(danmaku.Tencent, "get ep done", "cid", cid, "size", len(eps))
 	if len(eps) <= 0 {
 		return nil
 	}
@@ -229,6 +228,7 @@ func (c *client) Scrape(idStr string) error {
 		}
 		serializer := &danmaku.SerializerData{
 			EpisodeId: ep.ItemParams.VID,
+			SeasonId:  cid,
 			Data:      data,
 		}
 		v, err := strconv.ParseInt(ep.ItemParams.Duration, 10, 64)
