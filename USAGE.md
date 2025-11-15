@@ -20,6 +20,51 @@ API的token也是通过配置文件简单实现，根据需要自行配置。
 * 配置文件 `tokenizer` 部分属于试验性功能，直接使用即可，未来可能会调整。
 * 不要设置太高的并发，很容易触发平台限流风控。同时各个平台弹幕分片规则不尽相同，调高了也不一定能提升速度。
 
+最小化配置：
+```yaml
+# 弹幕保存路径 只作用于CLI模式 web server可以不用配置
+save-path: ""
+# 复制即可
+dandan-mode: "real_time"
+# 复制一份即可
+tokenizer:
+  enable: true
+  blacklist:
+    - regex: "(刺客)*伍六七.*记忆碎片"
+      replacement: "刺客伍六七第五季"
+    - regex: "(刺客)*伍六七.*暗影宿命"
+      replacement: "刺客伍六七第四季"
+    - regex: "(刺客)*伍六七.*玄武国篇"
+      replacement: "刺客伍六七第三季"
+    - regex: "(刺客)*伍六七.*最强发型师"
+      replacement: "刺客伍六七第二季"
+    - regex: "(刺客)*伍六七"
+      replacement: "刺客伍六七"
+    - regex: "仙剑奇侠传\\s*第*\\s*(一|1)\\s*部*"
+      replacement: "仙剑奇侠传"
+server:
+  # token配置
+  tokens:
+    - "xxx"
+    - "aaa"
+# emby 配置
+emby:
+  url: ""
+  user: ""
+  token: ""
+#  目前可选 bilibili tencent youku iqiyi 配置均通用
+platforms:
+  - name: "bilibili"
+  #  优先级 用于控制剧集搜索结果 越小则排的更靠前(int) <0 则禁用该平台
+    priority: 10
+  #  完整cookie 否则部分接口不出数据 bilibili和tencent需要配置
+    cookie: ""
+  #  合并多少毫秒内弹幕 可以不配置 作用于命令行本地弹幕保存和弹幕接口返回数据
+    merge-danmaku-in-mills: 1000
+  #  命令行模式保存弹幕格式 web server模式可不用配置
+    persists: ["xml", "ass"]
+```
+
 ### 作为命令行使用
 
 从Release下载编译好的二进制，执行 `danmaku -h` 即可看到支持的命令。
@@ -47,7 +92,7 @@ Global Flags:
 
 * bilibili 支持 剧集ID 和 集ID 的抓取，即 ss1234 和 ep1234。
   如果是剧集ID，则会抓取剧集所有的集的弹幕。
-* tencent 支持单集的弹幕抓取 比如：https://v.qq.com/x/cover/mzc00200aaogpgh/r0047gdjpw6.html `r0047gdjpw6` 就是对应的ID。
+* tencent 支持单集和剧集的弹幕抓取 比如：https://v.qq.com/x/cover/mzc00200aaogpgh/r0047gdjpw6.html `r0047gdjpw6` `mzc00200aaogpgh` 就是对应的ID。
 * iqiyi 支持单集的弹幕抓取，比如： https://www.iqiyi.com/v_19rrk2gwkw.html `19rrk2gwkw` 就是对应ID。
 * youku 支持单集的弹幕抓取，比如：https://v.youku.com/v_show/id_XNjQ5NzI5MTY0MA==.html?s=ecda347687c4441cb2f3 `XNjQ5NzI5MTY0MA==` 就是对应ID。
 
