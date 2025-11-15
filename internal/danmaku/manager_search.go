@@ -44,8 +44,7 @@ func MatchMedia(param MatchParam) []*Media {
 		}
 	}
 
-	var result []*Media
-	lock := sync.Mutex{}
+	ch := make(chan []*Media, len(adapter.scrapers))
 	wg := sync.WaitGroup{}
 	wg.Add(len(adapter.scrapers))
 	for _, s := range adapter.scrapers {
@@ -68,13 +67,24 @@ func MatchMedia(param MatchParam) []*Media {
 			if len(media) < 1 {
 				utils.DebugLog(searchMediaC, fmt.Sprintf("[%s] match no result", s.Platform()))
 			}
-
-			lock.Lock()
-			result = append(result, media...)
-			lock.Unlock()
+			ch <- media
 		}(s)
 	}
-	wg.Wait()
+	go func() {
+		wg.Wait()
+		close(ch)
+	}()
+
+	var result []*Media
+	for m := range ch {
+		for _, media := range m {
+			// 过滤掉没有ep的剧集
+			if len(media.Episodes) < 1 {
+				continue
+			}
+			result = append(result, media)
+		}
+	}
 
 	// 结果排序
 	sort.Slice(result, func(i, j int) bool {

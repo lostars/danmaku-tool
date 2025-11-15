@@ -82,10 +82,9 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 		count[v.VideoInfo.Title] = true
 	}
 
-	var result []*danmaku.Media
 	// 并发处理 循环中需要获取剧集列表 4并发已足够再高就会触发限流
 	sem := make(chan struct{}, 4)
-	lock := sync.Mutex{}
+	ch := make(chan *danmaku.Media, 4)
 	wg := sync.WaitGroup{}
 	for _, v := range data {
 		wg.Add(1)
@@ -166,13 +165,18 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 				Platform: danmaku.Tencent,
 			}
 
-			lock.Lock()
-			result = append(result, media)
-			lock.Unlock()
+			ch <- media
 		}(v)
 
 	}
-	wg.Wait()
+	go func() {
+		wg.Wait()
+		close(ch)
+	}()
+	var result = make([]*danmaku.Media, 0, 100)
+	for m := range ch {
+		result = append(result, m)
+	}
 
 	return result, nil
 }

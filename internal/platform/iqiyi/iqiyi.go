@@ -73,10 +73,8 @@ func (c *client) scrapeDanmaku(baseInfo *VideoBaseInfoResult, tvId int64) []*dan
 	duration := baseInfo.Data.DurationSec
 	segmentsLen := duration/segmentInterval + 1
 
-	var result []*danmaku.StandardDanmaku
-
-	tasks := make(chan task, segmentsLen)
-	lock := sync.Mutex{}
+	tasks := make(chan task, c.MaxWorker)
+	ch := make(chan []*danmaku.StandardDanmaku, c.MaxWorker)
 	var wg sync.WaitGroup
 	for w := 0; w < c.MaxWorker; w++ {
 		wg.Add(1)
@@ -91,9 +89,7 @@ func (c *client) scrapeDanmaku(baseInfo *VideoBaseInfoResult, tvId int64) []*dan
 				if len(data) <= 0 {
 					continue
 				}
-				lock.Lock()
-				result = append(result, data...)
-				lock.Unlock()
+				ch <- data
 			}
 		}(w)
 	}
@@ -107,8 +103,14 @@ func (c *client) scrapeDanmaku(baseInfo *VideoBaseInfoResult, tvId int64) []*dan
 		}
 		close(tasks)
 	}()
-
-	wg.Wait()
+	go func() {
+		wg.Wait()
+		close(ch)
+	}()
+	var result = make([]*danmaku.StandardDanmaku, 0, 50000)
+	for m := range ch {
+		result = append(result, m...)
+	}
 
 	return result
 }

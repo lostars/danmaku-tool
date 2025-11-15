@@ -101,8 +101,8 @@ func (c *client) series(cid string) ([]*SeriesItem, error) {
 	}
 
 	// 并发获取 可能会出现超长tabs 比如火影
-	lock := sync.Mutex{}
 	wg := sync.WaitGroup{}
+	ch := make(chan []*SeriesItem, len(tabs))
 	wg.Add(len(tabs))
 	for _, t := range tabs {
 		go func(tab SeriesTab) {
@@ -120,13 +120,16 @@ func (c *client) series(cid string) ([]*SeriesItem, error) {
 				utils.ErrorLog(danmaku.Tencent, e.Error())
 				return
 			}
-
-			lock.Lock()
-			eps = append(eps, d...)
-			lock.Unlock()
+			ch <- d
 		}(t)
 	}
-	wg.Wait()
+	go func() {
+		wg.Wait()
+		close(ch)
+	}()
+	for ep := range ch {
+		eps = append(eps, ep...)
+	}
 
 	// 重新排序
 	sort.Slice(eps, func(i, j int) bool {
@@ -165,9 +168,8 @@ func (c *client) getDanmakuByVid(vid string) ([]*danmaku.StandardDanmaku, error)
 	}
 	utils.DebugLog(danmaku.Tencent, fmt.Sprintf("danmaku segments size: %v", segmentsLen), "vid", vid)
 
-	var result []*danmaku.StandardDanmaku
-	lock := sync.Mutex{}
-	tasks := make(chan task, segmentsLen)
+	tasks := make(chan task, c.MaxWorker)
+	ch := make(chan []*danmaku.StandardDanmaku, c.MaxWorker)
 	var wg sync.WaitGroup
 	for w := 0; w < c.MaxWorker; w++ {
 		wg.Add(1)
@@ -178,9 +180,7 @@ func (c *client) getDanmakuByVid(vid string) ([]*danmaku.StandardDanmaku, error)
 				if len(data) <= 0 {
 					continue
 				}
-				lock.Lock()
-				result = append(result, data...)
-				lock.Unlock()
+				ch <- data
 			}
 		}(w)
 	}
@@ -195,7 +195,14 @@ func (c *client) getDanmakuByVid(vid string) ([]*danmaku.StandardDanmaku, error)
 		close(tasks)
 	}()
 
-	wg.Wait()
+	go func() {
+		wg.Wait()
+		close(ch)
+	}()
+	var result = make([]*danmaku.StandardDanmaku, 0, 50000)
+	for m := range ch {
+		result = append(result, m...)
+	}
 
 	return result, nil
 }

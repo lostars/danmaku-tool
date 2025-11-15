@@ -88,11 +88,10 @@ func (c *client) videoInfo(vid string) (*VideoInfoFromHtml, *ShowInfoFromHtml, e
 
 func (c *client) scrapeDanmaku(vid string, segmentsLen int) []*danmaku.StandardDanmaku {
 
-	var result []*danmaku.StandardDanmaku
-	tasks := make(chan task, segmentsLen)
+	tasks := make(chan task, c.MaxWorker)
 	// 刷新token
 	c.refreshToken()
-	lock := sync.Mutex{}
+	ch := make(chan []*danmaku.StandardDanmaku, c.MaxWorker)
 	var wg sync.WaitGroup
 	for w := 0; w < c.MaxWorker; w++ {
 		wg.Add(1)
@@ -107,9 +106,7 @@ func (c *client) scrapeDanmaku(vid string, segmentsLen int) []*danmaku.StandardD
 				if len(data) <= 0 {
 					continue
 				}
-				lock.Lock()
-				result = append(result, data...)
-				lock.Unlock()
+				ch <- data
 			}
 		}(w)
 	}
@@ -124,7 +121,15 @@ func (c *client) scrapeDanmaku(vid string, segmentsLen int) []*danmaku.StandardD
 		close(tasks)
 	}()
 
-	wg.Wait()
+	go func() {
+		wg.Wait()
+		close(ch)
+	}()
+	var result = make([]*danmaku.StandardDanmaku, 0, 50000)
+	for d := range ch {
+		result = append(result, d...)
+	}
+
 	return result
 }
 

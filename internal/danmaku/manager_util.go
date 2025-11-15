@@ -84,7 +84,7 @@ var SeasonTitleMatch = regexp.MustCompile(`第\s*(\d{1,2}|` + ChineseNumber + `)
 var MatchLanguage = regexp.MustCompile(`(特别|普通话|粤配|中配|中文|粤语)\(版|篇\)*$`)
 var MatchSpecials = regexp.MustCompile(`(特别)篇$`)
 var MatchKeyword = regexp.MustCompile(`<em(\sclass="keyword")*>(.*?)</em>`)
-var EpBlacklistRegex = regexp.MustCompile(`专访|预告|花絮|彩蛋|高光.*\d*`)
+var EpBlacklistRegex = regexp.MustCompile(`PV|专访|预告|花絮|彩蛋|高光.*\d*`)
 
 func InvalidEpTitle(title string) bool {
 	return EpBlacklistRegex.MatchString(title)

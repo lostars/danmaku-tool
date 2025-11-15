@@ -201,7 +201,6 @@ func (c *client) GetDanmaku(realId string) ([]*danmaku.StandardDanmaku, error) {
 	}
 
 	var result = make([]*danmaku.StandardDanmaku, 0, 40000)
-	var lock sync.Mutex
 	for _, ep := range series.Result.Episodes {
 		if strconv.FormatInt(ep.EPId, 10) != realId {
 			continue
@@ -215,7 +214,8 @@ func (c *client) GetDanmaku(realId string) ([]*danmaku.StandardDanmaku, error) {
 			segments = videoDuration/360 + 1
 		}
 
-		tasks := make(chan task, segments)
+		tasks := make(chan task, c.MaxWorker)
+		ch := make(chan []*danmaku.StandardDanmaku, c.MaxWorker)
 		var wg sync.WaitGroup
 		for w := 0; w < c.MaxWorker; w++ {
 			wg.Add(1)
@@ -236,9 +236,7 @@ func (c *client) GetDanmaku(realId string) ([]*danmaku.StandardDanmaku, error) {
 							FontSize:    d.Fontsize,
 						})
 					}
-					lock.Lock()
-					result = append(result, standardData...)
-					lock.Unlock()
+					ch <- standardData
 				}
 			}(w)
 		}
@@ -253,7 +251,13 @@ func (c *client) GetDanmaku(realId string) ([]*danmaku.StandardDanmaku, error) {
 			close(tasks)
 		}()
 
-		wg.Wait()
+		go func() {
+			wg.Wait()
+			close(ch)
+		}()
+		for m := range ch {
+			result = append(result, m...)
+		}
 	}
 
 	utils.InfoLog(danmaku.Bilibili, "get danmaku done", "size", len(result))
