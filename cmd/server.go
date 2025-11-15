@@ -40,7 +40,6 @@ func serverCmd() *cobra.Command {
 	cmd.Flags().IntVarP(&port, "port", "p", 0, "server port")
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		Init()
 		InitServer()
 		r := chi.NewRouter()
 

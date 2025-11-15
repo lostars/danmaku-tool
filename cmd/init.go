@@ -12,7 +12,7 @@ func Init() {
 	// init config
 	config.Init(flags.ConfigPath, flags.Debug)
 	// init logger
-	utils.InitLogger(flags.Debug, false)
+	utils.InitLogger(flags.Debug, flags.JsonLogger)
 	// initializers
 	for _, init := range danmaku.GetInitializers() {
 		if i, ok := init.(danmaku.Initializer); ok {
@@ -24,7 +24,8 @@ func Init() {
 }
 
 func InitServer() {
-	utils.InitLogger(flags.Debug, true)
+	flags.JsonLogger = true
+	Init()
 	// server初始化必要资源
 	for _, init := range danmaku.GetInitializers() {
 		if i, ok := init.(danmaku.ServerInitializer); ok {

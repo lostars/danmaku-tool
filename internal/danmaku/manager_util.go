@@ -248,7 +248,8 @@ func InitPlatformClient(c *PlatformClient, platform Platform) error {
 		return fmt.Errorf("[%s] is not configured", platform)
 	}
 	if conf.Priority < 0 {
-		return fmt.Errorf("[%s] is disabled", platform)
+		utils.InfoLog(managerUtilC, fmt.Sprintf("[%s] is disabled", platform))
+		return nil
 	}
 
 	c.Cookie = conf.Cookie
