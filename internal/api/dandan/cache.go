@@ -15,7 +15,7 @@ import (
 var cache *ristretto.Cache[string, []byte]
 
 func init() {
-	danmaku.RegisterInitializer(&DanmakuCache{})
+	danmaku.Register(&DanmakuCache{})
 }
 
 type DanmakuCache struct{}

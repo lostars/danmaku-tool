@@ -7,7 +7,7 @@ import (
 
 func init() {
 	cacheMapper := &realTimeData{}
-	danmaku.RegisterInitializer(cacheMapper)
+	danmaku.Register(cacheMapper)
 	sourceModes = map[string]DandanSourceMode{string(cacheMapper.Mode()): cacheMapper}
 }
 

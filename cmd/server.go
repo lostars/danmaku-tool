@@ -18,6 +18,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-co-op/gocron/v2"
 	"github.com/spf13/cobra"
 )
 
@@ -30,6 +31,8 @@ const (
 	defaultWriteTimeout  = 10
 	defaultCancelTimeout = 5
 )
+
+var scheduler gocron.Scheduler
 
 func serverCmd() *cobra.Command {
 	cmd := &cobra.Command{

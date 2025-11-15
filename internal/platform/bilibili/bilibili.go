@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"strconv"
 
+	"github.com/go-co-op/gocron/v2"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -56,12 +57,22 @@ func (c *client) Init() error {
 	if err := danmaku.InitPlatformClient(&c.PlatformClient, danmaku.Bilibili); err != nil {
 		return err
 	}
-	danmaku.RegisterScraper(c)
 	return nil
 }
 
 func init() {
-	danmaku.RegisterInitializer(&client{})
+	danmaku.Register(&client{})
+}
+
+func (c *client) CreateJob(scheduler gocron.Scheduler) error {
+	cron := gocron.CronJob("TZ=Asia/Shanghai 0 1 * * *", false)
+	_ = c.setToken()
+	utils.InfoLog(danmaku.Bilibili, "init token done")
+	_, err := scheduler.NewJob(cron, gocron.NewTask(func() {
+		_ = c.setToken()
+		utils.InfoLog(danmaku.Bilibili, "refresh token done")
+	}))
+	return err
 }
 
 func (c *client) Platform() danmaku.Platform {

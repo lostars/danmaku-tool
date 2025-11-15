@@ -12,6 +12,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/go-co-op/gocron/v2"
 )
 
 type client struct {
@@ -21,15 +23,25 @@ type client struct {
 }
 
 func init() {
-	danmaku.RegisterInitializer(&client{})
+	danmaku.Register(&client{})
 }
 
 func (c *client) Init() error {
 	if err := danmaku.InitPlatformClient(&c.PlatformClient, danmaku.Youku); err != nil {
 		return err
 	}
-	danmaku.RegisterScraper(c)
 	return nil
+}
+
+func (c *client) CreateJob(scheduler gocron.Scheduler) error {
+	cron := gocron.CronJob("TZ=Asia/Shanghai 0 1 * * *", false)
+	c.refreshToken()
+	utils.InfoLog(danmaku.Youku, "init token done")
+	_, err := scheduler.NewJob(cron, gocron.NewTask(func() {
+		c.refreshToken()
+		utils.InfoLog(danmaku.Youku, "refresh token done")
+	}))
+	return err
 }
 
 func (c *client) Platform() danmaku.Platform {
@@ -89,8 +101,6 @@ func (c *client) videoInfo(vid string) (*VideoInfoFromHtml, *ShowInfoFromHtml, e
 func (c *client) scrapeDanmaku(vid string, segmentsLen int) []*danmaku.StandardDanmaku {
 
 	tasks := make(chan task, c.MaxWorker)
-	// 刷新token
-	c.refreshToken()
 	ch := make(chan []*danmaku.StandardDanmaku, c.MaxWorker)
 	var wg sync.WaitGroup
 	for w := 0; w < c.MaxWorker; w++ {

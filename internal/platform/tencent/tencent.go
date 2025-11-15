@@ -17,12 +17,11 @@ func (c *client) Init() error {
 	if err := danmaku.InitPlatformClient(&c.PlatformClient, danmaku.Tencent); err != nil {
 		return err
 	}
-	danmaku.RegisterScraper(c)
 	return nil
 }
 
 func init() {
-	danmaku.RegisterInitializer(&client{})
+	danmaku.Register(&client{})
 }
 
 type client struct {

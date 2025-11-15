@@ -2,7 +2,8 @@ package danmaku
 
 import (
 	"net/http"
-	"time"
+
+	"github.com/go-co-op/gocron/v2"
 )
 
 type MediaType string
@@ -23,24 +24,6 @@ type Media struct {
 	PubTime  int64 // unix seconds
 	Episodes []*MediaEpisode
 	Platform Platform
-}
-
-func (m *Media) FormatPubTime(force bool) string {
-	var pubTime time.Time
-	if m.PubTime > 0 {
-		pubTime = time.Unix(m.PubTime, 0)
-	} else {
-		if m.Year > 0 {
-			pubTime = time.Date(m.Year, 1, 1, 0, 0, 0, 0_000_000, time.UTC)
-		} else {
-			if force {
-				pubTime = time.Now()
-			} else {
-				return ""
-			}
-		}
-	}
-	return pubTime.Format(time.RFC3339Nano)
 }
 
 type MediaEpisode struct {
@@ -73,6 +56,10 @@ type MediaService interface {
 	Scraper
 }
 
+type Job interface {
+	CreateJob(scheduler gocron.Scheduler) error
+}
+
 type SerializerData struct {
 	Platform            Platform
 	fullPath, filename  string
@@ -96,7 +83,7 @@ type Finalizer interface {
 	Finalize() error
 }
 
-// ServerInitializer 初始化server需要的操作，实现该接口并注册 RegisterInitializer 即可
+// ServerInitializer 初始化server需要的操作，实现该接口并注册 Register 即可
 type ServerInitializer interface {
 	ServerInit() error
 }
@@ -145,15 +132,19 @@ const BottomMode = 4
 const TopMode = 5
 
 type manager struct {
-	scrapers     []Scraper
-	initializers []interface{}
-	serializers  map[string]DataSerializer
+	scrapers           []Scraper
+	initializers       []Initializer
+	serverInitializers []ServerInitializer
+	serializers        map[string]DataSerializer
+	jobs               []Job
 }
 
 var adapter = &manager{
-	scrapers:     []Scraper{},
-	initializers: []interface{}{},
-	serializers:  map[string]DataSerializer{},
+	scrapers:           []Scraper{},
+	initializers:       []Initializer{},
+	serverInitializers: []ServerInitializer{},
+	serializers:        map[string]DataSerializer{},
+	jobs:               []Job{},
 }
 
 func GetScraper(platform string) Scraper {
@@ -176,22 +167,37 @@ func GetMediaService(platform string) MediaService {
 	return nil
 }
 
-func GetInitializers() []interface{} {
+func Initializers() []Initializer {
 	return adapter.initializers
 }
 
-func GetPlatforms() []string {
+func ServerInitializers() []ServerInitializer {
+	return adapter.serverInitializers
+}
+
+func Jobs() []Job {
+	return adapter.jobs
+}
+
+func Platforms() []string {
 	return []string{
 		Bilibili, Tencent, Youku, Iqiyi,
 	}
 }
 
-func RegisterScraper(s Scraper) {
-	adapter.scrapers = append(adapter.scrapers, s)
-}
-
-func RegisterInitializer(i interface{}) {
-	adapter.initializers = append(adapter.initializers, i)
+func Register(i interface{}) {
+	if i, ok := i.(Scraper); ok {
+		adapter.scrapers = append(adapter.scrapers, i)
+	}
+	if i, ok := i.(Job); ok {
+		adapter.jobs = append(adapter.jobs, i)
+	}
+	if i, ok := i.(ServerInitializer); ok {
+		adapter.serverInitializers = append(adapter.serverInitializers, i)
+	}
+	if i, ok := i.(Initializer); ok {
+		adapter.initializers = append(adapter.initializers, i)
+	}
 }
 
 type Platform string

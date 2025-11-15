@@ -17,7 +17,7 @@ func scraperCmd() *cobra.Command {
 		Short: "scrape danmaku from id",
 	}
 
-	platform := flags.FProperty[string]{Flag: "platform", Register: &flags.PlatformCompletion{}, Options: danmaku.GetPlatforms()}
+	platform := flags.FProperty[string]{Flag: "platform", Register: &flags.PlatformCompletion{}, Options: danmaku.Platforms()}
 	cmd.Flags().StringVar(&platform.Value, platform.Flag, "", `danmaku platform: 
 `+strings.Join(platform.Options, "\n"))
 
