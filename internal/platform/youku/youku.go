@@ -21,6 +21,8 @@ type client struct {
 	danmaku.PlatformClient
 	token, tokenEnc, cna string
 	tkLastUpdate         time.Time
+	// 用于解析301请求 Location
+	redirectHttpClient *http.Client
 }
 
 func init() {
@@ -31,11 +33,17 @@ func (c *client) Init() error {
 	if err := danmaku.InitPlatformClient(&c.PlatformClient, danmaku.Youku); err != nil {
 		return err
 	}
+	c.redirectHttpClient = &http.Client{
+		Timeout: time.Second * 10,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
 	return nil
 }
 
 func (c *client) CreateJob(scheduler gocron.Scheduler) error {
-	cron := gocron.CronJob(fmt.Sprintf("TZ=%s 0 1 * * *", config.GetConfig().Timezone), false)
+	cron := gocron.CronJob(fmt.Sprintf("TZ=%s 0 */%d * * *", config.GetConfig().Timezone, tokenExpireInHours), false)
 	_, err := scheduler.NewJob(cron, gocron.NewTask(func() {
 		if err := c.refreshToken(); err != nil {
 			utils.ErrorLog(danmaku.Youku, fmt.Sprintf("refresh token error: %s", err.Error()))
@@ -218,10 +226,7 @@ func (c *client) scrape(vid string, segment int) ([]*danmaku.StandardDanmaku, er
 func (c *client) getVID(showId string) string {
 	//	https://v.youku.com/video?s=ecba3364afbe46aaa122 会 302 到视频地址
 	req, _ := http.NewRequest(http.MethodGet, "https://v.youku.com/video?s="+showId, nil)
-	c.HttpClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-		return http.ErrUseLastResponse
-	}
-	resp, err := c.DoReq(req)
+	resp, err := c.redirectHttpClient.Do(req)
 	if err != nil {
 		utils.WarnLog(danmaku.Youku, fmt.Sprintf("get vid req fail: %s", err.Error()))
 		return ""

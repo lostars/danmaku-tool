@@ -144,15 +144,11 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 			if vid == "" {
 				continue
 			}
-			videoInfo, _, e := c.videoInfo(vid)
-			if e != nil {
-				continue
-			}
 			var eps = make([]*danmaku.MediaEpisode, 0, 1)
 			eps = append(eps, &danmaku.MediaEpisode{
 				Id:        vid,
-				Title:     videoInfo.Title,
-				EpisodeId: videoInfo.Title,
+				Title:     mediaInfo.TempTitle,
+				EpisodeId: mediaInfo.TempTitle,
 			})
 			media.Episodes = eps
 		} else {
