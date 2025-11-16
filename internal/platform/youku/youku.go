@@ -246,7 +246,7 @@ func (c *client) Media(showId string) (*danmaku.Media, error) {
 		return nil, fmt.Errorf("%s show get video info fail", showId)
 	}
 
-	var eps []*danmaku.MediaEpisode
+	var eps = make([]*danmaku.MediaEpisode, 0, 200)
 moduleLoop:
 	for _, module := range showInfo.ModuleList {
 		if module.Type != 10001 {

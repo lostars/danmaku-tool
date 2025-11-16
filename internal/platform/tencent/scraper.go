@@ -58,7 +58,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 		return nil, fmt.Errorf("search ret code: %v %s", searchResult.Ret, searchResult.Msg)
 	}
 
-	var itemList []SearchResultItem
+	var itemList = make([]SearchResultItem, 0, 100)
 	if searchResult.Data.NormalList.ItemList != nil {
 		itemList = append(itemList, searchResult.Data.NormalList.ItemList...)
 	}

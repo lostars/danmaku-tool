@@ -75,7 +75,7 @@ func MatchMedia(param MatchParam) []*Media {
 		close(ch)
 	}()
 
-	var result []*Media
+	var result = make([]*Media, 0, 100)
 	for m := range ch {
 		for _, media := range m {
 			// 过滤掉没有ep的剧集

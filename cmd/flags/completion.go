@@ -36,9 +36,8 @@ func (f *FProperty[T]) RegisterCompletion(cmd *cobra.Command) {
 type PlatformCompletion struct{}
 
 func (p *PlatformCompletion) complete(toComplete string) []string {
-	var platforms = danmaku.Platforms()
 	var result []string
-	for _, v := range platforms {
+	for _, v := range danmaku.Platforms() {
 		if strings.HasPrefix(v, toComplete) {
 			result = append(result, v)
 		}

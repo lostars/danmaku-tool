@@ -85,7 +85,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 		return nil, fmt.Errorf("empty nodes: %s", keyword)
 	}
 
-	var result []*danmaku.Media
+	var result = make([]*danmaku.Media, 0, len(apiResult.Data.Nodes))
 	for _, n := range apiResult.Data.Nodes {
 		if len(n.Nodes) == 0 {
 			continue

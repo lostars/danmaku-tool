@@ -91,7 +91,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 			continue
 		}
 
-		var eps []*danmaku.MediaEpisode
+		var eps = make([]*danmaku.MediaEpisode, 0, 200)
 		var mediaType danmaku.MediaType
 		var mediaId, typeName string
 		switch t.Template {

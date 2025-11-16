@@ -335,7 +335,7 @@ func (c *client) Media(id string) (*danmaku.Media, error) {
 	if err != nil {
 		return nil, err
 	}
-	var eps []*danmaku.MediaEpisode
+	var eps = make([]*danmaku.MediaEpisode, 0, len(items))
 	for _, ep := range items {
 		if !ep.validEP() {
 			continue

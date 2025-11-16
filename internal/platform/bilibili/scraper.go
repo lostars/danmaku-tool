@@ -116,7 +116,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 		}
 		clearTitle := danmaku.ClearTitle(bangumi.Title)
 
-		var eps []*danmaku.MediaEpisode
+		var eps = make([]*danmaku.MediaEpisode, 0, 200)
 		// 分两类处理
 		/*
 			1. 有EP信息 可能是剧集 也可能是电影不同的语言或配音版本

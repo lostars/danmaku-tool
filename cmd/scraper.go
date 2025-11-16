@@ -28,12 +28,12 @@ func scraperCmd() *cobra.Command {
 			return fmt.Errorf("id is empty")
 		}
 
-		var p = danmaku.GetScraper(platform.Value)
-		if p == nil {
+		scraper := danmaku.GetScraper(platform.Value)
+		if scraper == nil {
 			return fmt.Errorf("unsupported platform: %s", platform.Value)
 		}
 		start := time.Now()
-		err := p.Scrape(id)
+		err := scraper.Scrape(id)
 		utils.DebugLog(scrapeCmdC, "scrape cmd done", "cost_ms", time.Since(start).Milliseconds())
 		if err != nil {
 			utils.ErrorLog(scrapeCmdC, err.Error())
