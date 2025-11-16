@@ -3,6 +3,7 @@ package bilibili
 import (
 	"bytes"
 	"crypto/md5"
+	"danmaku-tool/internal/danmaku"
 	"danmaku-tool/internal/utils"
 	"encoding/hex"
 	"fmt"
@@ -40,6 +41,7 @@ func (c *client) setToken() error {
 	}
 	c.token.imgKey = matchImg[1]
 	c.token.subKey = matchSub[1]
+	c.token.lastUpdateTime = time.Now()
 
 	return nil
 }
@@ -66,10 +68,10 @@ func (c *client) sign(values url.Values) (url.Values, error) {
 	tokenExpire := time.Since(c.token.lastUpdateTime).Hours() > 24
 	if c.token.imgKey == "" || c.token.subKey == "" || tokenExpire {
 		err := c.setToken()
+		utils.InfoLog(danmaku.Bilibili, "token expires in sign")
 		if err != nil {
 			return nil, err
 		}
-		c.token.lastUpdateTime = time.Now()
 	}
 
 	values = removeUnwantedChars(values, '!', '\'', '(', ')', '*')
