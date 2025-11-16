@@ -4,10 +4,7 @@ import (
 	"danmaku-tool/cmd/flags"
 	"danmaku-tool/internal/config"
 	"danmaku-tool/internal/danmaku"
-	"danmaku-tool/internal/service"
 	"danmaku-tool/internal/utils"
-
-	"github.com/go-co-op/gocron/v2"
 )
 
 func Init() {
@@ -28,37 +25,24 @@ func InitServer() {
 	Init()
 	// server初始化必要资源
 	for _, init := range danmaku.ServerInitializers() {
-		if err := init.ServerInit(); err != nil {
-			utils.ErrorLog(initServerC, err.Error())
-		}
-	}
-	// 初始化任务
-	go func() {
-		s, err := gocron.NewScheduler()
-		if err != nil {
-			utils.ErrorLog(initServerC, err.Error())
-			return
-		}
-		for _, j := range danmaku.Jobs() {
-			if e := j.CreateJob(s); e != nil {
-				utils.ErrorLog(initServerC, e.Error())
+		if async, ok := init.(danmaku.AsyncServerInitializer); ok {
+			async := async
+			go func() {
+				if err := async.AsyncInit(); err != nil {
+					utils.ErrorLog(initServerC, err.Error())
+				}
+			}()
+		} else {
+			if err := init.ServerInit(); err != nil {
+				utils.ErrorLog(initServerC, err.Error())
 			}
 		}
-		scheduler = s
-		scheduler.Start()
-	}()
+	}
 }
 
 func Release() {
-	mode := service.GetDandanSourceMode()
-	if re, ok := mode.(danmaku.Finalizer); ok {
-		err := re.Finalize()
-		if err != nil {
-			utils.ErrorLog(releaseC, err.Error())
-		}
-	}
-	if scheduler != nil {
-		if err := scheduler.Shutdown(); err != nil {
+	for _, f := range danmaku.Finalizers() {
+		if err := f.Finalize(); err != nil {
 			utils.ErrorLog(releaseC, err.Error())
 		}
 	}

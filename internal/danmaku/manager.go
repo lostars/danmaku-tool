@@ -83,9 +83,15 @@ type Finalizer interface {
 	Finalize() error
 }
 
-// ServerInitializer 初始化server需要的操作，实现该接口并注册 Register 即可
+// ServerInitializer 初始化server操作，实现该接口并注册 Register 即可
 type ServerInitializer interface {
 	ServerInit() error
+}
+
+// AsyncServerInitializer 异步初始化server操作，实现该接口并注册 Register 即可
+type AsyncServerInitializer interface {
+	ServerInitializer
+	AsyncInit() error
 }
 
 type Initializer interface {
@@ -136,6 +142,7 @@ type manager struct {
 	initializers       []Initializer
 	serverInitializers []ServerInitializer
 	serializers        map[string]DataSerializer
+	finalizers         []Finalizer
 	jobs               []Job
 }
 
@@ -144,6 +151,7 @@ var adapter = &manager{
 	initializers:       []Initializer{},
 	serverInitializers: []ServerInitializer{},
 	serializers:        map[string]DataSerializer{},
+	finalizers:         []Finalizer{},
 	jobs:               []Job{},
 }
 
@@ -171,6 +179,10 @@ func Initializers() []Initializer {
 	return adapter.initializers
 }
 
+func Finalizers() []Finalizer {
+	return adapter.finalizers
+}
+
 func ServerInitializers() []ServerInitializer {
 	return adapter.serverInitializers
 }
@@ -186,17 +198,16 @@ func Platforms() []string {
 }
 
 func Register(i interface{}) {
-	if i, ok := i.(Scraper); ok {
-		adapter.scrapers = append(adapter.scrapers, i)
-	}
-	if i, ok := i.(Job); ok {
-		adapter.jobs = append(adapter.jobs, i)
-	}
-	if i, ok := i.(ServerInitializer); ok {
-		adapter.serverInitializers = append(adapter.serverInitializers, i)
-	}
-	if i, ok := i.(Initializer); ok {
-		adapter.initializers = append(adapter.initializers, i)
+	reg(&adapter.scrapers, i)
+	reg(&adapter.jobs, i)
+	reg(&adapter.serverInitializers, i)
+	reg(&adapter.initializers, i)
+	reg(&adapter.finalizers, i)
+}
+
+func reg[T any](list *[]T, i interface{}) {
+	if v, ok := i.(T); ok {
+		*list = append(*list, v)
 	}
 }
 

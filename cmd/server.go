@@ -5,6 +5,7 @@ import (
 	"danmaku-tool/internal/api"
 	"danmaku-tool/internal/api/dandan"
 	"danmaku-tool/internal/config"
+	"danmaku-tool/internal/danmaku"
 	"danmaku-tool/internal/utils"
 	"errors"
 	"log/slog"
@@ -32,7 +33,37 @@ const (
 	defaultCancelTimeout = 5
 )
 
-var scheduler gocron.Scheduler
+type schedulerType struct {
+	scheduler gocron.Scheduler
+}
+
+func (s *schedulerType) Finalize() error {
+	if s.scheduler != nil {
+		if err := s.scheduler.Shutdown(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *schedulerType) ServerInit() error {
+	return nil
+}
+
+func (s *schedulerType) AsyncInit() error {
+	scheduler, err := gocron.NewScheduler()
+	if err != nil {
+		return err
+	}
+	for _, j := range danmaku.Jobs() {
+		if e := j.CreateJob(scheduler); e != nil {
+			utils.ErrorLog(webServerC, e.Error())
+		}
+	}
+	s.scheduler = scheduler
+	s.scheduler.Start()
+	return nil
+}
 
 func serverCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -149,4 +180,5 @@ func (r *statusRecorder) WriteHeader(status int) {
 
 func init() {
 	rootCmd.AddCommand(serverCmd())
+	danmaku.Register(&schedulerType{})
 }

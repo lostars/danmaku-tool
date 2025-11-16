@@ -33,6 +33,13 @@ func (d *DanmakuCache) ServerInit() error {
 	return nil
 }
 
+func (d *DanmakuCache) Finalize() error {
+	if cache != nil {
+		cache.Close()
+	}
+	return nil
+}
+
 const dandanApiCacheC = "dandan_api_cache"
 
 func CacheMiddleware(next http.Handler) http.Handler {
