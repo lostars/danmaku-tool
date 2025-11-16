@@ -66,12 +66,13 @@ func init() {
 }
 
 func (c *client) CreateJob(scheduler gocron.Scheduler) error {
-	cron := gocron.CronJob(fmt.Sprintf("TZ=%s 0 1 * * *", config.GetConfig().Timezone), false)
-	_ = c.setToken()
-	utils.InfoLog(danmaku.Bilibili, "init token done")
+	cron := gocron.CronJob(fmt.Sprintf("TZ=%s 1 1 * * *", config.GetConfig().Timezone), false)
 	_, err := scheduler.NewJob(cron, gocron.NewTask(func() {
-		_ = c.setToken()
-		utils.InfoLog(danmaku.Bilibili, "refresh token done")
+		if err := c.setToken(); err != nil {
+			utils.ErrorLog(danmaku.Bilibili, fmt.Sprintf("refresh token error: %s", err.Error()))
+		} else {
+			utils.InfoLog(danmaku.Bilibili, "refresh token done")
+		}
 	}))
 	return err
 }

@@ -6,6 +6,7 @@ import (
 	"danmaku-tool/internal/danmaku"
 	"danmaku-tool/internal/utils"
 	"encoding/gob"
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -52,43 +53,43 @@ func (c *realTimeData) Finalize() error {
 	return nil
 }
 
-func (c *realTimeData) Load() (bool, error) {
+func (c *realTimeData) Load() error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
 	p := path.Join(strings.ReplaceAll(config.ConfPath, path.Base(config.ConfPath), ""), localCacheFile)
 	file, err := os.Open(p)
 	if err != nil {
+		if !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
 		c.ForwardMap = make(map[string]int64, 1000)
 		c.ReverseMap = make(map[int64]string, 1000)
 		c.IdAllocator = int64(1)
-		return false, err
+		return nil
 	}
 	defer utils.SafeClose(file)
 
 	gz, err := gzip.NewReader(file)
 	if err != nil {
-		return false, fmt.Errorf("failed to decode data: %w", err)
+		return fmt.Errorf("failed to decode data: %w", err)
 	}
 	defer utils.SafeClose(gz)
 
 	if e := gob.NewDecoder(gz).Decode(c); e != nil {
-		return false, fmt.Errorf("failed to decode data: %w", e)
+		return fmt.Errorf("failed to decode data: %w", e)
 	}
 	fileInfo, _ := file.Stat()
-	utils.InfoLog(realTimeServiceC, fmt.Sprintf("data size: %dx2, next id: %d, cache file size: %d byte", len(c.ForwardMap), c.IdAllocator, fileInfo.Size()))
-
-	return true, nil
+	utils.InfoLog(realTimeServiceC, fmt.Sprintf("media next id: %d, cache file size: %d byte", c.IdAllocator, fileInfo.Size()))
+	return nil
 }
 
 const realTimeServiceC = "real_time_service"
 
 func (c *realTimeData) ServerInit() error {
-	success, err := c.Load()
-	if err != nil {
+	if err := c.Load(); err != nil {
 		return err
 	}
-	utils.InfoLog(realTimeServiceC, fmt.Sprintf("restore data from file success: %v", success))
 	return nil
 }
 
@@ -122,9 +123,6 @@ func (c *realTimeData) Match(param MatchParam) (*DanDanResult, error) {
 	media := danmaku.MatchMedia(searchParam)
 	// 客户端只会使用第一个结果 但依旧匹配所有搜索结果用于接口调试
 	for _, m := range media {
-		if len(m.Episodes) == 0 {
-			continue
-		}
 		if searchMovies {
 			result.IsMatched = true
 			result.Matches = append(result.Matches, Match{
@@ -136,15 +134,16 @@ func (c *realTimeData) Match(param MatchParam) (*DanDanResult, error) {
 		} else {
 			for _, ep := range m.Episodes {
 				epStr := strconv.FormatInt(epId, 10)
-				if ep.EpisodeId == epStr {
-					utils.InfoLog(realTimeServiceC, "ep match success", "platform", m.Platform, "title", param.FileName, "ep", ep.EpisodeId)
-					result.IsMatched = true
-					result.Matches = append(result.Matches, Match{
-						EpisodeId:    c.getGlobalID(string(m.Platform), m.Id, ep.Id),
-						AnimeTitle:   m.Title + " [" + string(m.Platform) + "]",
-						EpisodeTitle: ep.EpisodeId,
-					})
+				if ep.EpisodeId != epStr {
+					continue
 				}
+				utils.InfoLog(realTimeServiceC, "ep match success", "platform", m.Platform, "title", param.FileName, "ep", ep.EpisodeId)
+				result.IsMatched = true
+				result.Matches = append(result.Matches, Match{
+					EpisodeId:    c.getGlobalID(string(m.Platform), m.Id, ep.Id),
+					AnimeTitle:   m.Title + " [" + string(m.Platform) + "]",
+					EpisodeTitle: ep.EpisodeId,
+				})
 			}
 		}
 	}

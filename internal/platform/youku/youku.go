@@ -36,11 +36,12 @@ func (c *client) Init() error {
 
 func (c *client) CreateJob(scheduler gocron.Scheduler) error {
 	cron := gocron.CronJob(fmt.Sprintf("TZ=%s 0 1 * * *", config.GetConfig().Timezone), false)
-	_ = c.refreshToken()
-	utils.InfoLog(danmaku.Youku, "init token done")
 	_, err := scheduler.NewJob(cron, gocron.NewTask(func() {
-		_ = c.refreshToken()
-		utils.InfoLog(danmaku.Youku, "refresh token done")
+		if err := c.refreshToken(); err != nil {
+			utils.ErrorLog(danmaku.Youku, fmt.Sprintf("refresh token error: %s", err.Error()))
+		} else {
+			utils.InfoLog(danmaku.Youku, "refresh token done")
+		}
 	}))
 	return err
 }

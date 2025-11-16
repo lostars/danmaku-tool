@@ -8,6 +8,7 @@ import (
 	"danmaku-tool/internal/danmaku"
 	"danmaku-tool/internal/utils"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -62,6 +63,12 @@ func (s *schedulerType) AsyncInit() error {
 	}
 	s.scheduler = scheduler
 	s.scheduler.Start()
+	// 立即运行一次任务
+	for _, job := range s.scheduler.Jobs() {
+		if err = job.RunNow(); err != nil {
+			utils.ErrorLog(webServerC, fmt.Sprintf("run job error: %s", err.Error()))
+		}
+	}
 	return nil
 }
 
