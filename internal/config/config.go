@@ -25,6 +25,14 @@ func Init(path string, debug bool) {
 	if err := yaml.Unmarshal(file, &danmakuConfig); err != nil {
 		panic(err.Error())
 	}
+	// init tz
+	if danmakuConfig.Timezone == "" {
+		if p := os.Getenv(timeZoneEnv); p != "" {
+			danmakuConfig.Timezone = p
+		} else {
+			danmakuConfig.Timezone = "Asia/Shanghai"
+		}
+	}
 	danmakuConfig.Debug = debug
 }
 
@@ -33,6 +41,7 @@ func GetConfig() *DanmakuConfig {
 }
 
 const configPathEnv = "DANMAKU_TOOL_CONFIG"
+const timeZoneEnv = "TZ"
 
 func loadFromPath(path string) []byte {
 	file, err := os.ReadFile(path)
@@ -74,6 +83,7 @@ func GetPlatformConfig(platform string) *PlatformConfig {
 }
 
 type DanmakuConfig struct {
+	Timezone      string           `yaml:"timezone"`
 	Debug         bool             `yaml:"debug"`
 	SavePath      string           `yaml:"save-path"`
 	DandanMode    string           `yaml:"dandan-mode"`

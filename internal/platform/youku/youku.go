@@ -1,6 +1,7 @@
 package youku
 
 import (
+	"danmaku-tool/internal/config"
 	"danmaku-tool/internal/danmaku"
 	"danmaku-tool/internal/utils"
 	"encoding/json"
@@ -34,11 +35,11 @@ func (c *client) Init() error {
 }
 
 func (c *client) CreateJob(scheduler gocron.Scheduler) error {
-	cron := gocron.CronJob("TZ=Asia/Shanghai 0 1 * * *", false)
-	c.refreshToken()
+	cron := gocron.CronJob(fmt.Sprintf("TZ=%s 0 1 * * *", config.GetConfig().Timezone), false)
+	_ = c.refreshToken()
 	utils.InfoLog(danmaku.Youku, "init token done")
 	_, err := scheduler.NewJob(cron, gocron.NewTask(func() {
-		c.refreshToken()
+		_ = c.refreshToken()
 		utils.InfoLog(danmaku.Youku, "refresh token done")
 	}))
 	return err
@@ -154,7 +155,10 @@ func (c *client) scrape(vid string, segment int) ([]*danmaku.StandardDanmaku, er
 		"vid": vid,
 		"mat": segment,
 	}
-	query, data := c.sign(params, danmakuList)
+	query, data, err := c.sign(params, danmakuList)
+	if err != nil {
+		return nil, err
+	}
 	fullURL := fmt.Sprintf("https://acs.youku.com/h5/%s/1.0/?%s", danmakuList.api, query.Encode())
 
 	formData := url.Values{}

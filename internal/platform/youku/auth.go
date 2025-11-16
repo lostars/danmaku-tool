@@ -2,6 +2,7 @@ package youku
 
 import (
 	"crypto/md5"
+	"danmaku-tool/internal/danmaku"
 	"danmaku-tool/internal/utils"
 	"encoding/base64"
 	"encoding/json"
@@ -14,21 +15,21 @@ import (
 	"time"
 )
 
-func (c *client) refreshToken() {
+func (c *client) refreshToken() error {
 	// cna https://log.mmstat.com/eg.js etag "C2CHIZvOsxUCAQAAAADMJgVh"
 	cnaUrl := "https://log.mmstat.com/eg.js"
 	cnaReq, _ := http.NewRequest(http.MethodGet, cnaUrl, nil)
 	cnaResp, e := c.DoReq(cnaReq)
 	if e != nil {
-		return
+		return e
 	}
 	defer utils.SafeClose(cnaResp.Body)
 	if cnaResp.StatusCode != http.StatusOK {
-		return
+		return fmt.Errorf("refresh token wrong status: %s", cnaResp.Status)
 	}
 	etags := cnaResp.Header.Values("etag")
 	if len(etags) < 1 {
-		return
+		return fmt.Errorf("refresh token not etag header")
 	}
 	c.cna = etags[0]
 
@@ -37,27 +38,34 @@ func (c *client) refreshToken() {
 	req.Header.Set("cookie", "cna="+c.cna)
 	resp, err := c.DoReq(req)
 	if err != nil {
-		return
+		return err
 	}
 	defer utils.SafeClose(resp.Body)
 	if resp.StatusCode != http.StatusOK {
-		return
+		return fmt.Errorf("refresh token get ticket wrong status: %s", cnaResp.Status)
 	}
 	cookies := resp.Header.Values("set-cookie")
 	if len(cookies) < 2 {
-		return
+		return fmt.Errorf("refresh token get ticket no set-cookie header")
 	}
+	var tkOk, encOk bool
 	for _, cookie := range cookies {
 		tkMatches := tkRegex.FindStringSubmatch(cookie)
 		if len(tkMatches) > 1 {
 			c.token = tkMatches[1]
+			tkOk = true
 		}
 		encTkMatches := encTkRegex.FindStringSubmatch(cookie)
 		if len(encTkMatches) > 1 {
 			c.tokenEnc = encTkMatches[1]
+			encOk = true
 		}
 	}
+	if !tkOk || !encOk {
+		return fmt.Errorf("refresh token fail to get tickets")
+	}
 	c.tkLastUpdate = time.Now()
+	return nil
 }
 
 var tkRegex = regexp.MustCompile(`_m_h5_tk=([a-z0-9]{32}_[0-9]{13});`)
@@ -106,9 +114,12 @@ func (c *client) setReq(req *http.Request) {
 	req.Header.Set("cookie", fmt.Sprintf("_m_h5_tk=%s;_m_h5_tk_enc=%s;cna=%s", c.token, c.tokenEnc, c.cna))
 }
 
-func (c *client) sign(params map[string]interface{}, api apiInfo) (url.Values, string) {
+func (c *client) sign(params map[string]interface{}, api apiInfo) (url.Values, string, error) {
 	if c.cna == "" || c.token == "" || c.tokenEnc == "" || time.Since(c.tkLastUpdate).Hours() >= 24 {
-		c.refreshToken()
+		utils.InfoLog(danmaku.Youku, "token expires in sign")
+		if err := c.refreshToken(); err != nil {
+			return nil, "", err
+		}
 	}
 
 	msg, sign := signPayload()
@@ -131,7 +142,7 @@ func (c *client) sign(params map[string]interface{}, api apiInfo) (url.Values, s
 	urlParams.Set("dataType", "jsonp")
 	urlParams.Set("timeout", "20000")
 
-	return urlParams, string(payload)
+	return urlParams, string(payload), nil
 }
 
 var (

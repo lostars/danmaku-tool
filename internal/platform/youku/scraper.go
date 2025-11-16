@@ -57,7 +57,10 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 		"pcKuFlixMode": 1,
 	}
 
-	urlParams, _ := c.sign(params, search)
+	urlParams, _, err := c.sign(params, search)
+	if err != nil {
+		return nil, err
+	}
 	paramsBytes, _ := json.Marshal(params)
 	urlParams.Set("data", string(paramsBytes))
 

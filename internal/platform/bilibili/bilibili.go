@@ -2,6 +2,7 @@ package bilibili
 
 import (
 	"compress/gzip"
+	"danmaku-tool/internal/config"
 	"danmaku-tool/internal/danmaku"
 	"danmaku-tool/internal/utils"
 	"encoding/json"
@@ -65,7 +66,7 @@ func init() {
 }
 
 func (c *client) CreateJob(scheduler gocron.Scheduler) error {
-	cron := gocron.CronJob("TZ=Asia/Shanghai 0 1 * * *", false)
+	cron := gocron.CronJob(fmt.Sprintf("TZ=%s 0 1 * * *", config.GetConfig().Timezone), false)
 	_ = c.setToken()
 	utils.InfoLog(danmaku.Bilibili, "init token done")
 	_, err := scheduler.NewJob(cron, gocron.NewTask(func() {
