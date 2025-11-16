@@ -72,6 +72,7 @@ var tkRegex = regexp.MustCompile(`_m_h5_tk=([a-z0-9]{32}_[0-9]{13});`)
 var encTkRegex = regexp.MustCompile(`_m_h5_tk_enc=([a-z0-9]{32});`)
 
 const salt = "MkmC9SoIw6xCkSKHhJ7b5D2r51kBiREr"
+const tokenExpireInHours = 1
 
 func generateTokenSign(token, t, appKey, data string) string {
 	tokenPart := token
@@ -115,7 +116,7 @@ func (c *client) setReq(req *http.Request) {
 }
 
 func (c *client) sign(params map[string]interface{}, api apiInfo) (url.Values, string, error) {
-	if c.cna == "" || c.token == "" || c.tokenEnc == "" || time.Since(c.tkLastUpdate).Hours() >= 24 {
+	if c.cna == "" || c.token == "" || c.tokenEnc == "" || time.Since(c.tkLastUpdate).Hours() >= tokenExpireInHours {
 		utils.InfoLog(danmaku.Youku, "token expires in sign")
 		if err := c.refreshToken(); err != nil {
 			return nil, "", err
