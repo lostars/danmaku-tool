@@ -39,9 +39,9 @@ func (c *client) setToken() error {
 	if len(matchImg) <= 1 || len(matchSub) <= 1 {
 		return fmt.Errorf("wrong img url token %s", nav.Data.WbiImg.ImgUrl)
 	}
-	c.token.imgKey = matchImg[1]
-	c.token.subKey = matchSub[1]
-	c.token.lastUpdateTime = time.Now()
+	c.imgKey = matchImg[1]
+	c.subKey = matchSub[1]
+	c.lastUpdateTime = time.Now()
 
 	return nil
 }
@@ -59,17 +59,10 @@ type navInfo struct {
 	} `json:"data"`
 }
 
-type tokenKey struct {
-	subKey, imgKey string
-	lastUpdateTime time.Time
-}
-
 func (c *client) sign(values url.Values) (url.Values, error) {
-	tokenExpire := time.Since(c.token.lastUpdateTime).Hours() > 24
-	if c.token.imgKey == "" || c.token.subKey == "" || tokenExpire {
-		err := c.setToken()
+	if time.Since(c.lastUpdateTime).Hours() >= 24 {
 		utils.InfoLog(danmaku.Bilibili, "token expires in sign")
-		if err != nil {
+		if err := c.setToken(); err != nil {
 			return nil, err
 		}
 	}
@@ -78,7 +71,7 @@ func (c *client) sign(values url.Values) (url.Values, error) {
 	values.Set("wts", strconv.FormatInt(time.Now().Unix(), 10))
 
 	var mixin [32]byte
-	wbi := c.token.imgKey + c.token.subKey
+	wbi := c.imgKey + c.subKey
 	for i := range mixin {
 		mixin[i] = wbi[mixinKeyEncTab[i]]
 	}

@@ -116,7 +116,7 @@ func (c *client) setReq(req *http.Request) {
 }
 
 func (c *client) sign(params map[string]interface{}, api apiInfo) (url.Values, string, error) {
-	if c.cna == "" || c.token == "" || c.tokenEnc == "" || time.Since(c.tkLastUpdate).Hours() >= tokenExpireInHours {
+	if time.Since(c.tkLastUpdate).Hours() >= tokenExpireInHours {
 		utils.InfoLog(danmaku.Youku, "token expires in sign")
 		if err := c.refreshToken(); err != nil {
 			return nil, "", err

@@ -39,6 +39,9 @@ func (c *client) Init() error {
 			return http.ErrUseLastResponse
 		},
 	}
+	if err := c.refreshToken(); err != nil {
+		return err
+	}
 	return nil
 }
 

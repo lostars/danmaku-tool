@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"time"
 
 	"github.com/go-co-op/gocron/v2"
 	"google.golang.org/protobuf/proto"
@@ -20,7 +21,8 @@ type client struct {
 	danmaku.PlatformClient
 
 	// 接口签名token信息
-	token tokenKey
+	subKey, imgKey string
+	lastUpdateTime time.Time
 }
 
 func (c *client) Media(id string) (*danmaku.Media, error) {
@@ -56,6 +58,9 @@ func (c *client) Media(id string) (*danmaku.Media, error) {
 
 func (c *client) Init() error {
 	if err := danmaku.InitPlatformClient(&c.PlatformClient, danmaku.Bilibili); err != nil {
+		return err
+	}
+	if err := c.setToken(); err != nil {
 		return err
 	}
 	return nil
