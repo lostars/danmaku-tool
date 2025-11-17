@@ -170,7 +170,20 @@ type SearchResultItem struct {
 		SubjectDoc struct {
 			VideoNum int `json:"videoNum"` // 剧集集数
 		} `json:"subjectDoc"`
+		PlaySites []struct {
+			// qq qiyi
+			EnName string `json:"enName"`
+		} `json:"playSites"`
 	} `json:"videoInfo"`
+}
+
+func (s SearchResultItem) ValidEnName() bool {
+	for _, en := range s.VideoInfo.PlaySites {
+		if en.EnName == "qq" {
+			return true
+		}
+	}
+	return false
 }
 
 type SearchParam struct {

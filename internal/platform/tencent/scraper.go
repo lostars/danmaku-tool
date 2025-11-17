@@ -92,7 +92,10 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 		go func(v SearchResultItem) {
 			defer wg.Done()
 			defer func() { <-sem }()
-
+			// 非本站视频
+			if !v.ValidEnName() {
+				return
+			}
 			// 黑名单 基本都是外站视频
 			if tencentExcludeRegex.MatchString(v.VideoInfo.SubTitle) {
 				return
