@@ -15,7 +15,7 @@ func Init() {
 	// initializers
 	for _, init := range danmaku.Initializers() {
 		if err := init.Init(); err != nil {
-			utils.InfoLog(initC, err.Error())
+			utils.ErrorLog(initC, err.Error())
 		}
 	}
 }

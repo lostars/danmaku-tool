@@ -231,7 +231,7 @@ func (c *client) getVID(showId string) string {
 	req, _ := http.NewRequest(http.MethodGet, "https://v.youku.com/video?s="+showId, nil)
 	resp, err := c.redirectHttpClient.Do(req)
 	if err != nil {
-		utils.WarnLog(danmaku.Youku, fmt.Sprintf("get vid req fail: %s", err.Error()))
+		utils.ErrorLog(danmaku.Youku, fmt.Sprintf("get vid req fail: %s", err.Error()))
 		return ""
 	}
 	defer utils.SafeClose(resp.Body)
@@ -241,7 +241,7 @@ func (c *client) getVID(showId string) string {
 	if len(matches) > 1 {
 		return matches[1]
 	}
-	utils.WarnLog(danmaku.Youku, fmt.Sprintf("get vid match fail: %s", location))
+	utils.ErrorLog(danmaku.Youku, fmt.Sprintf("get vid match fail: %s", location))
 	return ""
 }
 

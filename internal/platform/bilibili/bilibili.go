@@ -153,7 +153,7 @@ func (c *client) baseInfo(epId string, ssId string) (*SeriesInfo, error) {
 	return &series, nil
 }
 
-func (c *client) scrape(oid, pid, segmentIndex int64) []*DanmakuElem {
+func (c *client) scrape(oid, pid, segmentIndex int64) ([]*DanmakuElem, error) {
 	params := url.Values{
 		"type":          {"1"},
 		"oid":           {strconv.FormatInt(oid, 10)},
@@ -164,8 +164,7 @@ func (c *client) scrape(oid, pid, segmentIndex int64) []*DanmakuElem {
 
 	req, err := http.NewRequest(http.MethodGet, api, nil)
 	if err != nil {
-		utils.ErrorLog(danmaku.Bilibili, err.Error())
-		return nil
+		return nil, err
 	}
 
 	// 2. 【关键】设置 Accept-Encoding: gzip，告诉服务器客户端支持 Gzip 压缩
@@ -174,14 +173,12 @@ func (c *client) scrape(oid, pid, segmentIndex int64) []*DanmakuElem {
 
 	resp, err := c.DoReq(req)
 	if err != nil {
-		utils.ErrorLog(danmaku.Bilibili, err.Error())
-		return nil
+		return nil, err
 	}
 	defer utils.SafeClose(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
-		utils.ErrorLog(danmaku.Bilibili, fmt.Sprintf("scrape segment status: %s", resp.Status))
-		return nil
+		return nil, fmt.Errorf("scrape segment status: %s", resp.Status)
 	}
 
 	// 没有权限会返回json 400错误，但是status=200
@@ -189,35 +186,27 @@ func (c *client) scrape(oid, pid, segmentIndex int64) []*DanmakuElem {
 	if contentType != "application/octet-stream" {
 		if contentType == "application/json" {
 			var raw = json.RawMessage{}
-			err = json.NewDecoder(resp.Body).Decode(&raw)
-			if err != nil {
-				utils.ErrorLog(danmaku.Bilibili, err.Error())
-			} else {
-				utils.ErrorLog(danmaku.Bilibili, fmt.Sprintf("unknown error: %s", string(raw)))
+			if err = json.NewDecoder(resp.Body).Decode(&raw); err != nil {
+				return nil, fmt.Errorf(string(raw))
 			}
-		} else {
-			utils.ErrorLog(danmaku.Bilibili, fmt.Sprintf("unknown content type: %s", contentType))
 		}
-		return nil
+		return nil, fmt.Errorf("unknown content-type: %s", contentType)
 	}
 
 	gzipReader, err := gzip.NewReader(resp.Body)
 	if err != nil {
-		utils.ErrorLog(danmaku.Bilibili, err.Error())
-		return nil
+		return nil, err
 	}
 	defer utils.SafeClose(gzipReader)
 	reply := &DmSegMobileReply{}
 	jsonBytes, err := io.ReadAll(gzipReader)
 	if err != nil {
-		utils.ErrorLog(danmaku.Bilibili, err.Error())
-		return nil
+		return nil, err
 	}
 	if err := proto.Unmarshal(jsonBytes, reply); err != nil {
-		utils.ErrorLog(danmaku.Bilibili, err.Error())
-		return nil
+		return nil, err
 	}
-	return reply.GetElems()
+	return reply.GetElems(), nil
 }
 
 type task struct {

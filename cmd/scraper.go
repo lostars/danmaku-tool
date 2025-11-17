@@ -33,11 +33,11 @@ func scraperCmd() *cobra.Command {
 			return fmt.Errorf("unsupported platform: %s", platform.Value)
 		}
 		start := time.Now()
-		err := scraper.Scrape(id)
-		utils.DebugLog(scrapeCmdC, "scrape cmd done", "cost_ms", time.Since(start).Milliseconds())
-		if err != nil {
+		if err := scraper.Scrape(id); err != nil {
 			utils.ErrorLog(scrapeCmdC, err.Error())
+			return nil
 		}
+		utils.InfoLog(scrapeCmdC, "scrape cmd done", "cost_ms", time.Since(start).Milliseconds())
 
 		return nil
 	}

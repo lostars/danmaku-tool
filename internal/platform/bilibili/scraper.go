@@ -56,7 +56,7 @@ func (c *client) Scrape(realId string) error {
 
 		data, err := c.GetDanmaku(strconv.FormatInt(ep.EPId, 10))
 		if err != nil {
-			utils.InfoLog(danmaku.Bilibili, fmt.Sprintf("%d scrape error: %s", ep.EPId, err.Error()))
+			utils.ErrorLog(danmaku.Bilibili, err.Error(), "epId", ep.EPId)
 			continue
 		}
 		epTitle = ep.Title
@@ -222,8 +222,9 @@ func (c *client) GetDanmaku(realId string) ([]*danmaku.StandardDanmaku, error) {
 			go func(i int) {
 				defer wg.Done()
 				for t := range tasks {
-					data := c.scrape(t.cid, 0, t.segment)
-					if data == nil {
+					data, e := c.scrape(t.cid, 0, t.segment)
+					if e != nil {
+						utils.ErrorLog(danmaku.Bilibili, e.Error(), "cid", t.cid, "segment", t.segment)
 						continue
 					}
 					var standardData = make([]*danmaku.StandardDanmaku, 0, len(data))

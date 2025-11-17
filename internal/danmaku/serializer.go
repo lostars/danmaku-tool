@@ -158,8 +158,7 @@ func checkPersistPath(fullPath, filename string) error {
 	_, fileStatError := os.Stat(fullPath)
 	if fileStatError != nil {
 		if os.IsNotExist(fileStatError) {
-			mkdirError := os.MkdirAll(fullPath, os.ModePerm)
-			if mkdirError != nil {
+			if mkdirError := os.MkdirAll(fullPath, os.ModePerm); mkdirError != nil {
 				return fmt.Errorf("create path %s error: %s", fullPath, mkdirError.Error())
 			}
 		} else {
