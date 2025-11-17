@@ -138,6 +138,7 @@ const BottomMode = 4
 const TopMode = 5
 
 type manager struct {
+	platforms          []Scraper
 	scrapers           []Scraper
 	initializers       []Initializer
 	serverInitializers []ServerInitializer
@@ -147,12 +148,7 @@ type manager struct {
 }
 
 var adapter = &manager{
-	scrapers:           []Scraper{},
-	initializers:       []Initializer{},
-	serverInitializers: []ServerInitializer{},
-	serializers:        map[string]DataSerializer{},
-	finalizers:         []Finalizer{},
-	jobs:               []Job{},
+	serializers: map[string]DataSerializer{},
 }
 
 func GetScraper(platform string) Scraper {
@@ -192,13 +188,28 @@ func Jobs() []Job {
 }
 
 func Platforms() []string {
-	return []string{
-		Bilibili, Tencent, Youku, Iqiyi,
+	var platforms []string
+	for _, p := range adapter.platforms {
+		platforms = append(platforms, string(p.Platform()))
 	}
+	return platforms
+}
+
+func ValidPlatform(platform string) bool {
+	for _, p := range adapter.platforms {
+		if string(p.Platform()) == platform {
+			return true
+		}
+	}
+	return false
+}
+
+func RegisterScraper(scraper Scraper) {
+	reg(&adapter.scrapers, scraper)
 }
 
 func Register(i interface{}) {
-	reg(&adapter.scrapers, i)
+	reg(&adapter.platforms, i)
 	reg(&adapter.jobs, i)
 	reg(&adapter.serverInitializers, i)
 	reg(&adapter.initializers, i)

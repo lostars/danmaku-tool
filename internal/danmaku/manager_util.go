@@ -260,14 +260,14 @@ func (m *Media) FormatPubTime(force bool) string {
 	return pubTime.Format(time.RFC3339Nano)
 }
 
-func InitPlatformClient(c *PlatformClient, platform Platform) error {
+func InitPlatformClient(c *PlatformClient, platform Platform) (bool, error) {
 	conf := config.GetPlatformConfig(string(platform))
 	if conf == nil || conf.Name == "" {
-		return fmt.Errorf("[%s] is not configured", platform)
+		return false, fmt.Errorf("[%s] is not configured", platform)
 	}
 	if conf.Priority < 0 {
 		utils.InfoLog(managerUtilC, fmt.Sprintf("[%s] is disabled", platform))
-		return nil
+		return false, nil
 	}
 
 	c.Cookie = conf.Cookie
@@ -281,7 +281,7 @@ func InitPlatformClient(c *PlatformClient, platform Platform) error {
 	}
 	c.HttpClient = &http.Client{Timeout: time.Duration(timeout * 1e9)}
 
-	return nil
+	return true, nil
 }
 
 const (

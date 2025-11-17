@@ -25,9 +25,10 @@ func init() {
 }
 
 func (c *client) Init() error {
-	if err := danmaku.InitPlatformClient(&c.PlatformClient, danmaku.Iqiyi); err != nil {
+	if ok, err := danmaku.InitPlatformClient(&c.PlatformClient, danmaku.Iqiyi); !ok {
 		return err
 	}
+	danmaku.RegisterScraper(c)
 	return nil
 }
 

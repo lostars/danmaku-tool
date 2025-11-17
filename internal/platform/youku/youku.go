@@ -30,7 +30,7 @@ func init() {
 }
 
 func (c *client) Init() error {
-	if err := danmaku.InitPlatformClient(&c.PlatformClient, danmaku.Youku); err != nil {
+	if ok, err := danmaku.InitPlatformClient(&c.PlatformClient, danmaku.Youku); !ok {
 		return err
 	}
 	c.redirectHttpClient = &http.Client{
@@ -42,6 +42,7 @@ func (c *client) Init() error {
 	if err := c.refreshToken(); err != nil {
 		return err
 	}
+	danmaku.RegisterScraper(c)
 	return nil
 }
 

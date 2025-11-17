@@ -21,25 +21,27 @@ func scraperCmd() *cobra.Command {
 	cmd.Flags().StringVar(&platform.Value, platform.Flag, "", `danmaku platform: 
 `+strings.Join(platform.Options, "\n"))
 
-	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+	cmd.Run = func(cmd *cobra.Command, args []string) {
 		Init()
 		id := args[0]
 		if id == "" {
-			return fmt.Errorf("id is empty")
+			utils.ErrorLog(scrapeCmdC, "id is empty")
+			return
 		}
 
 		scraper := danmaku.GetScraper(platform.Value)
 		if scraper == nil {
-			return fmt.Errorf("unsupported platform: %s", platform.Value)
+			if !danmaku.ValidPlatform(platform.Value) {
+				utils.ErrorLog(scrapeCmdC, fmt.Sprintf("unsupported platform: %s", platform.Value))
+			}
+			return
 		}
 		start := time.Now()
 		if err := scraper.Scrape(id); err != nil {
 			utils.ErrorLog(scrapeCmdC, err.Error())
-			return nil
+			return
 		}
 		utils.InfoLog(scrapeCmdC, "scrape cmd done", "cost_ms", time.Since(start).Milliseconds())
-
-		return nil
 	}
 
 	return cmd
