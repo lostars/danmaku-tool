@@ -38,6 +38,7 @@ type PlatformClient struct {
 	MaxWorker  int
 	Cookie     string
 	HttpClient *http.Client
+	Disabled   bool
 }
 
 type Scraper interface {

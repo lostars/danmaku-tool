@@ -266,6 +266,7 @@ func InitPlatformClient(c *PlatformClient, platform Platform) (bool, error) {
 		return false, fmt.Errorf("[%s] is not configured", platform)
 	}
 	if conf.Priority < 0 {
+		c.Disabled = true
 		utils.InfoLog(managerUtilC, fmt.Sprintf("[%s] is disabled", platform))
 		return false, nil
 	}

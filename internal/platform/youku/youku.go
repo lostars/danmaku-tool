@@ -47,6 +47,9 @@ func (c *client) Init() error {
 }
 
 func (c *client) CreateJob(scheduler gocron.Scheduler) error {
+	if c.Disabled {
+		return nil
+	}
 	cron := gocron.CronJob(fmt.Sprintf("TZ=%s 0 */%d * * *", config.GetConfig().Timezone, tokenExpireInHours), false)
 	_, err := scheduler.NewJob(cron, gocron.NewTask(func() {
 		if err := c.refreshToken(); err != nil {
