@@ -10,12 +10,15 @@ ua: "" # 请求ua 可不配置
 # 分词器配置 用于提升识别准确率 关闭则直接注射掉即可
 tokenizer:
   # 搜索结果标题黑名单 regex正则匹配搜索结果标题 replacement 则是需要替换为的词 提升匹配精准度
-  # platform 生效的平台 默认为全平台
-  # mode 后续标题匹配模式 默认不修改
-  # 注意 \ 转义
+  # mode 后续标题匹配模式 默认不修改 后续匹配流程较长 该字段可影响最后一步匹配标题的模式 可选 equals ignore contains
   # 下面的示例规则可直接使用
+  # 该黑名单配置只是影响某些平台黑名单词汇，保证其能继续匹配流程
+  # 因为有年份、季和各自平台不同的过滤规则，不一定能保证搜索或者自动匹配出数据
   blacklist:
+      # 该字段为正则表达式，特殊字符注意转义 用于匹配平台搜索结果的标题
     - regex: "(刺客)*伍六七.*记忆碎片"
+      # 该字段用于替换的标题，直接修改为媒体库中的标题即可
+      # 如果需要季信息 则添加 第x季
       replacement: "刺客伍六七第五季"
     - regex: "(刺客)*伍六七.*暗影宿命"
       replacement: "刺客伍六七第四季"
@@ -26,16 +29,24 @@ tokenizer:
     - regex: "(刺客)*伍六七"
       replacement: "刺客伍六七"
     - regex: "仙剑奇侠传\\s*第*\\s*(一|1)\\s*部*"
+      # 生效平台 不配置则默认全平台生效
+      platform: "youku"
       replacement: "仙剑奇侠传"
+    - regex: "仙剑云之凡\\(仙剑奇侠传5\\)"
+      platform: "youku"
+      replacement: "仙剑奇侠传五"
   # 年份匹配规则 用于媒体年份匹配规则 主要用于媒体库年份信息和弹幕网站不一致
-  # title 为媒体标题
-  # 如果year<=0或者不配置则表示不进行年份匹配
-  # 配置后，对应的搜索标题则不会再从emby获取年份信息
+  # 配置后，对应的搜索标题则不会再从emby等元数据提供商获取年份信息
+  # 相同 title-season/title 只会生效一次
   year-match-list:
+      # 媒体标题 搜索的标题，即媒体库中的标题
     - title: "吞噬星空"
+      # 不配置则生效于整个剧集
+      season: 1
+      # 如果year<=0或者不配置则表示不进行年份匹配
       year: 2020
   # 手动映射平台剧集信息 匹配到剧集信息后按照此处规则对剧集信息重新映射
-  # 不影响搜索接口结果
+  # 不影响搜索接口结果 作用于dandan /match 接口 提升自动匹配准确度
   rematch:
     - platform: "tencent"
       # 平台媒体id
@@ -44,7 +55,6 @@ tokenizer:
       # 和 episodes 互斥 同时配置会使用 targets 配置
       # 用于处理平台一部剧对应多部媒体库中的剧集
       # 比如 火影忍者 在腾讯是 一部剧 但是在tmdb中是 2部剧
-      # 不配置则默认是一对一的剧集，只是需要重新映射ep
       targets:
           # 媒体库里对应剧集id
         - item: ""
@@ -53,6 +63,8 @@ tokenizer:
           # 是否整个剧集统一编号 即 S01E01 S02E11
           union: true
       # 将平台剧集ep重新映射
+      # 常见场景就是 某些S0剧集 平台是放在某一季的结尾 提升S0的匹配度
+      # 该配置也可用于和媒体库中的剧集手动映射
       episodes:
           # 新的季id
         - season: 1
@@ -92,7 +104,7 @@ platforms:
   - name: "tencent"
     priority: 100
     cookie: "xxx" # 最好提供，否则可能会导致搜不到数据
-    max-worker: 8 # 默认 8
-    timeout: 100
+    max-worker: 4
+    timeout: 10
     merge-danmaku-in-mills: 1000
     persists: ["xml", "ass"]
