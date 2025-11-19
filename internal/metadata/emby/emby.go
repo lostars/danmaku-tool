@@ -76,6 +76,8 @@ func (c client) Year(name string, seasonId string) (year int, err error) {
 					break
 				}
 			}
+		} else {
+			year = item.ProductionYear
 		}
 	}
 	return
