@@ -103,8 +103,9 @@ type TokenizerConfig struct {
 		Mode        string `yaml:"mode"`
 	} `yaml:"blacklist"`
 	YearMatchList []struct {
-		Title string `yaml:"title"`
-		Year  int    `yaml:"year"`
+		Title  string `yaml:"title"`
+		Season *int   `yaml:"season"`
+		Year   int    `yaml:"year"`
 	} `yaml:"year-match-list"`
 	Rematch []Rematch `yaml:"rematch"`
 }

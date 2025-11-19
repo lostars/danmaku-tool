@@ -20,16 +20,27 @@ func MatchMedia(param MatchParam) []*Media {
 	}
 	matchYear := true
 	for _, y := range config.GetConfig().Tokenizer.YearMatchList {
-		// 如果手动设置了年份匹配 则跳过emby的年份获取
+		// 如果手动设置了年份匹配 则跳过从元数据获取年份
 		if y.Title == param.Title {
-			matchYear = false
-			param.ProductionYear = y.Year
-			break
+			match := false
+			if y.Season != nil && *y.Season >= 0 {
+				if param.SeasonId == *y.Season {
+					match = true
+				}
+			} else {
+				match = true
+			}
+			if match {
+				utils.InfoLog(searchMediaC, fmt.Sprintf("%s matched year-match-list", param.Title), "year", y.Year, "season", y.Season)
+				matchYear = false
+				param.ProductionYear = y.Year
+				break
+			}
 		}
 	}
 	// 预处理标题
 	param.Title = ClearTitleAndSeason(param.Title)
-	// 从emby获取年份等信息
+	// 从元数据提供商获取年份信息
 	if matchYear {
 		for _, meta := range adapter.metadata {
 			year, err := meta.Year(param.Title, strconv.FormatInt(int64(param.SeasonId), 10))
@@ -38,6 +49,7 @@ func MatchMedia(param MatchParam) []*Media {
 			}
 			if year > 0 {
 				param.ProductionYear = year
+				utils.InfoLog(searchMediaC, fmt.Sprintf("%s matched year", param.Title), "year", year, "source", meta.Source())
 				// 匹配到一个即可
 				break
 			}
