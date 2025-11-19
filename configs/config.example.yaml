@@ -1,15 +1,14 @@
 #  弹幕保存路径 只作用于CLI模式
 save-path: ""
+debug: true
 # dandan api模式
 # real_time 实时
 # database sqlite数据库
 dandan-mode: "real_time"
 dandan-timeout: 60 # dandan api timeout in seconds
 ua: "" # 请求ua 可不配置
-# 分词器配置 用于提升识别准确率
+# 分词器配置 用于提升识别准确率 关闭则直接注射掉即可
 tokenizer:
-  # 是否启用
-  enable: true
   # 搜索结果标题黑名单 regex正则匹配搜索结果标题 replacement 则是需要替换为的词 提升匹配精准度
   # platform 生效的平台 默认为全平台
   # mode 后续标题匹配模式 默认不修改
@@ -28,10 +27,41 @@ tokenizer:
       replacement: "刺客伍六七"
     - regex: "仙剑奇侠传\\s*第*\\s*(一|1)\\s*部*"
       replacement: "仙剑奇侠传"
-    - regex: "火影忍者疾风传"
-      replacement: "火影忍者疾风传"
-      platform: tencent
-      mode: contains
+  # 年份匹配规则 用于媒体年份匹配规则 主要用于媒体库年份信息和弹幕网站不一致
+  # title 为媒体标题
+  # 如果year<=0或者不配置则表示不进行年份匹配
+  # 配置后，对应的搜索标题则不会再从emby获取年份信息
+  year-match-list:
+    - title: "吞噬星空"
+      year: 2020
+  # 手动映射平台剧集信息 匹配到剧集信息后按照此处规则对剧集信息重新映射
+  # 不影响搜索接口结果
+  rematch:
+    - platform: "tencent"
+      # 平台媒体id
+      media-id: "xxq"
+      # 匹配媒体库剧集id，按照顺序排列ep
+      # 和 episodes 互斥 同时配置会使用 targets 配置
+      # 用于处理平台一部剧对应多部媒体库中的剧集
+      # 比如 火影忍者 在腾讯是 一部剧 但是在tmdb中是 2部剧
+      # 不配置则默认是一对一的剧集，只是需要重新映射ep
+      targets:
+          # 媒体库里对应剧集id
+        - item: ""
+          # 目前仅支持emby
+          source: "emby"
+          # 是否整个剧集统一编号 即 S01E01 S02E11
+          union: true
+      # 将平台剧集ep重新映射
+      episodes:
+          # 新的季id
+        - season: 1
+          # 对应ep列表 支持范围 1-100 用英文逗号隔开
+          # 这里的id是指平台剧集列表里的id 如果列表内没有数字id，则使用在列表中的位置进行编号(数组下标+1)
+          # 新的ep id 将会按照这里设置的顺序进行重新排序，从1开始
+          episode: "1-100,200,201,202"
+        - season: 2
+          episode: "203-300,301"
 server:
 #  dandan api token 配置
   tokens:

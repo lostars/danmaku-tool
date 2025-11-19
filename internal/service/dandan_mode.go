@@ -81,7 +81,7 @@ type AnimeResult struct {
 	EpisodeCount int             `json:"episodeCount"`
 	Rating       int             `json:"rating"`
 	Favorite     bool            `json:"isFavorited"`
-	Episodes     []EpisodeResult `json:"episodes"`
+	Episodes     []EpisodeResult `json:"episodes,omitempty"`
 }
 
 type EpisodeResult struct {

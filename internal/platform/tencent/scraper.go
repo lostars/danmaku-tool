@@ -15,7 +15,6 @@ import (
 
 func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 	keyword := param.Title
-	ssId := int64(param.SeasonId)
 
 	searchParam := SearchParam{
 		Version:    "25101301",
@@ -100,11 +99,12 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 			if tencentExcludeRegex.MatchString(v.VideoInfo.SubTitle) {
 				return
 			}
-			if v.VideoInfo.Year <= 0 || !param.MatchYear(v.VideoInfo.Year) {
-				return
+			matchParam := danmaku.InternalMatchParam{
+				Title:   v.VideoInfo.Title,
+				Year:    v.VideoInfo.Year,
+				MediaId: v.Doc.Id,
 			}
-
-			match := param.MatchTitle(v.VideoInfo.Title)
+			match := param.Match(matchParam)
 			utils.DebugLog(danmaku.Tencent, fmt.Sprintf("[%s] match [%s]: %v", v.VideoInfo.Title, param.Title, match))
 			if !match {
 				return
@@ -148,12 +148,6 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 					EpisodeId: epTitle,
 					Title:     ep.Title(),
 				})
-			}
-			// 匹配剧场版 epId 暂时使用下标作为S00的epId 最新发布的在最前面
-			if ssId == 0 {
-				for i, ep := range eps {
-					ep.EpisodeId = strconv.FormatInt(int64(len(eps)-i), 10)
-				}
 			}
 
 			media := &danmaku.Media{

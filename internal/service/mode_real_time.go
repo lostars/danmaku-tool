@@ -127,22 +127,22 @@ func (c *realTimeData) Match(param MatchParam) (*DanDanResult, error) {
 			result.IsMatched = true
 			result.Matches = append(result.Matches, Match{
 				EpisodeId:    c.getGlobalID(string(m.Platform), m.Id, m.Episodes[0].Id),
-				AnimeTitle:   m.Title + " [" + string(m.Platform) + "]",
+				AnimeTitle:   fmt.Sprintf("%s [%s]", m.Title, string(m.Platform)),
 				EpisodeTitle: m.Episodes[0].Title,
 			})
-			utils.InfoLog(realTimeServiceC, "movie match success", "platform", m.Platform, "title", param.FileName)
+			utils.InfoLog(realTimeServiceC, "movie matched", "platform", m.Platform, "title", param.FileName)
 		} else {
 			for _, ep := range m.Episodes {
 				epStr := strconv.FormatInt(epId, 10)
 				if ep.EpisodeId != epStr {
 					continue
 				}
-				utils.InfoLog(realTimeServiceC, "ep match success", "platform", m.Platform, "title", param.FileName, "ep", ep.EpisodeId)
+				utils.InfoLog(realTimeServiceC, "ep matched", "platform", m.Platform, "title", param.FileName, "ep", ep.EpisodeId)
 				result.IsMatched = true
 				result.Matches = append(result.Matches, Match{
 					EpisodeId:    c.getGlobalID(string(m.Platform), m.Id, ep.Id),
-					AnimeTitle:   m.Title + " [" + string(m.Platform) + "]",
-					EpisodeTitle: ep.EpisodeId,
+					AnimeTitle:   fmt.Sprintf("%s [%s]", m.Title, string(m.Platform)),
+					EpisodeTitle: ep.Title,
 				})
 			}
 		}
@@ -263,11 +263,10 @@ func (c *realTimeData) SearchAnime(title string) *DanDanAnimeResult {
 	anime := make([]AnimeResult, 0, len(media))
 	for _, m := range media {
 		id := c.getGlobalID(string(m.Platform), m.Id, "")
-		animeTitle := fmt.Sprintf("%s [%s]", m.Title, m.Platform)
 		anime = append(anime, AnimeResult{
 			AnimeId:      id,
 			BangumiId:    strconv.FormatInt(id, 10),
-			AnimeTitle:   animeTitle,
+			AnimeTitle:   fmt.Sprintf("%s [%s]", m.Title, m.Platform),
 			Type:         parseDandanType(m.Type),
 			TypeDesc:     m.TypeDesc,
 			ImageUrl:     m.Cover,
@@ -294,11 +293,11 @@ func (c *realTimeData) AnimeInfo(id string) (*DanDanAnimeInfoResult, error) {
 	if !found {
 		return nil, fmt.Errorf("invalid id")
 	}
-	mediaService := danmaku.GetMediaService(platform)
-	if mediaService == nil {
-		return nil, fmt.Errorf("no service available")
+	scraper := danmaku.GetScraper(platform)
+	if scraper == nil {
+		return nil, fmt.Errorf("no scraper available")
 	}
-	media, err := mediaService.Media(ssId)
+	media, err := scraper.Media(ssId)
 	if err != nil {
 		utils.ErrorLog(realTimeServiceC, err.Error())
 		return nil, err

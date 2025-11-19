@@ -5,6 +5,8 @@ import (
 	"danmaku-tool/internal/utils"
 	"fmt"
 	"sort"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -16,30 +18,28 @@ func MatchMedia(param MatchParam) []*Media {
 	if param.SeasonId < 0 {
 		param.SeasonId = MatchSeason(param.Title)
 	}
+	matchYear := true
+	for _, y := range config.GetConfig().Tokenizer.YearMatchList {
+		// 如果手动设置了年份匹配 则跳过emby的年份获取
+		if y.Title == param.Title {
+			matchYear = false
+			param.ProductionYear = y.Year
+			break
+		}
+	}
 	// 预处理标题
 	param.Title = ClearTitleAndSeason(param.Title)
 	// 从emby获取年份等信息
-	if config.EmbyEnabled() {
-		search, err := SearchEmby(param.Title, param.SeasonId)
-		if err == nil && len(search.Items) > 0 {
-			if len(search.Items) > 1 {
-				utils.WarnLog(searchMediaC, fmt.Sprintf("[%s] match more than 1 emby media", param.Title))
+	if matchYear {
+		for _, meta := range adapter.metadata {
+			year, err := meta.Year(param.Title, strconv.FormatInt(int64(param.SeasonId), 10))
+			if err != nil {
+				utils.ErrorLog(searchMediaC, err.Error())
 			}
-			// 默认取第一个
-			item := search.Items[0]
-			switch item.Type {
-			case EmbySeries:
-				// 只有多季的剧集才获取单季发布年份
-				if season, e := GetSeasons(item.Id, false); e == nil && len(season.Items) > 1 {
-					for _, s := range season.Items {
-						if s.IndexNumber == param.SeasonId {
-							param.ProductionYear = s.ProductionYear
-							break
-						}
-					}
-				}
-			case EmbyMovie:
-				param.ProductionYear = item.ProductionYear
+			if year > 0 {
+				param.ProductionYear = year
+				// 匹配到一个即可
+				break
 			}
 		}
 	}
@@ -52,9 +52,7 @@ func MatchMedia(param MatchParam) []*Media {
 			defer wg.Done()
 			// 并发 复制参数进行处理
 			searchParam := param
-			if s.Platform() == Bilibili {
-				searchParam.CheckEm = true
-			}
+			searchParam.CheckEm = s.CheckEm()
 			searchParam.Platform = scraper.Platform()
 
 			start := time.Now()
@@ -82,6 +80,10 @@ func MatchMedia(param MatchParam) []*Media {
 			if len(media.Episodes) < 1 {
 				continue
 			}
+			// 剧集匹配规则
+			if param.SeasonId >= 0 {
+				rematch(media, param)
+			}
 			result = append(result, media)
 		}
 	}
@@ -94,4 +96,167 @@ func MatchMedia(param MatchParam) []*Media {
 	})
 
 	return result
+}
+
+func rematch(media *Media, param MatchParam) {
+	for _, re := range config.GetConfig().Tokenizer.Rematch {
+		if re.Platform != string(media.Platform) || re.MediaId != media.Id {
+			continue
+		}
+		if len(re.Targets) > 0 {
+			targetMatch(media, re, param)
+			return
+		}
+
+		for _, epMatch := range re.Episodes {
+			if epMatch.Season != param.SeasonId {
+				continue
+			}
+			matches := strings.Split(epMatch.Episode, ",")
+			if len(matches) < 1 {
+				return
+			}
+
+			var eps = make([]*MediaEpisode, 0, len(media.Episodes))
+			index := int64(1)
+			for _, match := range matches {
+				start, end, ok := rangeMatch(match)
+				for i, ep := range media.Episodes {
+					epId, err := strconv.ParseInt(ep.EpisodeId, 10, 64)
+					if err != nil {
+						epId = int64(i + 1)
+					}
+					if ok {
+						if epId >= start && epId <= end {
+							eps = append(eps, &MediaEpisode{
+								Id:        ep.Id,
+								EpisodeId: strconv.FormatInt(index, 10),
+								Title:     ep.Title,
+							})
+							index++
+						}
+					} else {
+						if strconv.FormatInt(epId, 10) == match {
+							eps = append(eps, &MediaEpisode{
+								Id:        ep.Id,
+								EpisodeId: strconv.FormatInt(index, 10),
+								Title:     ep.Title,
+							})
+							index++
+							break
+						}
+					}
+				}
+			}
+			media.Episodes = eps
+			// 匹配到搜索的季即可
+			return
+		}
+	}
+}
+
+func targetMatch(media *Media, re config.Rematch, param MatchParam) {
+
+	itemData := make([]map[int]int64, 0, len(re.Targets))
+	target := -1
+	union := false
+	for i, item := range re.Targets {
+		metadata := GetMetadata(item.Source)
+		if metadata == nil {
+			utils.ErrorLog(searchMediaC, fmt.Sprintf("[%s] source not found", item.Source))
+			continue
+		}
+		if eps, e := metadata.Episodes(item.Item); e == nil && len(eps) > 0 {
+			itemMap := map[int]int64{}
+			for _, s := range eps {
+				if target < 0 && ClearTitleAndSeason(s.Title) == param.Title {
+					target = i
+					union = item.Union
+				}
+				itemMap[s.SeasonId] = itemMap[s.SeasonId] + 1
+			}
+			itemData = append(itemData, itemMap)
+		}
+	}
+	if target < 0 {
+		return
+	}
+
+	var start, end int64
+	preCount := int64(0)
+	sort.Slice(itemData, func(i, j int) bool {
+		return i < j
+	})
+outer:
+	for i, d := range itemData {
+		var seasons = make([]int64, len(d)+1)
+		for k, v := range d {
+			seasons[k] = v
+		}
+		if i == target {
+			for s, v := range seasons {
+				if param.SeasonId == s {
+					end = start + v
+					start++
+					break outer
+				} else {
+					start += v
+					preCount += v
+				}
+			}
+		} else {
+			for _, v := range seasons {
+				start += v
+			}
+		}
+	}
+	if end <= 0 {
+		return
+	}
+	var eps = make([]*MediaEpisode, 0, end-start+1)
+	index := preCount + 1
+	preIndex := int64(0)
+	for _, ep := range media.Episodes {
+		epId, err := strconv.ParseInt(ep.EpisodeId, 10, 64)
+		if err != nil {
+			return
+		}
+		if epId >= start && epId <= end {
+			id := epId
+			if union {
+				// 处理漏集
+				if preIndex > 0 && epId-preIndex > 1 {
+					id = index + epId - preIndex
+				} else {
+					id = index
+				}
+				index++
+				preIndex = epId
+			}
+			eps = append(eps, &MediaEpisode{
+				Id:        ep.Id,
+				EpisodeId: strconv.FormatInt(id, 10),
+				Title:     ep.Title,
+			})
+		}
+	}
+	msg := fmt.Sprintf("targets match %s %s", media.Title, media.Id)
+	utils.DebugLog(searchMediaC, msg, "start", start, "end", end, "index", index, "target", target)
+	media.Episodes = eps
+}
+
+func rangeMatch(match string) (int64, int64, bool) {
+	ranges := strings.Split(match, "-")
+	if len(ranges) != 2 {
+		return 0, 0, false
+	}
+	start, err := strconv.ParseInt(ranges[0], 10, 64)
+	if err != nil {
+		return 0, 0, false
+	}
+	end, err := strconv.ParseInt(ranges[1], 10, 64)
+	if err != nil {
+		return 0, 0, false
+	}
+	return start, end, true
 }

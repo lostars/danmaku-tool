@@ -113,10 +113,12 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 			continue
 		}
 		year, _ := strconv.ParseInt(yearMatches[1], 10, 64)
-		if !param.MatchYear(int(year)) {
-			continue
+		matchParam := danmaku.InternalMatchParam{
+			Title:   mediaInfo.TempTitle,
+			Year:    int(year),
+			MediaId: mediaInfo.RealShowId,
 		}
-		match := param.MatchTitle(mediaInfo.TempTitle)
+		match := param.Match(matchParam)
 		utils.DebugLog(danmaku.Youku, fmt.Sprintf("[%s] match [%s]: %v", mediaInfo.TempTitle, param.Title, match))
 		if !match {
 			continue

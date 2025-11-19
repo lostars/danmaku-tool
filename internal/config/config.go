@@ -96,23 +96,56 @@ type DanmakuConfig struct {
 }
 
 type TokenizerConfig struct {
-	Enable    bool `yaml:"enable"`
 	Blacklist []struct {
 		Regex       string `yaml:"regex"`
 		Replacement string `yaml:"replacement"`
 		Platform    string `yaml:"platform"`
 		Mode        string `yaml:"mode"`
 	} `yaml:"blacklist"`
+	YearMatchList []struct {
+		Title string `yaml:"title"`
+		Year  int    `yaml:"year"`
+	} `yaml:"year-match-list"`
+	Rematch []Rematch `yaml:"rematch"`
+}
+
+type Rematch struct {
+	Platform string `yaml:"platform"`
+	MediaId  string `yaml:"media-id"`
+	Targets  []struct {
+		Item   string `yaml:"item"`
+		Union  bool   `yaml:"union"`
+		Source string `yaml:"source"`
+	} `yaml:"targets"`
+	Episodes []struct {
+		Season  int    `yaml:"season"`
+		Episode string `yaml:"episode"`
+	} `yaml:"episodes"`
+}
+
+func (t TokenizerConfig) MediaRematch(platform string, mediaId string, seasonId int) bool {
+	if platform == "" || mediaId == "" {
+		return false
+	}
+	for _, re := range t.Rematch {
+		if len(re.Targets) > 0 && mediaId == re.MediaId {
+			return true
+		}
+		if re.Platform == platform && mediaId == re.MediaId {
+			for _, ep := range re.Episodes {
+				if ep.Season == seasonId {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 type EmbyConfig struct {
 	Url   string `yaml:"url"`
 	User  string `yaml:"user"`
 	Token string `yaml:"token"`
-}
-
-func EmbyEnabled() bool {
-	return danmakuConfig.Emby.User != "" && danmakuConfig.Emby.Url != "" && danmakuConfig.Emby.Token != ""
 }
 
 type ServerConfig struct {

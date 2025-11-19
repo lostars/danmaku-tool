@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"strconv"
 )
 
 func StripHTMLTags(htmlStr string) string {
@@ -30,4 +31,12 @@ func SafeDecodeOkResp(resp *http.Response, v any) error {
 		return fmt.Errorf("error http status: %s", resp.Status)
 	}
 	return nil
+}
+
+func NoneNumberNorEmpty(str string) bool {
+	if str == "" {
+		return false
+	}
+	_, err := strconv.ParseInt(str, 10, 64)
+	return err != nil
 }

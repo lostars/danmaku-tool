@@ -14,17 +14,16 @@ import (
 const managerUtilC = "manager_util"
 
 func MergeDanmaku(dms []*StandardDanmaku, mergedInMills int64, durationInMills int64) []*StandardDanmaku {
-	var start = time.Now()
-	utils.DebugLog(managerUtilC, "danmaku size merge start", "size", len(dms))
 	if mergedInMills <= 0 {
-		utils.DebugLog(managerUtilC, "danmaku size merge no merge mills set")
+		utils.DebugLog(managerUtilC, "no merge mills set when merge danmaku")
 		return dms
 	}
+	var start = time.Now()
 	var initBuckets int64
 	if durationInMills > 0 {
 		initBuckets = durationInMills/mergedInMills + 1
 	} else {
-		utils.DebugLog(managerUtilC, "danmaku size merge no duration mills set")
+		utils.DebugLog(managerUtilC, "no duration mills set when merge danmaku")
 		initBuckets = 7200 // 2h
 	}
 	buckets := make(map[int64]map[string]bool, initBuckets)
@@ -47,7 +46,7 @@ func MergeDanmaku(dms []*StandardDanmaku, mergedInMills int64, durationInMills i
 		buckets[bid][d.Content] = true
 	}
 
-	utils.DebugLog(managerUtilC, "danmaku size merge end", "size", len(result), "cost_ms", time.Since(start).Milliseconds())
+	utils.DebugLog(managerUtilC, "danmaku merged", "before", len(dms), "after", len(result), "cost_ms", time.Since(start).Milliseconds())
 
 	return result
 }
@@ -124,11 +123,13 @@ func GetNumberSeasonFromChinese(chineseNumber string) int {
 	return -1
 }
 
-// MatchTitle 标题匹配包含两部分：季信息 和 标题本身
-func (p MatchParam) MatchTitle(title string) bool {
+// Match 匹配包含：季信息 标题 年份
+func (p MatchParam) Match(match InternalMatchParam) bool {
+	title := match.Title
 	if title == "" {
 		return false
 	}
+	tokenizer := config.GetConfig().Tokenizer
 	// 检查em标签是否有命中搜索词
 	if p.CheckEm {
 		emMatches := MatchKeyword.FindStringSubmatch(title)
@@ -144,46 +145,37 @@ func (p MatchParam) MatchTitle(title string) bool {
 	}
 	matchMode := string(p.Mode)
 	// 黑名单 正则匹配替换
-	if config.GetConfig().Tokenizer.Enable && config.GetConfig().Tokenizer.Blacklist != nil {
-		for _, r := range config.GetConfig().Tokenizer.Blacklist {
-			re, err := regexp.Compile(r.Regex)
-			if err != nil {
-				continue
+	for _, r := range tokenizer.Blacklist {
+		re, err := regexp.Compile(r.Regex)
+		if err != nil {
+			continue
+		}
+		// 全平台
+		noneMatchPlatform := r.Platform == ""
+		// 特定平台
+		matchPlatform := r.Platform != "" && r.Platform == string(p.Platform)
+		if (noneMatchPlatform || matchPlatform) && re.MatchString(title) {
+			// 更改后续匹配模式
+			if r.Mode != "" {
+				matchMode = r.Mode
 			}
-			// 全平台
-			noneMatchPlatform := r.Platform == ""
-			// 特定平台
-			matchPlatform := r.Platform != "" && r.Platform == string(p.Platform)
-			if (noneMatchPlatform || matchPlatform) && re.MatchString(title) {
-				// 更改后续匹配模式
-				if r.Mode != "" {
-					matchMode = r.Mode
-				}
-				title = re.ReplaceAllLiteralString(title, r.Replacement)
-				// 只匹配一次
-				break
-			}
+			title = re.ReplaceAllLiteralString(title, r.Replacement)
+			// 只匹配一次
+			break
 		}
 	}
-	// 如果是搜索模式，则匹配到命中搜索词结束
-	if p.Mode == Search {
-		lowerClearTitle := strings.ToLower(ClearTitleAndSeason(title))
-		targetLowerTitle := strings.ToLower(ClearTitleAndSeason(p.Title))
-		return strings.Contains(lowerClearTitle, targetLowerTitle)
-	}
-	// 处理 S0
-	if p.SeasonId == 0 {
-		return MatchSpecials.MatchString(title)
-	}
-	// 语言版本处理 直接过滤掉
-	// 不同平台语言标题不一致，有些会把非原版语言添加到标题，有些会把原版添加到标题（日语版）
-	if !MatchLanguage.MatchString(p.Title) {
-		if MatchLanguage.MatchString(title) {
-			return false
-		}
-	}
+
 	// 优先匹配季信息
-	if p.SeasonId > 0 {
+	if p.SeasonId >= 0 {
+		// 如果发现 rematch 手动规则 则直接返回true
+		rematchConfigured := tokenizer.MediaRematch(string(p.Platform), match.MediaId, p.SeasonId)
+		if rematchConfigured {
+			return true
+		}
+		// S0
+		if p.SeasonId == 0 {
+			return MatchSpecials.MatchString(title)
+		}
 		season := MatchSeason(title)
 		if season < 0 {
 			if p.SeasonId == 1 {
@@ -195,6 +187,25 @@ func (p MatchParam) MatchTitle(title string) bool {
 			if season != p.SeasonId {
 				return false
 			}
+		}
+	}
+	// 匹配年份
+	yearMatch := p.MatchYear(match.Year)
+	if !yearMatch {
+		return false
+	}
+
+	// 如果是搜索模式，则匹配到命中搜索词结束
+	if p.Mode == Search {
+		lowerClearTitle := strings.ToLower(ClearTitleAndSeason(title))
+		targetLowerTitle := strings.ToLower(ClearTitleAndSeason(p.Title))
+		return strings.Contains(lowerClearTitle, targetLowerTitle)
+	}
+	// 语言版本处理 直接过滤掉
+	// 不同平台语言标题不一致，有些会把非原版语言添加到标题，有些会把原版添加到标题（日语版）
+	if !MatchLanguage.MatchString(p.Title) {
+		if MatchLanguage.MatchString(title) {
+			return false
 		}
 	}
 
@@ -225,10 +236,13 @@ const (
 )
 
 func (p MatchParam) MatchYear(year int) bool {
-	if p.ProductionYear > 0 {
-		return year == p.ProductionYear
+	if year <= 0 {
+		return false
 	}
-	return true
+	if p.ProductionYear <= 0 {
+		return true
+	}
+	return year == p.ProductionYear
 }
 
 func (p MatchParam) MatchYearString(year string) (int, bool) {

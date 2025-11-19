@@ -25,6 +25,10 @@ type client struct {
 	lastUpdateTime time.Time
 }
 
+func (c *client) CheckEm() bool {
+	return true
+}
+
 func (c *client) Media(id string) (*danmaku.Media, error) {
 	series, err := c.baseInfo("", id)
 	if err != nil {

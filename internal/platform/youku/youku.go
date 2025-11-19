@@ -25,6 +25,10 @@ type client struct {
 	redirectHttpClient *http.Client
 }
 
+func (c *client) CheckEm() bool {
+	return false
+}
+
 func init() {
 	danmaku.Register(&client{})
 }

@@ -20,6 +20,10 @@ type client struct {
 	danmaku.PlatformClient
 }
 
+func (c *client) CheckEm() bool {
+	return false
+}
+
 func init() {
 	danmaku.Register(&client{})
 }
@@ -171,7 +175,9 @@ func (c *client) scrape(tvId int64, segment int) ([]*danmaku.StandardDanmaku, er
 }
 
 func (c *client) Media(id string) (*danmaku.Media, error) {
-	if tvIdBytes, err := base64.StdEncoding.DecodeString(id); err == nil {
+	_, errNumber := strconv.ParseInt(id, 10, 64)
+	tvIdBytes, err := base64.StdEncoding.DecodeString(id)
+	if errNumber != nil && err == nil {
 		tvId, _ := strconv.ParseInt(string(tvIdBytes), 10, 64)
 		baseInfo, e := c.videoBaseInfo(tvId)
 		if e != nil {

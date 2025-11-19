@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"danmaku-tool/cmd/flags"
+	_ "danmaku-tool/internal/metadata"
 	_ "danmaku-tool/internal/platform"
 	"os"
 

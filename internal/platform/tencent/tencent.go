@@ -29,6 +29,10 @@ type client struct {
 	danmaku.PlatformClient
 }
 
+func (c *client) CheckEm() bool {
+	return false
+}
+
 func (c *client) Platform() danmaku.Platform {
 	return danmaku.Tencent
 }

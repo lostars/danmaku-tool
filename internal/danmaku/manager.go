@@ -31,7 +31,7 @@ type MediaEpisode struct {
 	EpisodeId string // 第几话
 	Title     string
 
-	Danmaku []*StandardDanmaku // 弹幕信息
+	SeasonId int
 }
 
 type PlatformClient struct {
@@ -42,19 +42,25 @@ type PlatformClient struct {
 }
 
 type Scraper interface {
-	Initializer
 	// Scrape 抓取并保存弹幕 各个平台视频id/剧集id 看各自实现
 	Scrape(id string) error
 	// GetDanmaku 实时获取平台弹幕 id是各自平台的视频id
 	GetDanmaku(id string) ([]*StandardDanmaku, error)
+	Media(id string) (*Media, error)
 	// Match 匹配剧集信息，如果是剧集，会获取ep信息同时返回
 	Match(param MatchParam) ([]*Media, error)
+	// CheckEm 是否检查搜索结果em标签
+	CheckEm() bool
 	Platform() Platform
 }
 
-type MediaService interface {
-	Media(id string) (*Media, error)
-	Scraper
+type MetadataService interface {
+	Source() Source
+	// Episodes 获取所有ep
+	Episodes(id string) ([]*MediaEpisode, error)
+	// Year 搜索获取媒体年份 如果传入了季id则获取对应季的年份 季节只有多余1季的才获取季节年份
+	// 默认只返回第一个搜索结果的年份
+	Year(name string, seasonId string) (int, error)
 }
 
 type Job interface {
@@ -132,6 +138,12 @@ type MatchParam struct {
 	CheckEm bool
 }
 
+type InternalMatchParam struct {
+	MediaId string
+	Title   string
+	Year    int
+}
+
 const WhiteColor = 16777215
 
 const NormalMode = 1
@@ -141,6 +153,7 @@ const TopMode = 5
 type manager struct {
 	platforms          []Scraper
 	scrapers           []Scraper
+	metadata           []MetadataService
 	initializers       []Initializer
 	serverInitializers []ServerInitializer
 	serializers        map[string]DataSerializer
@@ -161,12 +174,10 @@ func GetScraper(platform string) Scraper {
 	return nil
 }
 
-func GetMediaService(platform string) MediaService {
-	for _, v := range adapter.scrapers {
-		if platform == string(v.Platform()) {
-			if s, ok := v.(MediaService); ok {
-				return s
-			}
+func GetMetadata(src string) MetadataService {
+	for _, v := range adapter.metadata {
+		if string(v.Source()) == src {
+			return v
 		}
 	}
 	return nil
@@ -209,6 +220,10 @@ func RegisterScraper(scraper Scraper) {
 	reg(&adapter.scrapers, scraper)
 }
 
+func RegisterMetadata(metadata MetadataService) {
+	reg(&adapter.metadata, metadata)
+}
+
 func Register(i interface{}) {
 	reg(&adapter.platforms, i)
 	reg(&adapter.jobs, i)
@@ -230,4 +245,10 @@ const (
 	Tencent  = "tencent"
 	Youku    = "youku"
 	Iqiyi    = "iqiyi"
+)
+
+type Source string
+
+const (
+	Emby = "emby"
 )

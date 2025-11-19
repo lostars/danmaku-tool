@@ -2,6 +2,7 @@ package tencent
 
 import (
 	"danmaku-tool/internal/danmaku"
+	"danmaku-tool/internal/utils"
 	"regexp"
 )
 
@@ -34,10 +35,13 @@ func (s SeriesItem) validEP() bool {
 }
 
 func (s SeriesItem) Title() string {
-	if s.ItemParams.VideoSubtitle != "" {
+	if utils.NoneNumberNorEmpty(s.ItemParams.Title) {
+		return s.ItemParams.Title
+	}
+	if utils.NoneNumberNorEmpty(s.ItemParams.VideoSubtitle) {
 		return s.ItemParams.VideoSubtitle
 	}
-	if s.ItemParams.PlayTitle != "" {
+	if utils.NoneNumberNorEmpty(s.ItemParams.PlayTitle) {
 		return s.ItemParams.PlayTitle
 	}
 	return s.ItemParams.CTitleOutput

@@ -88,28 +88,28 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 	var data = make([]*danmaku.Media, 0, 10)
 	var result SearchResult
 	// 分类搜索接口 搜索类型无法区分真人剧集和电影 因为都是 media_ft 只能搜索两次
-	result1, e1 := c.searchByType("media_ft", keyword)
-	result2, e2 := c.searchByType("media_bangumi", keyword)
-	if e1 == nil {
+	if result1, e1 := c.searchByType("media_ft", keyword); e1 == nil {
 		result.Data.Result = append(result.Data.Result, result1.Data.Result...)
 	}
-	if e2 == nil {
+	if result2, e2 := c.searchByType("media_bangumi", keyword); e2 == nil {
 		result.Data.Result = append(result.Data.Result, result2.Data.Result...)
 	}
 	if result.Code != 0 {
 		return data, fmt.Errorf("%d %s", result.Code, result.Message)
 	}
-	if result.Data.Result == nil {
-		return data, fmt.Errorf("search nil result")
+	if len(result.Data.Result) < 1 {
+		return data, nil
 	}
 
 	for _, bangumi := range result.Data.Result {
 		year := time.Unix(bangumi.PubTime, 0).Year()
-		if !param.MatchYear(year) {
-			continue
+		mediaId := strconv.FormatInt(bangumi.SeasonId, 10)
+		matchParam := danmaku.InternalMatchParam{
+			Title:   bangumi.Title,
+			Year:    year,
+			MediaId: mediaId,
 		}
-
-		match := param.MatchTitle(bangumi.Title)
+		match := param.Match(matchParam)
 		utils.DebugLog(danmaku.Bilibili, fmt.Sprintf("[%s] match [%s]: %v", bangumi.Title, param.Title, match))
 		if !match {
 			continue
@@ -176,7 +176,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 		}
 
 		b := &danmaku.Media{
-			Id:       strconv.FormatInt(bangumi.SeasonId, 10),
+			Id:       mediaId,
 			Type:     parseMediaType(bangumi.MediaType),
 			TypeDesc: bangumi.SeasonTypeName,
 			Desc:     bangumi.Desc,
