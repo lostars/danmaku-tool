@@ -22,20 +22,26 @@ func (c *client) Scrape(vid string) error {
 	if err != nil {
 		return err
 	}
-	// 1分钟分片
-	segmentsLen := int(durationInSeconds/60 + 1)
 
-	var result = c.scrapeDanmaku(vid, segmentsLen)
-
+	path := filepath.Join(config.GetConfig().SavePath, danmaku.Youku, info.ShowId)
 	serializer := &danmaku.SerializerData{
 		EpisodeId:       vid,
 		SeasonId:        info.ShowId,
-		Data:            result,
 		DurationInMills: int64(durationInSeconds * 1000),
+		Platform:        danmaku.Youku,
+		FullPath:        path,
+		Filename:        vid,
+	}
+	if err = danmaku.CheckFile(serializer); err != nil {
+		return err
 	}
 
-	path := filepath.Join(config.GetConfig().SavePath, danmaku.Youku, info.ShowId)
-	danmaku.WriteFile(danmaku.Youku, serializer, path, vid)
+	// 1分钟分片
+	segmentsLen := int(durationInSeconds/60 + 1)
+
+	serializer.Data = c.scrapeDanmaku(vid, segmentsLen)
+
+	danmaku.WriteFile(serializer)
 
 	return nil
 }

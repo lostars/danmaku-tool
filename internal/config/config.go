@@ -162,4 +162,8 @@ type PlatformConfig struct {
 	Timeout             int64    `yaml:"timeout"` // in seconds
 	MergeDanmakuInMills int64    `yaml:"merge-danmaku-in-mills"`
 	Persists            []string `yaml:"persists"`
+	Overwrite           *struct {
+		Enable          bool `yaml:"enable"`
+		ExpireInSeconds int  `yaml:"expire"`
+	} `yaml:"overwrite"`
 }

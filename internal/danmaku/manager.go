@@ -75,7 +75,7 @@ type Job interface {
 
 type SerializerData struct {
 	Platform            Platform
-	fullPath, filename  string
+	FullPath, Filename  string
 	Data                []*StandardDanmaku
 	DurationInMills     int64
 	SeasonId, EpisodeId string

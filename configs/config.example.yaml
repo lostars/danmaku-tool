@@ -86,7 +86,7 @@ emby:
   url: ""
   user: ""
   token: ""
-#  目前可选 bilibili tencent youku iqiyi 配置均通用
+#  目前可选 bilibili tencent youku iqiyi 默认配置均通用 特殊情况会标明
 platforms:
   - name: "bilibili"
   #  优先级 用于控制剧集搜索结果 越小则排的更靠前(int) <0 则禁用该平台
@@ -101,6 +101,13 @@ platforms:
     merge-danmaku-in-mills: 1000
     # 弹幕保存文件类型 xml 或者 ass
     persists: ["xml", "ass"]
+    # 文件覆盖配置 默认为不覆盖已有文件
+    overwrite:
+      # 是否启用 启用后则会覆盖已存在文件
+      enable: true
+      # 文件过期时间 秒 如果过期并且enable=true则覆盖已有文件
+      # enable=true 才生效
+      expire: 10
   - name: "tencent"
     priority: 100
     cookie: "xxx" # 最好提供，否则可能会导致搜不到数据

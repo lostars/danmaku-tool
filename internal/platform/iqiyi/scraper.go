@@ -231,17 +231,23 @@ func (c *client) Scrape(idStr string) error {
 	if err != nil {
 		return err
 	}
-	result := c.scrapeDanmaku(baseInfo, tvId)
 
+	path := filepath.Join(config.GetConfig().SavePath, danmaku.Iqiyi, strconv.FormatInt(baseInfo.Data.AlbumId, 10))
 	serializer := &danmaku.SerializerData{
 		EpisodeId:       strconv.FormatInt(baseInfo.Data.TVId, 10),
 		SeasonId:        strconv.FormatInt(baseInfo.Data.AlbumId, 10),
-		Data:            result,
 		DurationInMills: int64(baseInfo.Data.DurationSec * 1000),
+		Platform:        danmaku.Iqiyi,
+		FullPath:        path,
+		Filename:        strconv.FormatInt(baseInfo.Data.TVId, 10),
+	}
+	if err = danmaku.CheckFile(serializer); err != nil {
+		return err
 	}
 
-	path := filepath.Join(config.GetConfig().SavePath, danmaku.Iqiyi, strconv.FormatInt(baseInfo.Data.AlbumId, 10))
-	danmaku.WriteFile(danmaku.Iqiyi, serializer, path, strconv.FormatInt(baseInfo.Data.TVId, 10))
+	serializer.Data = c.scrapeDanmaku(baseInfo, tvId)
+
+	danmaku.WriteFile(serializer)
 
 	return nil
 }

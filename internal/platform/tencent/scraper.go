@@ -225,27 +225,33 @@ func (c *client) Scrape(idStr string) error {
 			continue
 		}
 
-		data, e := c.getDanmakuByVid(ep.ItemParams.VID)
-		if e != nil {
-			utils.ErrorLog(danmaku.Tencent, fmt.Sprintf("get danmaku by vid error: %s", e.Error()))
-			continue
-		}
+		path := filepath.Join(config.GetConfig().SavePath, danmaku.Tencent, ep.ItemParams.CID)
 		serializer := &danmaku.SerializerData{
 			EpisodeId: ep.ItemParams.VID,
 			SeasonId:  cid,
-			Data:      data,
+			Platform:  danmaku.Tencent,
+			FullPath:  path,
+			Filename:  ep.ItemParams.VID,
 		}
-		v, err := strconv.ParseInt(ep.ItemParams.Duration, 10, 64)
-		if err == nil {
+		if err = danmaku.CheckFile(serializer); err != nil {
+			utils.ErrorLog(danmaku.Tencent, err.Error())
+			continue
+		}
+		if v, err := strconv.ParseInt(ep.ItemParams.Duration, 10, 64); err == nil {
 			serializer.DurationInMills = v * 1000
 		} else {
 			utils.ErrorLog(danmaku.Tencent, "duration is not number", "vid", ep.ItemParams.VID, "duration", ep.ItemParams.Duration)
 		}
 
-		path := filepath.Join(config.GetConfig().SavePath, danmaku.Tencent, ep.ItemParams.CID)
-		danmaku.WriteFile(danmaku.Tencent, serializer, path, ep.ItemParams.VID)
+		serializer.Data, err = c.getDanmakuByVid(ep.ItemParams.VID)
+		if err != nil {
+			utils.ErrorLog(danmaku.Tencent, fmt.Sprintf("get danmaku by vid error: %s", err.Error()))
+			continue
+		}
 
-		utils.InfoLog(danmaku.Tencent, "ep scraped done", "vid", ep.ItemParams.VID, "size", len(data))
+		danmaku.WriteFile(serializer)
+
+		utils.InfoLog(danmaku.Tencent, "ep scraped done", "vid", ep.ItemParams.VID, "size", len(serializer.Data))
 	}
 
 	utils.InfoLog(danmaku.Tencent, "danmaku scraped done", "cid", cid)

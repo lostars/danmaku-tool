@@ -54,24 +54,30 @@ func (c *client) Scrape(realId string) error {
 			continue
 		}
 
-		data, err := c.GetDanmaku(strconv.FormatInt(ep.EPId, 10))
-		if err != nil {
-			utils.ErrorLog(danmaku.Bilibili, err.Error(), "epId", ep.EPId)
-			continue
-		}
 		epTitle = ep.Title
-
 		serializer := &danmaku.SerializerData{
 			EpisodeId:       strconv.FormatInt(ep.EPId, 10),
 			SeasonId:        strconv.FormatInt(series.Result.SeasonId, 10),
 			DurationInMills: ep.Duration,
-			Data:            data,
 			ResX:            ep.Dimension.Width,
 			ResY:            ep.Dimension.Height,
+			Platform:        danmaku.Bilibili,
+			FullPath:        savePath,
+			Filename:        strconv.FormatInt(ep.EPId, 10),
+		}
+		if err = danmaku.CheckFile(serializer); err != nil {
+			utils.ErrorLog(danmaku.Bilibili, err.Error())
+			continue
 		}
 
-		danmaku.WriteFile(danmaku.Bilibili, serializer, savePath, strconv.FormatInt(ep.EPId, 10))
-		utils.InfoLog(danmaku.Bilibili, "ep scraped done", "epId", ep.EPId, "size", len(data))
+		serializer.Data, err = c.GetDanmaku(strconv.FormatInt(ep.EPId, 10))
+		if err != nil {
+			utils.ErrorLog(danmaku.Bilibili, err.Error(), "epId", ep.EPId)
+			continue
+		}
+
+		danmaku.WriteFile(serializer)
+		utils.InfoLog(danmaku.Bilibili, "ep scraped done", "epId", ep.EPId, "size", len(serializer.Data))
 	}
 
 	var t = series.Result.Title

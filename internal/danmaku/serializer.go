@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type DataXML struct {
@@ -49,9 +50,9 @@ func (x *DataXMLPersist) Type() string {
 }
 
 func (x *DataXMLPersist) Serialize(s *SerializerData) error {
-	fullPath := s.fullPath
-	filename := s.filename
-	if e := checkPersistPath(fullPath, filename); e != nil {
+	fullPath := s.FullPath
+	filename := s.Filename
+	if e := s.CheckPersistPath(); e != nil {
 		return e
 	}
 
@@ -121,10 +122,9 @@ func NormalConvert(s *SerializerData) *DataXML {
 
 const serializerC = "serializer"
 
-func WriteFile(platform Platform, data *SerializerData, savePath, filename string) {
-	conf := config.GetPlatformConfig(string(platform))
+func WriteFile(data *SerializerData) {
+	conf := config.GetPlatformConfig(string(data.Platform))
 	if conf == nil {
-		utils.ErrorLog(serializerC, "config not exists", "platform", platform)
 		return
 	}
 	// 合并弹幕
@@ -135,34 +135,71 @@ func WriteFile(platform Platform, data *SerializerData, savePath, filename strin
 	for _, s := range conf.Persists {
 		serializer := adapter.serializers[s]
 		if serializer == nil {
-			utils.ErrorLog(serializerC, "serializer not impl", "platform", platform, "serializer", s)
+			utils.ErrorLog(serializerC, "serializer not impl", "platform", data.Platform, "serializer", s)
 			continue
 		}
 
-		data.Platform = platform
-		data.fullPath = savePath
-		data.filename = filename
-		err := serializer.Serialize(data)
-		if err != nil {
-			utils.ErrorLog(serializerC, err.Error(), "platform", platform, "serializer", serializer.Type())
+		if err := serializer.Serialize(data); err != nil {
+			utils.ErrorLog(serializerC, err.Error(), "platform", data.Platform, "serializer", serializer.Type())
 		}
 	}
 }
 
-func checkPersistPath(fullPath, filename string) error {
-	if fullPath == "" || filename == "" {
+func CheckFile(data *SerializerData) error {
+	conf := config.GetPlatformConfig(string(data.Platform))
+	if conf == nil {
+		return fmt.Errorf("[%s] config not exist", data.Platform)
+	}
+	for _, s := range conf.Persists {
+		if err := data.CheckExistFile(s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s SerializerData) CheckExistFile(ext string) error {
+	// check file status
+	full := filepath.Join(s.FullPath, fmt.Sprintf("%s.%s", s.Filename, ext))
+	info, err := os.Stat(full)
+	if err != nil && os.IsNotExist(err) {
+		return nil
+	}
+	conf := config.GetPlatformConfig(string(s.Platform))
+	// no overwrite by default
+	if conf == nil || conf.Overwrite == nil {
+		return fmt.Errorf("file [%s] exists", full)
+	}
+	if conf.Overwrite.Enable {
+		if conf.Overwrite.ExpireInSeconds > 0 {
+			if int(time.Since(info.ModTime()).Seconds()) > conf.Overwrite.ExpireInSeconds {
+				// file expire and overwrite it
+			} else {
+				return fmt.Errorf("file [%s] exists and not exipre", full)
+			}
+		} else {
+			// overwrite exist file
+		}
+	} else {
+		return fmt.Errorf("file [%s] exists", full)
+	}
+	return nil
+}
+
+func (s SerializerData) CheckPersistPath() error {
+	if s.FullPath == "" || s.Filename == "" {
 		return fmt.Errorf("empty save path or filename")
 	}
 
 	// check path
-	_, fileStatError := os.Stat(fullPath)
+	_, fileStatError := os.Stat(s.FullPath)
 	if fileStatError != nil {
 		if os.IsNotExist(fileStatError) {
-			if mkdirError := os.MkdirAll(fullPath, os.ModePerm); mkdirError != nil {
-				return fmt.Errorf("create path %s error: %s", fullPath, mkdirError.Error())
+			if mkdirError := os.MkdirAll(s.FullPath, os.ModePerm); mkdirError != nil {
+				return fmt.Errorf("create path %s error: %s", s.FullPath, mkdirError.Error())
 			}
 		} else {
-			return fmt.Errorf("create path %s error: %s", fullPath, fileStatError.Error())
+			return fmt.Errorf("create path %s error: %s", s.FullPath, fileStatError.Error())
 		}
 	}
 	return nil
@@ -175,9 +212,9 @@ func (a *DataAssPersist) Type() string {
 }
 
 func (a *DataAssPersist) Serialize(data *SerializerData) error {
-	savePath := data.fullPath
-	filename := data.filename
-	if e := checkPersistPath(savePath, filename); e != nil {
+	savePath := data.FullPath
+	filename := data.Filename
+	if e := data.CheckPersistPath(); e != nil {
 		return e
 	}
 	if data.ResX == 0 || data.ResY == 0 {
