@@ -12,7 +12,7 @@ import (
 )
 
 func RegisterRoute(route *chi.Mux) {
-	timeout := config.GetConfig().DandanTimeout
+	timeout := config.GetDandan().Timeout
 	if timeout <= 0 {
 		timeout = 60
 	}

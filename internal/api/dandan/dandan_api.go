@@ -59,8 +59,12 @@ func CommentHandler(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+	code := http.StatusOK
+	if len(comment.Comments) < 1 {
+		code = http.StatusNotFound
+	}
 
-	api.ResponseJSON(w, http.StatusOK, comment)
+	api.ResponseJSON(w, code, comment)
 }
 
 func MatchHandler(w http.ResponseWriter, r *http.Request) {
@@ -87,8 +91,12 @@ func MatchHandler(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+	code := http.StatusOK
+	if len(result.Matches) < 1 {
+		code = http.StatusNotFound
+	}
 
-	api.ResponseJSON(w, http.StatusOK, result)
+	api.ResponseJSON(w, code, result)
 }
 
 func SearchAnime(w http.ResponseWriter, r *http.Request) {
@@ -104,8 +112,11 @@ func SearchAnime(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	result := mode.SearchAnime(keyword)
-
-	api.ResponseJSON(w, http.StatusOK, result)
+	code := http.StatusOK
+	if len(result.Anime) < 1 {
+		code = http.StatusNotFound
+	}
+	api.ResponseJSON(w, code, result)
 }
 
 func AnimeInfo(w http.ResponseWriter, r *http.Request) {
@@ -124,5 +135,9 @@ func AnimeInfo(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	api.ResponseJSON(w, http.StatusOK, result)
+	code := http.StatusOK
+	if result.Bangumi == nil {
+		code = http.StatusNotFound
+	}
+	api.ResponseJSON(w, code, result)
 }

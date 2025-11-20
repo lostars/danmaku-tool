@@ -5,6 +5,8 @@ import (
 	"danmaku-tool/internal/utils"
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -272,6 +274,44 @@ func (m *Media) FormatPubTime(force bool) string {
 		}
 	}
 	return pubTime.Format(time.RFC3339Nano)
+}
+
+func DeserializeDanmaku(platform string, ssId, epId string) (data []*StandardDanmaku) {
+	path := filepath.Join(config.GetConfig().SavePath, platform, ssId, fmt.Sprintf("%s.%s", epId, XMLSerializer))
+	info, err := os.Stat(path)
+	scrape := false
+	if err != nil {
+		if os.IsNotExist(err) {
+			scrape = true
+		} else {
+			utils.ErrorLog(managerUtilC, err.Error())
+			return nil
+		}
+	}
+	conf := config.GetPlatformConfig(platform)
+	if info != nil && conf != nil && conf.Persist != nil {
+		if int(time.Since(info.ModTime()).Seconds()) > conf.Persist.ExpireInSeconds {
+			utils.InfoLog(managerUtilC, fmt.Sprintf("%s file expire when deserialize", path))
+			scrape = true
+		}
+	}
+
+	if scrape {
+		var scraper = GetScraper(platform)
+		if scraper != nil {
+			if err = scraper.Scrape(epId); err != nil {
+				utils.ErrorLog(managerUtilC, err.Error())
+				return nil
+			} else {
+				utils.InfoLog(managerUtilC, fmt.Sprintf("%s refresh success", path))
+			}
+		}
+	}
+
+	if data, err = adapter.serializers[XMLSerializer].Deserialize(path); err != nil {
+		utils.ErrorLog(managerUtilC, err.Error())
+	}
+	return
 }
 
 func InitPlatformClient(c *PlatformClient, platform Platform) (bool, error) {

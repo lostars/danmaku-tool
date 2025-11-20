@@ -180,5 +180,7 @@ func (r *statusRecorder) WriteHeader(status int) {
 
 func init() {
 	rootCmd.AddCommand(serverCmd())
-	danmaku.Register(&schedulerType{})
+	schedulerInterface := &schedulerType{}
+	danmaku.RegisterFinalizer(schedulerInterface)
+	danmaku.Register(schedulerInterface)
 }

@@ -84,6 +84,7 @@ type SerializerData struct {
 }
 type DataSerializer interface {
 	Serialize(data *SerializerData) error
+	Deserialize(file string) ([]*StandardDanmaku, error)
 	Type() string
 }
 
@@ -230,12 +231,15 @@ func RegisterMetadata(metadata MetadataService) {
 	reg(&adapter.metadata, metadata)
 }
 
+func RegisterFinalizer(finalizer Finalizer) {
+	reg(&adapter.finalizers, finalizer)
+}
+
 func Register(i interface{}) {
 	reg(&adapter.platforms, i)
 	reg(&adapter.jobs, i)
 	reg(&adapter.serverInitializers, i)
 	reg(&adapter.initializers, i)
-	reg(&adapter.finalizers, i)
 }
 
 func reg[T any](list *[]T, i interface{}) {

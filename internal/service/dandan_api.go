@@ -2,19 +2,12 @@ package service
 
 import (
 	"danmaku-tool/internal/config"
-	"danmaku-tool/internal/danmaku"
 )
-
-func init() {
-	cacheMapper := &realTimeData{}
-	danmaku.Register(cacheMapper)
-	sourceModes = map[string]DandanSourceMode{string(cacheMapper.Mode()): cacheMapper}
-}
 
 var sourceModes map[string]DandanSourceMode
 
 func GetDandanSourceMode() DandanSourceMode {
-	return sourceModes[config.GetConfig().DandanMode]
+	return sourceModes[config.GetDandan().Mode]
 }
 
 // DandanSourceMode dandan api 数据源接口
@@ -30,6 +23,7 @@ type Mode string
 
 const (
 	realTime = "real_time"
+	file     = "file"
 )
 
 type CommentParam struct {

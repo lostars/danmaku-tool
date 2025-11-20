@@ -38,6 +38,47 @@ type DataXMLPersist struct {
 	Indent bool
 }
 
+func (x *DataXMLPersist) Deserialize(file string) ([]*StandardDanmaku, error) {
+	data, err := os.ReadFile(file)
+	if err != nil {
+		return nil, err
+	}
+	var dataXML DataXML
+	if err = xml.Unmarshal(data, &dataXML); err != nil {
+		return nil, err
+	}
+
+	var result = make([]*StandardDanmaku, 0, len(dataXML.Danmaku))
+	for _, d := range dataXML.Danmaku {
+		attrs := strings.Split(d.Attributes, ",")
+		if len(attrs) < 4 {
+			continue
+		}
+		offset, pos, fontSize, color := float64(0), int64(0), int64(0), int64(0)
+		if offset, err = strconv.ParseFloat(attrs[0], 64); err != nil {
+			continue
+		}
+		if pos, err = strconv.ParseInt(attrs[1], 10, 64); err != nil {
+			continue
+		}
+		if fontSize, err = strconv.ParseInt(attrs[2], 10, 64); err != nil {
+			continue
+		}
+		if color, err = strconv.ParseInt(attrs[3], 10, 64); err != nil {
+			continue
+		}
+		result = append(result, &StandardDanmaku{
+			Content:     d.Content,
+			OffsetMills: int64(offset),
+			Mode:        int(pos),
+			FontSize:    int32(fontSize),
+			Color:       int(color),
+		})
+	}
+
+	return result, nil
+}
+
 func init() {
 	xmlPersist := DataXMLPersist{Indent: true}
 	adapter.serializers[xmlPersist.Type()] = &xmlPersist
@@ -167,12 +208,12 @@ func (s SerializerData) CheckExistFile(ext string) error {
 	}
 	conf := config.GetPlatformConfig(string(s.Platform))
 	// no overwrite by default
-	if conf == nil || conf.Overwrite == nil {
+	if conf == nil || conf.Persist == nil {
 		return fmt.Errorf("file [%s] exists", full)
 	}
-	if conf.Overwrite.Enable {
-		if conf.Overwrite.ExpireInSeconds > 0 {
-			if int(time.Since(info.ModTime()).Seconds()) > conf.Overwrite.ExpireInSeconds {
+	if conf.Persist.Overwrite {
+		if conf.Persist.ExpireInSeconds > 0 {
+			if int(time.Since(info.ModTime()).Seconds()) > conf.Persist.ExpireInSeconds {
 				// file expire and overwrite it
 			} else {
 				return fmt.Errorf("file [%s] exists and not exipre", full)
@@ -206,6 +247,10 @@ func (s SerializerData) CheckPersistPath() error {
 }
 
 type DataAssPersist struct{}
+
+func (a *DataAssPersist) Deserialize(_ string) ([]*StandardDanmaku, error) {
+	return nil, fmt.Errorf("%s deserialize not support", a.Type())
+}
 
 func (a *DataAssPersist) Type() string {
 	return ASSSerializer

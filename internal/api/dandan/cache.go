@@ -2,11 +2,14 @@ package dandan
 
 import (
 	"bytes"
+	"crypto/md5"
+	"danmaku-tool/internal/config"
 	"danmaku-tool/internal/danmaku"
 	"danmaku-tool/internal/utils"
+	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
-	"path"
-	"strings"
 	"time"
 
 	"github.com/dgraph-io/ristretto/v2"
@@ -15,12 +18,18 @@ import (
 var cache *ristretto.Cache[string, []byte]
 
 func init() {
-	danmaku.Register(&DanmakuCache{})
+	cacheInterface := &DanmakuCache{}
+	danmaku.RegisterFinalizer(cacheInterface)
+	danmaku.Register(cacheInterface)
 }
 
 type DanmakuCache struct{}
 
 func (d *DanmakuCache) ServerInit() error {
+	if config.GetDandan().CacheTimeout <= 0 {
+		utils.InfoLog(dandanApiCacheC, "ristretto cache disabled")
+		return nil
+	}
 	c, err := ristretto.NewCache(&ristretto.Config[string, []byte]{
 		NumCounters: 1e7,     // number of keys to track frequency of (10M).
 		MaxCost:     1 << 29, // maximum cost of cache 512M
@@ -44,28 +53,48 @@ const dandanApiCacheC = "dandan_api_cache"
 
 func CacheMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var cacheKey = ""
-		if strings.Contains(r.URL.Path, "/comment/") {
-			// episodeId
-			cacheKey = path.Base(r.URL.Path)
-			if cachedData, found := cache.Get(cacheKey); found {
-				_, _ = w.Write(cachedData)
-				utils.DebugLog(dandanApiCacheC, "cache loaded", "cacheKey", cacheKey)
-				return
+		if cache == nil {
+			rr := &responseRecorder{ResponseWriter: w}
+			next.ServeHTTP(rr, r)
+			return
+		}
+
+		var key = cacheKey(r)
+		if cachedData, found := cache.Get(key); found {
+			if _, err := w.Write(cachedData); err != nil {
+				utils.ErrorLog(dandanApiCacheC, fmt.Sprintf("write cache error: %s", err.Error()))
 			}
+			utils.DebugLog(dandanApiCacheC, "cache loaded", "cacheKey", key)
+			return
 		}
 
 		rr := &responseRecorder{ResponseWriter: w}
 		next.ServeHTTP(rr, r)
 
-		if cacheKey != "" && rr.statusCode == http.StatusOK {
+		if rr.statusCode == http.StatusOK {
 			cacheData := rr.body.Bytes()
-			success := cache.SetWithTTL(cacheKey, cacheData, int64(len(cacheData)), time.Second*3600) // 1h to expire
-			if !success {
-				utils.ErrorLog(dandanApiCacheC, "cache set failed", "cacheKey", cacheKey)
+			cacheDuration := time.Duration(config.GetDandan().CacheTimeout * 1e9)
+			if success := cache.SetWithTTL(key, cacheData, int64(len(cacheData)), cacheDuration); !success {
+				utils.ErrorLog(dandanApiCacheC, "cache set failed", "cacheKey", key)
 			}
 		}
 	})
+}
+
+func cacheKey(r *http.Request) string {
+	bodyBytes, _ := io.ReadAll(r.Body)
+	// save body for next handler
+	r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+
+	var body map[string]interface{}
+	_ = json.Unmarshal(bodyBytes, &body)
+	data := map[string]interface{}{
+		"path":  r.URL.Path,
+		"query": r.URL.Query(),
+		"body":  body,
+	}
+	b, _ := json.Marshal(data)
+	return fmt.Sprintf("%x", md5.Sum(b))
 }
 
 type responseRecorder struct {

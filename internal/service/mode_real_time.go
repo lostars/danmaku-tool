@@ -87,10 +87,24 @@ func (c *realTimeData) Load() error {
 const realTimeServiceC = "real_time_service"
 
 func (c *realTimeData) ServerInit() error {
+	mode := config.GetDandan().Mode
+	if mode != realTime {
+		return nil
+	}
 	if err := c.Load(); err != nil {
 		return err
 	}
+	utils.InfoLog(realTimeServiceC, fmt.Sprintf("[%s] mode enabled", c.Mode()))
+	sourceModes = map[string]DandanSourceMode{string(c.Mode()): c}
+	danmaku.RegisterFinalizer(c)
 	return nil
+}
+
+func init() {
+	danmaku.Register(&realTimeData{
+		ForwardMap: make(map[string]int64),
+		ReverseMap: make(map[int64]string),
+	})
 }
 
 func (c *realTimeData) Match(param MatchParam) (*DanDanResult, error) {

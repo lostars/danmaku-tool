@@ -82,16 +82,25 @@ func GetPlatformConfig(platform string) *PlatformConfig {
 }
 
 type DanmakuConfig struct {
-	Timezone      string           `yaml:"timezone"`
-	Debug         bool             `yaml:"debug"`
-	SavePath      string           `yaml:"save-path"`
-	DandanMode    string           `yaml:"dandan-mode"`
-	DandanTimeout int              `yaml:"dandan-timeout"`
-	UA            string           `yaml:"ua"`
-	Platforms     []PlatformConfig `yaml:"platforms"`
-	Emby          EmbyConfig       `yaml:"emby"`
-	Server        ServerConfig     `yaml:"server"`
-	Tokenizer     TokenizerConfig  `yaml:"tokenizer"`
+	Timezone  string           `yaml:"timezone"`
+	Debug     bool             `yaml:"debug"`
+	SavePath  string           `yaml:"save-path"`
+	DanDan    DandanConfig     `yaml:"dandan"`
+	UA        string           `yaml:"ua"`
+	Platforms []PlatformConfig `yaml:"platforms"`
+	Emby      EmbyConfig       `yaml:"emby"`
+	Server    ServerConfig     `yaml:"server"`
+	Tokenizer TokenizerConfig  `yaml:"tokenizer"`
+}
+
+type DandanConfig struct {
+	CacheTimeout int    `yaml:"cache-timeout"`
+	Mode         string `yaml:"mode"`
+	Timeout      int    `yaml:"timeout"`
+}
+
+func GetDandan() *DandanConfig {
+	return &GetConfig().DanDan
 }
 
 type TokenizerConfig struct {
@@ -162,8 +171,8 @@ type PlatformConfig struct {
 	Timeout             int64    `yaml:"timeout"` // in seconds
 	MergeDanmakuInMills int64    `yaml:"merge-danmaku-in-mills"`
 	Persists            []string `yaml:"persists"`
-	Overwrite           *struct {
-		Enable          bool `yaml:"enable"`
+	Persist             *struct {
+		Overwrite       bool `yaml:"overwrite"`
 		ExpireInSeconds int  `yaml:"expire"`
-	} `yaml:"overwrite"`
+	} `yaml:"persist"`
 }

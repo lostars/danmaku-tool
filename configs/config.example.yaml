@@ -1,11 +1,15 @@
 #  弹幕保存路径 只作用于CLI模式
 save-path: ""
+# debug模式
 debug: true
-# dandan api模式
-# real_time 实时
-# database sqlite数据库
-dandan-mode: "real_time"
-dandan-timeout: 60 # dandan api timeout in seconds
+dandan:
+  # 缓存过期时间 <=0或者不配置则禁用缓存 单位：秒
+  cache-timeout: 600
+  # dandan api模式
+  # real_time 实时抓取流媒体弹幕
+  # file 优先从服务器本地弹幕文件读取弹幕 没有或者过期才从流媒体抓取
+  mode: "real_time"
+  timeout: 60 # dandan api timeout in seconds
 ua: "" # 请求ua 可不配置
 # 分词器配置 用于提升识别准确率 关闭则直接注射掉即可
 tokenizer:
@@ -102,11 +106,11 @@ platforms:
     # 弹幕保存文件类型 xml 或者 ass
     persists: ["xml", "ass"]
     # 文件覆盖配置 默认为不覆盖已有文件
-    overwrite:
+    persist:
       # 是否启用 启用后则会覆盖已存在文件
-      enable: true
+      overwrite: true
       # 文件过期时间 秒 如果过期并且enable=true则覆盖已有文件
-      # enable=true 才生效
+      # 同时该设置也控制 dandan-mode=file 时文件过期时间 过期则从流媒体再次抓取弹幕
       expire: 10
   - name: "tencent"
     priority: 100
