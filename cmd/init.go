@@ -9,9 +9,9 @@ import (
 
 func Init() {
 	// init config
-	config.Init(flags.ConfigPath, flags.Debug)
+	config.Init(flags.ConfigPath)
 	// init logger
-	utils.InitLogger(flags.Debug, flags.JsonLogger)
+	utils.InitLogger(config.GetConfig().Debug, flags.JsonLogger)
 	// initializers
 	for _, init := range danmaku.Initializers() {
 		if err := init.Init(); err != nil {

@@ -14,7 +14,7 @@ var (
 
 var danmakuConfig *DanmakuConfig
 
-func Init(path string, debug bool) {
+func Init(path string) {
 	if danmakuConfig != nil {
 		return
 	}
@@ -33,7 +33,6 @@ func Init(path string, debug bool) {
 			danmakuConfig.Timezone = "Asia/Shanghai"
 		}
 	}
-	danmakuConfig.Debug = debug
 }
 
 func GetConfig() *DanmakuConfig {
