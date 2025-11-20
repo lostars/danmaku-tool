@@ -10,7 +10,6 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"time"
 )
 
 type DataXML struct {
@@ -207,22 +206,11 @@ func (s SerializerData) CheckExistFile(ext string) error {
 		return nil
 	}
 	conf := config.GetPlatformConfig(string(s.Platform))
-	// no overwrite by default
-	if conf == nil || conf.Persist == nil {
+	if conf == nil {
 		return fmt.Errorf("file [%s] exists", full)
 	}
-	if conf.Persist.Overwrite {
-		if conf.Persist.ExpireInSeconds > 0 {
-			if int(time.Since(info.ModTime()).Seconds()) > conf.Persist.ExpireInSeconds {
-				// file expire and overwrite it
-			} else {
-				return fmt.Errorf("file [%s] exists and not exipre", full)
-			}
-		} else {
-			// overwrite exist file
-		}
-	} else {
-		return fmt.Errorf("file [%s] exists", full)
+	if !conf.FileExpire(info.ModTime()) {
+		return fmt.Errorf("file [%s] exists and not exipre", full)
 	}
 	return nil
 }

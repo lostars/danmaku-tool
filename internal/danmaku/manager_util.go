@@ -289,11 +289,9 @@ func DeserializeDanmaku(platform string, ssId, epId string) (data []*StandardDan
 		}
 	}
 	conf := config.GetPlatformConfig(platform)
-	if info != nil && conf != nil && conf.Persist != nil {
-		if int(time.Since(info.ModTime()).Seconds()) > conf.Persist.ExpireInSeconds {
-			utils.InfoLog(managerUtilC, fmt.Sprintf("%s file expire when deserialize", path))
-			scrape = true
-		}
+	if info != nil && conf != nil && conf.FileExpire(info.ModTime()) {
+		utils.InfoLog(managerUtilC, fmt.Sprintf("%s file expire when deserialize", path))
+		scrape = true
 	}
 
 	if scrape {

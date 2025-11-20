@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"time"
 
 	"gopkg.in/yaml.v3"
 )
@@ -171,8 +172,12 @@ type PlatformConfig struct {
 	Timeout             int64    `yaml:"timeout"` // in seconds
 	MergeDanmakuInMills int64    `yaml:"merge-danmaku-in-mills"`
 	Persists            []string `yaml:"persists"`
-	Persist             *struct {
-		Overwrite       bool `yaml:"overwrite"`
-		ExpireInSeconds int  `yaml:"expire"`
-	} `yaml:"persist"`
+	PersistExpire       int      `yaml:"persist-expire"`
+}
+
+func (p PlatformConfig) FileExpire(end time.Time) bool {
+	if p.PersistExpire <= 0 {
+		return false
+	}
+	return int(time.Since(end).Seconds()) > p.PersistExpire
 }

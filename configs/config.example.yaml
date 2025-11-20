@@ -105,13 +105,9 @@ platforms:
     merge-danmaku-in-mills: 1000
     # 弹幕保存文件类型 xml 或者 ass
     persists: ["xml", "ass"]
-    # 文件覆盖配置 默认为不覆盖已有文件
-    persist:
-      # 是否启用 启用后则会覆盖已存在文件
-      overwrite: true
-      # 文件过期时间 秒 如果过期并且enable=true则覆盖已有文件
-      # 同时该设置也控制 dandan-mode=file 时文件过期时间 过期则从流媒体再次抓取弹幕
-      expire: 10
+    # 文件过期时间 秒 不配置或者<=0 则代表文件不过期
+    # 同时该过期时间控制 dandan.mode=file 时的文件过期时间
+    persist-expire: 1000
   - name: "tencent"
     priority: 100
     cookie: "xxx" # 最好提供，否则可能会导致搜不到数据
