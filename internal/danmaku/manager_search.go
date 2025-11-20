@@ -112,8 +112,20 @@ func MatchMedia(param MatchParam) []*Media {
 
 func rematch(media *Media, param MatchParam) {
 	for _, re := range config.GetConfig().Tokenizer.Rematch {
-		if re.Platform != string(media.Platform) || re.MediaId != media.Id {
+		if re.Platform != string(media.Platform) {
 			continue
+		}
+		if re.MediaId != media.Id {
+			scraper := GetScraper(string(media.Platform))
+			// 支持iqiyi字符串id配置
+			if parser, ok := scraper.(MediaIdParser); ok {
+				number := parser.ParseNumber(re.MediaId)
+				if number <= 0 || media.Id != strconv.FormatInt(number, 10) {
+					continue
+				}
+			} else {
+				continue
+			}
 		}
 		if len(re.Targets) > 0 {
 			targetMatch(media, re, param)
