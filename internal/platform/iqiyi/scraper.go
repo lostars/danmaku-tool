@@ -190,7 +190,7 @@ func (c *client) GetDanmaku(id string) ([]*danmaku.StandardDanmaku, error) {
 }
 
 func (c *client) Scrape(idStr string) error {
-	tvId := parseToNumberId(idStr)
+	tvId := c.ParseNumber(idStr)
 	if tvId <= 0 {
 		return fmt.Errorf("invalid id: %s", idStr)
 	}

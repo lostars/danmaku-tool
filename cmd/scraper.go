@@ -20,6 +20,8 @@ func scraperCmd() *cobra.Command {
 	platform := flags.FProperty[string]{Flag: "platform", Register: &flags.PlatformCompletion{}, Options: danmaku.Platforms()}
 	cmd.Flags().StringVar(&platform.Value, platform.Flag, "", `danmaku platform: 
 `+strings.Join(platform.Options, "\n"))
+	var parse bool
+	cmd.Flags().BoolVar(&parse, "parse", false, "parse media id string to number")
 
 	cmd.Run = func(cmd *cobra.Command, args []string) {
 		Init()
@@ -36,12 +38,20 @@ func scraperCmd() *cobra.Command {
 			}
 			return
 		}
-		start := time.Now()
-		if err := scraper.Scrape(id); err != nil {
-			utils.ErrorLog(scrapeCmdC, err.Error())
-			return
+		if parse {
+			if parser, ok := scraper.(danmaku.MediaIdParser); ok {
+				fmt.Println(fmt.Sprintf("%s -> %d", id, parser.ParseNumber(id)))
+			} else {
+				utils.ErrorLog(scrapeCmdC, fmt.Sprintf("[%s] not support", scraper.Platform()))
+			}
+		} else {
+			start := time.Now()
+			if err := scraper.Scrape(id); err != nil {
+				utils.ErrorLog(scrapeCmdC, err.Error())
+				return
+			}
+			utils.InfoLog(scrapeCmdC, "scrape cmd done", "cost_ms", time.Since(start).Milliseconds())
 		}
-		utils.InfoLog(scrapeCmdC, "scrape cmd done", "cost_ms", time.Since(start).Milliseconds())
 	}
 
 	return cmd

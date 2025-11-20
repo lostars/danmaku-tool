@@ -54,6 +54,11 @@ type Scraper interface {
 	Platform() Platform
 }
 
+type MediaIdParser interface {
+	// ParseNumber 将字符串id转换成数字id，<=0 则失败
+	ParseNumber(id string) int64
+}
+
 type MetadataService interface {
 	Source() Source
 	// Episodes 获取所有ep

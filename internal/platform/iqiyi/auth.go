@@ -16,8 +16,8 @@ const segmentSalt = "cbzuw1259a"
 const signSecret = "howcuteitis"
 const signKey = "secret_key"
 
-// 字符串tvid 转换为数字tvid
-func parseToNumberId(id string) int64 {
+// ParseNumber 将字符tvId/albumId 转为数字id
+func (c *client) ParseNumber(id string) int64 {
 	num, err := strconv.ParseInt(id, 36, 64)
 	if err != nil {
 		return 0
