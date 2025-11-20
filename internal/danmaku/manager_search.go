@@ -89,7 +89,7 @@ func MatchMedia(param MatchParam) []*Media {
 	for m := range ch {
 		for _, media := range m {
 			// 过滤掉没有ep的剧集
-			if len(media.Episodes) < 1 {
+			if len(media.Episodes) < 1 && media.EpisodeCount <= 0 {
 				continue
 			}
 			// 剧集匹配规则

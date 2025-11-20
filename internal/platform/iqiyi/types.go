@@ -4,6 +4,7 @@ import "regexp"
 
 var tvIdRegex = regexp.MustCompile(`^qips://.*tvid=(\d+);`)
 var albumRegex = regexp.MustCompile(`albumid=(\d+);`)
+var epNumberRegex = regexp.MustCompile(`(\d+)集(全)*`)
 
 type VideoBaseInfoResult struct {
 	Code string `json:"code"` // A00000 成功
@@ -65,11 +66,14 @@ type SearchTemplate struct {
 	// 以下是聚合类型数据
 	IntentName       string `json:"intentName"` //伍六七作品
 	IntentAlbumInfos []struct {
-		Channel     string `json:"channel"` // 动漫,4
-		Title       string `json:"title"`
-		PlayUrl     string `json:"playUrl"`
-		SiteId      string `json:"siteId"`
-		Superscript string `json:"superscript"` // 年份
+		Channel          string `json:"channel"` // 动漫,4
+		Title            string `json:"title"`
+		Img              string `json:"img"`
+		PromptDesc       string `json:"promptDesc"`
+		PlayUrl          string `json:"playUrl"`
+		SiteId           string `json:"siteId"`
+		Superscript      string `json:"superscript"`      // 年份
+		SubscriptContent string `json:"subscriptContent"` // 电影评分或者剧集数
 	} `json:"intentAlbumInfos"`
 }
 

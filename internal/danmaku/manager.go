@@ -14,16 +14,17 @@ const (
 )
 
 type Media struct {
-	Type     MediaType
-	TypeDesc string // 类型描述 TV动画 / 综艺
-	Id       string // 存储平台实际id
-	Title    string
-	Desc     string
-	Cover    string
-	Year     int
-	PubTime  int64 // unix seconds
-	Episodes []*MediaEpisode
-	Platform Platform
+	Type         MediaType
+	TypeDesc     string // 类型描述 TV动画 / 综艺
+	Id           string // 存储平台实际id
+	Title        string
+	Desc         string
+	Cover        string
+	Year         int
+	PubTime      int64 // unix seconds
+	EpisodeCount int
+	Episodes     []*MediaEpisode
+	Platform     Platform
 }
 
 type MediaEpisode struct {

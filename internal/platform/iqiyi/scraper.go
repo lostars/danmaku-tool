@@ -52,9 +52,24 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 				// 匹配albumId
 				albumMatches := albumRegex.FindStringSubmatch(intent.PlayUrl)
 				mediaId := ""
+				typeName := ""
+				epCount := int64(0)
+				var mediaType danmaku.MediaType
 				if len(albumMatches) >= 2 {
 					mediaId = albumMatches[1]
+					typeName = "剧集"
+					mediaType = danmaku.Series
+					epNumbers := epNumberRegex.FindStringSubmatch(intent.SubscriptContent)
+					if len(epNumbers) > 2 {
+						epCount, _ = strconv.ParseInt(epNumbers[1], 10, 64)
+					} else {
+						utils.ErrorLog(danmaku.Iqiyi, fmt.Sprintf("[%s] not match ep count number", intent.SubscriptContent))
+					}
 				} else {
+					// 默认电影为一集
+					epCount = 1
+					typeName = "电影"
+					mediaType = danmaku.Movie
 					// 如果匹配不到则是电影一类，匹配tvId
 					playUrlMatches := tvIdRegex.FindStringSubmatch(intent.PlayUrl)
 					if len(playUrlMatches) < 2 {
@@ -64,7 +79,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 				}
 				year, _ := strconv.ParseInt(intent.Superscript, 10, 64)
 				matchParam := danmaku.InternalMatchParam{
-					Title:   t.AlbumInfo.Title,
+					Title:   intent.Title,
 					Year:    int(year),
 					MediaId: mediaId,
 				}
@@ -73,11 +88,27 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 				if !match {
 					continue
 				}
-				if m, e := c.Media(mediaId); e == nil {
-					m.Year = int(year)
+				if param.Mode == danmaku.Search {
+					m := &danmaku.Media{
+						Id:           mediaId,
+						Type:         mediaType,
+						TypeDesc:     typeName,
+						Platform:     danmaku.Iqiyi,
+						Title:        intent.Title,
+						Cover:        intent.Img,
+						Year:         int(year),
+						Desc:         intent.PromptDesc,
+						EpisodeCount: int(epCount),
+					}
 					media = append(media, m)
 				} else {
-					utils.ErrorLog(danmaku.Iqiyi, e.Error())
+					if m, e := c.Media(mediaId); e == nil {
+						m.Year = int(year)
+						m.EpisodeCount = len(m.Episodes)
+						media = append(media, m)
+					} else {
+						utils.ErrorLog(danmaku.Iqiyi, e.Error())
+					}
 				}
 			}
 			continue
@@ -160,15 +191,16 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 		}
 
 		m := &danmaku.Media{
-			Id:       mediaId,
-			Type:     mediaType,
-			TypeDesc: typeName,
-			Platform: danmaku.Iqiyi,
-			Title:    t.AlbumInfo.Title,
-			Cover:    t.AlbumInfo.Img,
-			Year:     int(year),
-			Desc:     t.AlbumInfo.Introduction,
-			Episodes: eps,
+			Id:           mediaId,
+			Type:         mediaType,
+			TypeDesc:     typeName,
+			Platform:     danmaku.Iqiyi,
+			Title:        t.AlbumInfo.Title,
+			Cover:        t.AlbumInfo.Img,
+			Year:         int(year),
+			Desc:         t.AlbumInfo.Introduction,
+			Episodes:     eps,
+			EpisodeCount: len(eps),
 		}
 		media = append(media, m)
 	}

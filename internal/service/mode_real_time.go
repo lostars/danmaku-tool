@@ -270,7 +270,7 @@ func (c *realTimeData) SearchAnime(title string) *DanDanAnimeResult {
 			Type:         parseDandanType(m.Type),
 			TypeDesc:     m.TypeDesc,
 			ImageUrl:     m.Cover,
-			EpisodeCount: len(m.Episodes),
+			EpisodeCount: m.EpisodeCount,
 			// 该字段必须返回，否则 Yamby 闪退
 			StartDate: m.FormatPubTime(true),
 		})

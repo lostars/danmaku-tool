@@ -176,16 +176,17 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 		}
 
 		b := &danmaku.Media{
-			Id:       mediaId,
-			Type:     parseMediaType(bangumi.MediaType),
-			TypeDesc: bangumi.SeasonTypeName,
-			Desc:     bangumi.Desc,
-			Title:    clearTitle,
-			Cover:    bangumi.Cover,
-			Episodes: eps,
-			PubTime:  bangumi.PubTime,
-			Year:     year,
-			Platform: danmaku.Bilibili,
+			Id:           mediaId,
+			Type:         parseMediaType(bangumi.MediaType),
+			TypeDesc:     bangumi.SeasonTypeName,
+			Desc:         bangumi.Desc,
+			Title:        clearTitle,
+			Cover:        bangumi.Cover,
+			Episodes:     eps,
+			EpisodeCount: len(eps),
+			PubTime:      bangumi.PubTime,
+			Year:         year,
+			Platform:     danmaku.Bilibili,
 		}
 		data = append(data, b)
 

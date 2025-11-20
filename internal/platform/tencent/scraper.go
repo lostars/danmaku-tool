@@ -121,45 +121,48 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 				mediaType = danmaku.Series
 			}
 
-			seriesItems, e := c.series(v.Doc.Id)
-			if e != nil {
-				utils.ErrorLog(danmaku.Tencent, e.Error())
-				return
-			}
-
 			var eps = make([]*danmaku.MediaEpisode, 0, v.VideoInfo.SubjectDoc.VideoNum)
-			for i, ep := range seriesItems {
-				if ep.ItemParams.IsTrailer == "1" {
-					continue
+			// 非搜索模式才获取ep列表
+			if param.Mode != danmaku.Search {
+				seriesItems, e := c.series(v.Doc.Id)
+				if e != nil {
+					utils.ErrorLog(danmaku.Tencent, e.Error())
+					return
 				}
-				// 有可能vid为空
-				if ep.ItemParams.VID == "" {
-					continue
+				for i, ep := range seriesItems {
+					if ep.ItemParams.IsTrailer == "1" {
+						continue
+					}
+					// 有可能vid为空
+					if ep.ItemParams.VID == "" {
+						continue
+					}
+					epTitle := ep.ItemParams.CTitleOutput
+					if epId, e := strconv.ParseInt(epTitle, 10, 64); e == nil {
+						epTitle = strconv.FormatInt(epId, 10)
+					}
+					if epTitle == "" {
+						epTitle = strconv.FormatInt(int64(i+1), 10)
+					}
+					eps = append(eps, &danmaku.MediaEpisode{
+						Id:        ep.ItemParams.VID,
+						EpisodeId: epTitle,
+						Title:     ep.Title(),
+					})
 				}
-				epTitle := ep.ItemParams.CTitleOutput
-				if epId, e := strconv.ParseInt(epTitle, 10, 64); e == nil {
-					epTitle = strconv.FormatInt(epId, 10)
-				}
-				if epTitle == "" {
-					epTitle = strconv.FormatInt(int64(i+1), 10)
-				}
-				eps = append(eps, &danmaku.MediaEpisode{
-					Id:        ep.ItemParams.VID,
-					EpisodeId: epTitle,
-					Title:     ep.Title(),
-				})
 			}
 
 			media := &danmaku.Media{
-				Id:       v.Doc.Id,
-				Type:     mediaType,
-				TypeDesc: v.VideoInfo.TypeName,
-				Desc:     v.VideoInfo.Desc,
-				Title:    v.VideoInfo.Title,
-				Cover:    v.VideoInfo.ImgUrl,
-				Year:     v.VideoInfo.Year,
-				Episodes: eps,
-				Platform: danmaku.Tencent,
+				Id:           v.Doc.Id,
+				Type:         mediaType,
+				TypeDesc:     v.VideoInfo.TypeName,
+				Desc:         v.VideoInfo.Desc,
+				Title:        v.VideoInfo.Title,
+				Cover:        v.VideoInfo.ImgUrl,
+				Year:         v.VideoInfo.Year,
+				Episodes:     eps,
+				EpisodeCount: v.VideoInfo.SubjectDoc.VideoNum,
+				Platform:     danmaku.Tencent,
 			}
 
 			ch <- media
