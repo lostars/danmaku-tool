@@ -175,7 +175,6 @@ func (c *client) scrape(oid, pid, segmentIndex int64) ([]*DanmakuElem, error) {
 		return nil, err
 	}
 
-	// 2. 【关键】设置 Accept-Encoding: gzip，告诉服务器客户端支持 Gzip 压缩
 	req.Header.Set("Accept-Encoding", "gzip")
 	req.Header.Set("Cookie", c.Cookie)
 
@@ -195,7 +194,7 @@ func (c *client) scrape(oid, pid, segmentIndex int64) ([]*DanmakuElem, error) {
 		if contentType == "application/json" {
 			var raw = json.RawMessage{}
 			if err = json.NewDecoder(resp.Body).Decode(&raw); err != nil {
-				return nil, fmt.Errorf(string(raw))
+				return nil, fmt.Errorf("%s", raw)
 			}
 		}
 		return nil, fmt.Errorf("unknown content-type: %s", contentType)
