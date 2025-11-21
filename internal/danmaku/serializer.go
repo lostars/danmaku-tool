@@ -53,8 +53,9 @@ func (x *DataXMLPersist) Deserialize(file string) ([]*StandardDanmaku, error) {
 		if len(attrs) < 4 {
 			continue
 		}
-		offset, pos, fontSize, color := float64(0), int64(0), int64(0), int64(0)
-		if offset, err = strconv.ParseFloat(attrs[0], 64); err != nil {
+		// 注意xml中offset存储的是秒
+		offsetInSeconds, pos, fontSize, color := float64(0), int64(0), int64(0), int64(0)
+		if offsetInSeconds, err = strconv.ParseFloat(attrs[0], 64); err != nil {
 			continue
 		}
 		if pos, err = strconv.ParseInt(attrs[1], 10, 64); err != nil {
@@ -68,7 +69,7 @@ func (x *DataXMLPersist) Deserialize(file string) ([]*StandardDanmaku, error) {
 		}
 		result = append(result, &StandardDanmaku{
 			Content:     d.Content,
-			OffsetMills: int64(offset),
+			OffsetMills: int64(offsetInSeconds) * 1000,
 			Mode:        int(pos),
 			FontSize:    int32(fontSize),
 			Color:       int(color),
