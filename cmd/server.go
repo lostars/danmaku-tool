@@ -148,22 +148,14 @@ const webServerC = "web_server"
 func LoggerMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		requestId := r.Header.Get("X-Request-ID")
-		var requestAttr slog.Attr
-		if requestId != "" {
-			requestAttr = slog.String("request_id", requestId)
-		}
-
 		recorder := &web.StatusRecorder{ResponseWriter: w}
-
 		next.ServeHTTP(recorder, r)
 
 		utils.InfoLog(webServerC, "request completed",
-			slog.String("http_method", r.Method),
+			slog.String("method", r.Method),
 			slog.String("path", r.URL.Path),
-			requestAttr,
-			slog.Int("status_code", recorder.Status),
-			slog.Int64("latency_ms", time.Since(start).Milliseconds()),
+			slog.Int("status", recorder.Status),
+			slog.Int64("cost_ms", time.Since(start).Milliseconds()),
 		)
 	})
 }

@@ -17,11 +17,9 @@ type StatusRecorder struct {
 func (r *StatusRecorder) WriteHeader(status int) {
 	if !r.WroteHeader {
 		r.WroteHeader = true
-		r.Status = status
 		r.ResponseWriter.WriteHeader(status)
-	} else {
-		r.Status = status
 	}
+	r.Status = status
 }
 
 func (r *StatusRecorder) Write(b []byte) (int, error) {

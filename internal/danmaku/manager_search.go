@@ -14,6 +14,7 @@ import (
 const searchMediaC = "search_media"
 
 func MatchMedia(param MatchParam) []*Media {
+	start := time.Now()
 	// 如果未设置季信息，则从标题中解析
 	if param.SeasonId < 0 {
 		param.SeasonId = MatchSeason(param.Title)
@@ -55,7 +56,9 @@ func MatchMedia(param MatchParam) []*Media {
 			}
 		}
 	}
+	preprocessCost := time.Since(start).Milliseconds()
 
+	start = time.Now()
 	ch := make(chan []*Media, len(adapter.scrapers))
 	wg := sync.WaitGroup{}
 	wg.Add(len(adapter.scrapers))
@@ -99,6 +102,7 @@ func MatchMedia(param MatchParam) []*Media {
 			result = append(result, media)
 		}
 	}
+	matchCost := time.Since(start).Milliseconds()
 
 	// 结果排序
 	sort.Slice(result, func(i, j int) bool {
@@ -106,6 +110,11 @@ func MatchMedia(param MatchParam) []*Media {
 		b := config.GetPlatformConfig(string(result[j].Platform))
 		return a.Priority < b.Priority
 	})
+
+	utils.DebugLog(searchMediaC, "media match finished",
+		"cost_ms", matchCost+preprocessCost,
+		"match_ms", matchCost,
+		"preprocess_ms", preprocessCost)
 
 	return result
 }

@@ -297,18 +297,22 @@ func DeserializeDanmaku(platform string, ssId, epId string) (data []*StandardDan
 	if scrape {
 		var scraper = GetScraper(platform)
 		if scraper != nil {
+			start := time.Now()
 			if err = scraper.Scrape(epId); err != nil {
 				utils.ErrorLog(managerUtilC, err.Error())
 				return nil
 			} else {
 				utils.InfoLog(managerUtilC, fmt.Sprintf("%s refresh success", path))
 			}
+			utils.DebugLog(managerUtilC, "refresh finished", "cost_ms", time.Since(start).Milliseconds())
 		}
 	}
 
+	start := time.Now()
 	if data, err = adapter.serializers[XMLSerializer].Deserialize(path); err != nil {
 		utils.ErrorLog(managerUtilC, err.Error())
 	}
+	utils.DebugLog(managerUtilC, "load danmaku file finished", "cost_ms", time.Since(start).Milliseconds())
 	return
 }
 
