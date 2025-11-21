@@ -2,11 +2,11 @@ package cmd
 
 import (
 	"context"
-	"danmaku-tool/internal/api"
 	"danmaku-tool/internal/api/dandan"
 	"danmaku-tool/internal/config"
 	"danmaku-tool/internal/danmaku"
 	"danmaku-tool/internal/utils"
+	"danmaku-tool/internal/web"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -91,7 +91,7 @@ func serverCmd() *cobra.Command {
 		r.Use(middleware.Timeout(time.Duration(1e9 * timeout)))
 
 		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-			api.ResponseJSON(w, http.StatusOK, map[string]string{"version": config.Version})
+			web.ResponseJSON(w, http.StatusOK, map[string]string{"version": config.Version})
 		})
 
 		// dandan api
@@ -154,28 +154,18 @@ func LoggerMiddleware(next http.Handler) http.Handler {
 			requestAttr = slog.String("request_id", requestId)
 		}
 
-		ww := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+		recorder := &web.StatusRecorder{ResponseWriter: w}
 
-		next.ServeHTTP(ww, r)
+		next.ServeHTTP(recorder, r)
 
 		utils.InfoLog(webServerC, "request completed",
 			slog.String("http_method", r.Method),
 			slog.String("path", r.URL.Path),
 			requestAttr,
-			slog.Int("status_code", ww.status),
+			slog.Int("status_code", recorder.Status),
 			slog.Int64("latency_ms", time.Since(start).Milliseconds()),
 		)
 	})
-}
-
-type statusRecorder struct {
-	http.ResponseWriter
-	status int
-}
-
-func (r *statusRecorder) WriteHeader(status int) {
-	r.status = status
-	r.ResponseWriter.WriteHeader(status)
 }
 
 func init() {

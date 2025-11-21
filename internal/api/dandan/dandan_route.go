@@ -1,8 +1,8 @@
 package dandan
 
 import (
-	"danmaku-tool/internal/api"
 	"danmaku-tool/internal/config"
+	"danmaku-tool/internal/web"
 	"net/http"
 	"time"
 
@@ -49,6 +49,6 @@ func TokenValidatorMiddleware(next http.Handler) http.Handler {
 				return
 			}
 		}
-		api.ResponseJSON(w, http.StatusUnauthorized, map[string]string{"message": "Unauthorized"})
+		web.ResponseJSON(w, http.StatusUnauthorized, map[string]string{"message": "Unauthorized"})
 	})
 }

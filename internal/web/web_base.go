@@ -1,11 +1,35 @@
-package api
+package web
 
 import (
 	"danmaku-tool/internal/utils"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 )
+
+type StatusRecorder struct {
+	http.ResponseWriter
+	WroteHeader bool
+	Status      int
+}
+
+func (r *StatusRecorder) WriteHeader(status int) {
+	if !r.WroteHeader {
+		r.WroteHeader = true
+		r.Status = status
+		r.ResponseWriter.WriteHeader(status)
+	} else {
+		r.Status = status
+	}
+}
+
+func (r *StatusRecorder) Write(b []byte) (int, error) {
+	if !r.WroteHeader {
+		r.WriteHeader(http.StatusOK)
+	}
+	return r.ResponseWriter.Write(b)
+}
 
 func ResponseJSON(w http.ResponseWriter, status int, result interface{}) {
 	w.Header().Set("Content-Type", "application/json")
@@ -22,7 +46,8 @@ func ResponseJSON(w http.ResponseWriter, status int, result interface{}) {
 
 func DecodeJSONBody(w http.ResponseWriter, r *http.Request, target interface{}) error {
 	defer utils.SafeClose(r.Body)
-	if r.Header.Get("Content-Type") != "application/json" {
+	contentType := r.Header.Get("Content-Type")
+	if !strings.Contains(contentType, "application/json") {
 		http.Error(w, "content type must be application/json", http.StatusUnsupportedMediaType)
 		return fmt.Errorf("content type must be application/json")
 	}

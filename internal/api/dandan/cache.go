@@ -6,6 +6,7 @@ import (
 	"danmaku-tool/internal/config"
 	"danmaku-tool/internal/danmaku"
 	"danmaku-tool/internal/utils"
+	"danmaku-tool/internal/web"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -54,7 +55,7 @@ const dandanApiCacheC = "dandan_api_cache"
 func CacheMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if cache == nil {
-			rr := &responseRecorder{ResponseWriter: w}
+			rr := &responseRecorder{StatusRecorder: &web.StatusRecorder{ResponseWriter: w}}
 			next.ServeHTTP(rr, r)
 			return
 		}
@@ -68,10 +69,10 @@ func CacheMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		rr := &responseRecorder{ResponseWriter: w}
+		rr := &responseRecorder{StatusRecorder: &web.StatusRecorder{ResponseWriter: w}}
 		next.ServeHTTP(rr, r)
 
-		if rr.statusCode == http.StatusOK {
+		if rr.Status == http.StatusOK {
 			cacheData := rr.body.Bytes()
 			cacheDuration := time.Duration(config.GetDandan().CacheTimeout * 1e9)
 			if success := cache.SetWithTTL(key, cacheData, int64(len(cacheData)), cacheDuration); !success {
@@ -98,9 +99,8 @@ func cacheKey(r *http.Request) string {
 }
 
 type responseRecorder struct {
-	http.ResponseWriter
-	body       *bytes.Buffer
-	statusCode int
+	*web.StatusRecorder
+	body *bytes.Buffer
 }
 
 func (r *responseRecorder) Write(b []byte) (int, error) {
@@ -108,10 +108,5 @@ func (r *responseRecorder) Write(b []byte) (int, error) {
 		r.body = new(bytes.Buffer)
 	}
 	r.body.Write(b)
-	return r.ResponseWriter.Write(b)
-}
-
-func (r *responseRecorder) WriteHeader(statusCode int) {
-	r.statusCode = statusCode
-	r.ResponseWriter.WriteHeader(statusCode)
+	return r.StatusRecorder.Write(b)
 }

@@ -1,9 +1,9 @@
 package dandan
 
 import (
-	"danmaku-tool/internal/api"
 	"danmaku-tool/internal/service"
 	"danmaku-tool/internal/utils"
+	"danmaku-tool/internal/web"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -15,12 +15,11 @@ const dandanApiC = "dandan_api"
 
 func CommentHandler(w http.ResponseWriter, r *http.Request) {
 
-	token := chi.URLParam(r, "token")
 	id := chi.URLParam(r, "id")
 
 	numId, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
-		api.ResponseJSON(w, http.StatusBadRequest, map[string]string{})
+		web.ResponseJSON(w, http.StatusBadRequest, map[string]string{})
 		return
 	}
 
@@ -29,7 +28,7 @@ func CommentHandler(w http.ResponseWriter, r *http.Request) {
 	if query.Get("from") != "" {
 		from, err = strconv.ParseInt(query.Get("from"), 10, 64)
 		if err != nil {
-			api.ResponseJSON(w, http.StatusBadRequest, map[string]string{
+			web.ResponseJSON(w, http.StatusBadRequest, map[string]string{
 				"message": "invalid from parameter",
 			})
 			return
@@ -38,11 +37,9 @@ func CommentHandler(w http.ResponseWriter, r *http.Request) {
 	convert, _ := strconv.ParseBool(query.Get("chConvert"))
 	withRelated, _ := strconv.ParseBool(query.Get("withRelated"))
 
-	utils.InfoLog(dandanApiC, "comment api requested", "token", token, "id", id)
-
 	mode := service.GetDandanSourceMode()
 	if mode == nil {
-		api.ResponseJSON(w, http.StatusBadRequest, map[string]string{
+		web.ResponseJSON(w, http.StatusBadRequest, map[string]string{
 			"message": "no available source",
 		})
 		return
@@ -54,7 +51,7 @@ func CommentHandler(w http.ResponseWriter, r *http.Request) {
 		From:        from,
 	})
 	if err != nil {
-		api.ResponseJSON(w, http.StatusBadRequest, map[string]string{
+		web.ResponseJSON(w, http.StatusBadRequest, map[string]string{
 			"message": err.Error(),
 		})
 		return
@@ -64,21 +61,21 @@ func CommentHandler(w http.ResponseWriter, r *http.Request) {
 		code = http.StatusNotFound
 	}
 
-	api.ResponseJSON(w, code, comment)
+	web.ResponseJSON(w, code, comment)
 }
 
 func MatchHandler(w http.ResponseWriter, r *http.Request) {
 
 	var param service.MatchParam
-	err := api.DecodeJSONBody(w, r, &param)
+	err := web.DecodeJSONBody(w, r, &param)
 	if err != nil {
-		api.ResponseJSON(w, http.StatusBadRequest, map[string]string{})
+		web.ResponseJSON(w, http.StatusBadRequest, map[string]string{})
 		return
 	}
 
 	mode := service.GetDandanSourceMode()
 	if mode == nil {
-		api.ResponseJSON(w, http.StatusBadRequest, map[string]string{
+		web.ResponseJSON(w, http.StatusBadRequest, map[string]string{
 			"message": "no available source",
 		})
 		return
@@ -86,7 +83,7 @@ func MatchHandler(w http.ResponseWriter, r *http.Request) {
 	result, err := mode.Match(param)
 	utils.DebugLog(dandanApiC, fmt.Sprintf("request original param: %v", param))
 	if err != nil {
-		api.ResponseJSON(w, http.StatusBadRequest, map[string]string{
+		web.ResponseJSON(w, http.StatusBadRequest, map[string]string{
 			"message": err.Error(),
 		})
 		return
@@ -96,7 +93,7 @@ func MatchHandler(w http.ResponseWriter, r *http.Request) {
 		code = http.StatusNotFound
 	}
 
-	api.ResponseJSON(w, code, result)
+	web.ResponseJSON(w, code, result)
 }
 
 func SearchAnime(w http.ResponseWriter, r *http.Request) {
@@ -106,7 +103,7 @@ func SearchAnime(w http.ResponseWriter, r *http.Request) {
 
 	mode := service.GetDandanSourceMode()
 	if mode == nil {
-		api.ResponseJSON(w, http.StatusBadRequest, map[string]string{
+		web.ResponseJSON(w, http.StatusBadRequest, map[string]string{
 			"message": "no available source",
 		})
 		return
@@ -116,21 +113,21 @@ func SearchAnime(w http.ResponseWriter, r *http.Request) {
 	if len(result.Anime) < 1 {
 		code = http.StatusNotFound
 	}
-	api.ResponseJSON(w, code, result)
+	web.ResponseJSON(w, code, result)
 }
 
 func AnimeInfo(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	mode := service.GetDandanSourceMode()
 	if mode == nil {
-		api.ResponseJSON(w, http.StatusBadRequest, map[string]string{
+		web.ResponseJSON(w, http.StatusBadRequest, map[string]string{
 			"message": "no available source",
 		})
 		return
 	}
 	result, err := mode.AnimeInfo(id)
 	if err != nil {
-		api.ResponseJSON(w, http.StatusBadRequest, map[string]string{
+		web.ResponseJSON(w, http.StatusBadRequest, map[string]string{
 			"message": err.Error(),
 		})
 		return
@@ -139,5 +136,5 @@ func AnimeInfo(w http.ResponseWriter, r *http.Request) {
 	if result.Bangumi == nil {
 		code = http.StatusNotFound
 	}
-	api.ResponseJSON(w, code, result)
+	web.ResponseJSON(w, code, result)
 }
