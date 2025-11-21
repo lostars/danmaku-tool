@@ -222,9 +222,13 @@ func (c *client) GetDanmaku(id string) ([]*danmaku.StandardDanmaku, error) {
 }
 
 func (c *client) Scrape(idStr string) error {
-	tvId := c.ParseNumber(idStr)
-	if tvId <= 0 {
-		return fmt.Errorf("invalid id: %s", idStr)
+	// 支持数字tvId
+	tvId, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		tvId = c.ParseNumber(idStr)
+		if tvId <= 0 {
+			return fmt.Errorf("invalid id: %s", idStr)
+		}
 	}
 	utils.DebugLog(danmaku.Iqiyi, fmt.Sprintf("%s tvid: %d", idStr, tvId))
 	baseInfo, err := c.videoBaseInfo(tvId)
