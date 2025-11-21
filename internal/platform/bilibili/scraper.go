@@ -27,6 +27,7 @@ func (c *client) Scrape(realId string) error {
 		ssId = strings.Replace(realId, "ss", "", 1)
 	}
 	if epId == "" && ssId == "" {
+		isEP = true
 		// 默认为epId
 		epId = realId
 	}
@@ -45,7 +46,7 @@ func (c *client) Scrape(realId string) error {
 	for _, ep := range series.Result.Episodes {
 
 		// 如果是ep则只抓取对应一集弹幕
-		if isEP && "ep"+strconv.FormatInt(ep.EPId, 10) != realId {
+		if isEP && strconv.FormatInt(ep.EPId, 10) != epId {
 			continue
 		}
 
