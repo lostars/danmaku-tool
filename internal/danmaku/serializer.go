@@ -69,7 +69,7 @@ func (x *DataXMLPersist) Deserialize(file string) ([]*StandardDanmaku, error) {
 		}
 		result = append(result, &StandardDanmaku{
 			Content:     d.Content,
-			OffsetMills: int64(offsetInSeconds) * 1000,
+			OffsetMills: int64(offsetInSeconds * 1000),
 			Mode:        int(pos),
 			FontSize:    int32(fontSize),
 			Color:       int(color),
