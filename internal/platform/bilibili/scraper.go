@@ -133,9 +133,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 		*/
 		if len(bangumi.EPs) > 0 {
 			if isSeries(bangumi.MediaType) {
-				for i, ep := range bangumi.EPs {
-					// 如果发现 ep.Title 不是从1开始，常见的就是 第二季 36集 开始计数
-					// 则从数组下标开始计数
+				for _, ep := range bangumi.EPs {
 					if danmaku.InvalidEpTitle(ep.Title) {
 						continue
 					}
@@ -143,21 +141,18 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 					if len(ep.Badges) > 0 && danmaku.InvalidEpTitle(ep.Badges[0].Text) {
 						continue
 					}
-					epTitle := ep.Title
-					id, e := strconv.ParseInt(epTitle, 10, 64)
-					if e == nil && id > 1 {
-						epTitle = strconv.FormatInt(int64(i+1), 10)
-					}
-
 					eps = append(eps, &danmaku.MediaEpisode{
 						Id: strconv.FormatInt(ep.Id, 10),
 						// 外部需要依靠这个字段去匹配是EP几，需要正确赋值
-						EpisodeId: epTitle,
+						EpisodeId: ep.Title,
 						Title:     ep.LongTitle,
 					})
 				}
 			} else {
 				for i, v := range bangumi.EPs {
+					if danmaku.InvalidEpTitle(v.Title) {
+						continue
+					}
 					ep := &danmaku.MediaEpisode{
 						Id:        strconv.FormatInt(v.Id, 10),
 						EpisodeId: strconv.FormatInt(int64(i), 10),

@@ -40,7 +40,7 @@ func scraperCmd() *cobra.Command {
 		}
 		if parse {
 			if parser, ok := scraper.(danmaku.MediaIdParser); ok {
-				fmt.Println(fmt.Sprintf("%s -> %d", id, parser.ParseNumber(id)))
+				fmt.Printf("%s -> %d\n", id, parser.ParseNumber(id))
 			} else {
 				utils.ErrorLog(scrapeCmdC, fmt.Sprintf("[%s] not support", scraper.Platform()))
 			}
