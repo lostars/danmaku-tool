@@ -27,7 +27,8 @@ func (c *client) Scrape(realId string) error {
 		ssId = strings.Replace(realId, "ss", "", 1)
 	}
 	if epId == "" && ssId == "" {
-		return fmt.Errorf("only support epid or ssid")
+		// 默认为epId
+		epId = realId
 	}
 
 	series, err := c.baseInfo(epId, ssId)
