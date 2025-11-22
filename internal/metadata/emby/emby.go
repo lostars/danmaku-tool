@@ -16,6 +16,10 @@ type client struct {
 	user, token, url string
 }
 
+func (c client) Priority() int {
+	return 10
+}
+
 func (c client) Source() danmaku.Source {
 	return danmaku.Emby
 }

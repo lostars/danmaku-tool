@@ -216,6 +216,10 @@ type realTimeData struct {
 	lock        sync.RWMutex
 }
 
+func (c *realTimeData) Priority() int {
+	return 10
+}
+
 const keySeparator = "\x00"
 
 func combineKey(platform, ssID, epID string) string {

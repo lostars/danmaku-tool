@@ -5,6 +5,7 @@ import (
 	"danmaku-tool/internal/config"
 	"danmaku-tool/internal/danmaku"
 	"danmaku-tool/internal/utils"
+	"sort"
 )
 
 func Init() {
@@ -24,7 +25,11 @@ func InitServer() {
 	flags.JsonLogger = true
 	Init()
 	// server初始化必要资源
-	for _, init := range danmaku.ServerInitializers() {
+	initializers := danmaku.ServerInitializers()
+	sort.Slice(initializers, func(i, j int) bool {
+		return initializers[i].Priority() < initializers[j].Priority()
+	})
+	for _, init := range initializers {
 		if async, ok := init.(danmaku.AsyncServerInitializer); ok {
 			async := async
 			go func() {

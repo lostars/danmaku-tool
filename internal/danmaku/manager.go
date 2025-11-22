@@ -108,6 +108,8 @@ type Finalizer interface {
 // ServerInitializer 初始化server操作，实现该接口并注册 Register 即可
 type ServerInitializer interface {
 	ServerInit() error
+	// Priority 初始化优先级 越小的越在前 注意 AsyncServerInitializer 不保证顺序
+	Priority() int
 }
 
 // AsyncServerInitializer 异步初始化server操作，实现该接口并注册 Register 即可

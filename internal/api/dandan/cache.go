@@ -26,6 +26,10 @@ func init() {
 
 type DanmakuCache struct{}
 
+func (d *DanmakuCache) Priority() int {
+	return 10
+}
+
 func (d *DanmakuCache) ServerInit() error {
 	if config.GetDandan().CacheTimeout <= 0 {
 		utils.InfoLog(dandanApiCacheC, "ristretto cache disabled")

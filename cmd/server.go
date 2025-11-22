@@ -37,6 +37,10 @@ type schedulerType struct {
 	scheduler gocron.Scheduler
 }
 
+func (s *schedulerType) Priority() int {
+	return 10
+}
+
 func (s *schedulerType) Finalize() error {
 	if s.scheduler != nil {
 		if err := s.scheduler.Shutdown(); err != nil {

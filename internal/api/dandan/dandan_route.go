@@ -2,7 +2,10 @@ package dandan
 
 import (
 	"danmaku-tool/internal/config"
+	"danmaku-tool/internal/danmaku"
+	"danmaku-tool/internal/service"
 	"danmaku-tool/internal/web"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -25,6 +28,8 @@ func RegisterRoute(route *chi.Mux) {
 		d.Use(dandanOptions.Handler)
 		d.Use(middleware.Timeout(time.Duration(1e9 * timeout)))
 		d.Use(CacheMiddleware)
+		d.Use(TokenValidatorMiddleware)
+		d.Use(SourceModeConfigurer)
 	})
 	dandanRoute.Route("/api/v1/{token}/api/v2", apiRoute())
 	dandanRoute.Route("/api/v1/{token}", apiRoute())
@@ -32,12 +37,44 @@ func RegisterRoute(route *chi.Mux) {
 
 func apiRoute() func(r chi.Router) {
 	return func(r chi.Router) {
-		r.Use(TokenValidatorMiddleware)
 		r.Get("/comment/{id}", CommentHandler)
 		r.Post("/match", MatchHandler)
 		r.Get("/search/anime", SearchAnime)
 		r.Get("/bangumi/{id}", AnimeInfo)
 	}
+}
+
+func init() {
+	danmaku.Register(&dandanMode{})
+}
+
+type dandanMode struct{}
+
+func (d dandanMode) Priority() int {
+	// 注意需要在 dandan mode 实现初始化后进行，前者优先级是10
+	return 100
+}
+
+func (d dandanMode) ServerInit() error {
+	source = service.GetDandanSourceMode()
+	if source == nil {
+		return fmt.Errorf("dandan source mode not available")
+	}
+	return nil
+}
+
+var source service.DandanSourceMode
+
+func SourceModeConfigurer(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if source == nil {
+			web.ResponseJSON(w, http.StatusNotFound, map[string]string{
+				"message": "no available source",
+			})
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func TokenValidatorMiddleware(next http.Handler) http.Handler {

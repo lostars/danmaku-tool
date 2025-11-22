@@ -37,14 +37,7 @@ func CommentHandler(w http.ResponseWriter, r *http.Request) {
 	convert, _ := strconv.ParseBool(query.Get("chConvert"))
 	withRelated, _ := strconv.ParseBool(query.Get("withRelated"))
 
-	mode := service.GetDandanSourceMode()
-	if mode == nil {
-		web.ResponseJSON(w, http.StatusBadRequest, map[string]string{
-			"message": "no available source",
-		})
-		return
-	}
-	comment, err := mode.GetDanmaku(service.CommentParam{
+	comment, err := source.GetDanmaku(service.CommentParam{
 		Id:          numId,
 		Convert:     convert,
 		WithRelated: withRelated,
@@ -73,14 +66,7 @@ func MatchHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mode := service.GetDandanSourceMode()
-	if mode == nil {
-		web.ResponseJSON(w, http.StatusBadRequest, map[string]string{
-			"message": "no available source",
-		})
-		return
-	}
-	result, err := mode.Match(param)
+	result, err := source.Match(param)
 	utils.DebugLog(dandanApiC, fmt.Sprintf("request original param: %v", param))
 	if err != nil {
 		web.ResponseJSON(w, http.StatusBadRequest, map[string]string{
@@ -101,14 +87,7 @@ func SearchAnime(w http.ResponseWriter, r *http.Request) {
 	keyword := query.Get("keyword")
 	query.Get("type")
 
-	mode := service.GetDandanSourceMode()
-	if mode == nil {
-		web.ResponseJSON(w, http.StatusBadRequest, map[string]string{
-			"message": "no available source",
-		})
-		return
-	}
-	result := mode.SearchAnime(keyword)
+	result := source.SearchAnime(keyword)
 	code := http.StatusOK
 	if len(result.Anime) < 1 {
 		code = http.StatusNotFound
@@ -118,14 +97,8 @@ func SearchAnime(w http.ResponseWriter, r *http.Request) {
 
 func AnimeInfo(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	mode := service.GetDandanSourceMode()
-	if mode == nil {
-		web.ResponseJSON(w, http.StatusBadRequest, map[string]string{
-			"message": "no available source",
-		})
-		return
-	}
-	result, err := mode.AnimeInfo(id)
+
+	result, err := source.AnimeInfo(id)
 	if err != nil {
 		web.ResponseJSON(w, http.StatusBadRequest, map[string]string{
 			"message": err.Error(),
