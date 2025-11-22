@@ -4,6 +4,7 @@ import (
 	"danmaku-tool/internal/config"
 	"danmaku-tool/internal/danmaku"
 	"danmaku-tool/internal/utils"
+	"danmaku-tool/internal/web"
 	"fmt"
 	"time"
 )
@@ -32,7 +33,7 @@ func (c *fileTimeData) ServerInit() error {
 		return err
 	}
 	utils.InfoLog(fileTimeDataC, fmt.Sprintf("[%s] mode enabled", c.Mode()))
-	sourceModes = map[string]DandanSourceMode{string(c.Mode()): c}
+	RegisterSource(c)
 	danmaku.RegisterFinalizer(c)
 	return nil
 }
@@ -40,7 +41,7 @@ func (c *fileTimeData) ServerInit() error {
 func (c *fileTimeData) GetDanmaku(param CommentParam) (*CommentResult, error) {
 	platform, ssId, epId, found := c.decodeGlobalID(param.Id)
 	if !found {
-		return nil, fmt.Errorf("invalid param")
+		return nil, web.ErrBadReqeustOf("invalid param")
 	}
 
 	// load from file

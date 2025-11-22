@@ -4,7 +4,11 @@ import (
 	"danmaku-tool/internal/config"
 )
 
-var sourceModes map[string]DandanSourceMode
+var sourceModes = make(map[string]DandanSourceMode)
+
+func RegisterSource(src DandanSourceMode) {
+	sourceModes[string(src.Mode())] = src
+}
 
 func GetDandanSourceMode() DandanSourceMode {
 	return sourceModes[config.GetDandan().Mode]

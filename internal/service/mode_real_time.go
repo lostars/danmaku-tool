@@ -5,6 +5,7 @@ import (
 	"danmaku-tool/internal/config"
 	"danmaku-tool/internal/danmaku"
 	"danmaku-tool/internal/utils"
+	"danmaku-tool/internal/web"
 	"encoding/gob"
 	"errors"
 	"fmt"
@@ -95,7 +96,7 @@ func (c *realTimeData) ServerInit() error {
 		return err
 	}
 	utils.InfoLog(realTimeServiceC, fmt.Sprintf("[%s] mode enabled", c.Mode()))
-	sourceModes = map[string]DandanSourceMode{string(c.Mode()): c}
+	RegisterSource(c)
 	danmaku.RegisterFinalizer(c)
 	return nil
 }
@@ -171,11 +172,11 @@ func (c *realTimeData) Match(param MatchParam) (*DanDanResult, error) {
 func (c *realTimeData) GetDanmaku(param CommentParam) (*CommentResult, error) {
 	platform, _, epId, found := c.decodeGlobalID(param.Id)
 	if !found {
-		return nil, fmt.Errorf("invalid param")
+		return nil, web.ErrBadReqeustOf("invalid param")
 	}
 	var scraper = danmaku.GetScraper(platform)
 	if scraper == nil {
-		return nil, fmt.Errorf("unknown platform")
+		return nil, fmt.Errorf("unknown platform %s", platform)
 	}
 	data, err := scraper.GetDanmaku(epId)
 	if err != nil {
@@ -309,15 +310,15 @@ func (c *realTimeData) SearchAnime(title string) *DanDanAnimeResult {
 func (c *realTimeData) AnimeInfo(id string) (*DanDanAnimeInfoResult, error) {
 	globalId, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
-		return nil, err
+		return nil, web.ErrBadReqeustOf("invalid id")
 	}
 	platform, ssId, _, found := c.decodeGlobalID(globalId)
 	if !found {
-		return nil, fmt.Errorf("invalid id")
+		return nil, web.ErrBadReqeustOf("invalid id")
 	}
 	scraper := danmaku.GetScraper(platform)
 	if scraper == nil {
-		return nil, fmt.Errorf("no scraper available")
+		return nil, fmt.Errorf("unknown platform %s", platform)
 	}
 	media, err := scraper.Media(ssId)
 	if err != nil {

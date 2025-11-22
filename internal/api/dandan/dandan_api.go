@@ -2,51 +2,46 @@ package dandan
 
 import (
 	"danmaku-tool/internal/service"
-	"danmaku-tool/internal/utils"
 	"danmaku-tool/internal/web"
-	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
 )
 
-const dandanApiC = "dandan_api"
-
 func CommentHandler(w http.ResponseWriter, r *http.Request) {
 
-	id := chi.URLParam(r, "id")
-
-	numId, err := strconv.ParseInt(id, 10, 64)
+	commentId, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil {
 		web.ResponseJSON(w, http.StatusBadRequest, map[string]string{})
 		return
 	}
 
 	query := r.URL.Query()
-	var from int64
-	if query.Get("from") != "" {
-		from, err = strconv.ParseInt(query.Get("from"), 10, 64)
-		if err != nil {
-			web.ResponseJSON(w, http.StatusBadRequest, map[string]string{
-				"message": "invalid from parameter",
-			})
-			return
-		}
+	from, err := strconv.ParseInt(query.Get("from"), 10, 64)
+	if err != nil {
+		web.ResponseJSON(w, http.StatusBadRequest, map[string]string{})
+		return
 	}
-	convert, _ := strconv.ParseBool(query.Get("chConvert"))
-	withRelated, _ := strconv.ParseBool(query.Get("withRelated"))
+	convert, err := strconv.ParseBool(query.Get("chConvert"))
+	if err != nil {
+		web.ResponseJSON(w, http.StatusBadRequest, map[string]string{})
+		return
+	}
+	withRelated, err := strconv.ParseBool(query.Get("withRelated"))
+	if err != nil {
+		web.ResponseJSON(w, http.StatusBadRequest, map[string]string{})
+		return
+	}
 
 	comment, err := source.GetDanmaku(service.CommentParam{
-		Id:          numId,
+		Id:          commentId,
 		Convert:     convert,
 		WithRelated: withRelated,
 		From:        from,
 	})
 	if err != nil {
-		web.ResponseJSON(w, http.StatusBadRequest, map[string]string{
-			"message": err.Error(),
-		})
+		web.ErrResponseJSON(w, err)
 		return
 	}
 	code := http.StatusOK
@@ -60,18 +55,14 @@ func CommentHandler(w http.ResponseWriter, r *http.Request) {
 func MatchHandler(w http.ResponseWriter, r *http.Request) {
 
 	var param service.MatchParam
-	err := web.DecodeJSONBody(w, r, &param)
-	if err != nil {
+	if err := web.DecodeJSONBody(r, &param); err != nil {
 		web.ResponseJSON(w, http.StatusBadRequest, map[string]string{})
 		return
 	}
 
 	result, err := source.Match(param)
-	utils.DebugLog(dandanApiC, fmt.Sprintf("request original param: %v", param))
 	if err != nil {
-		web.ResponseJSON(w, http.StatusBadRequest, map[string]string{
-			"message": err.Error(),
-		})
+		web.ErrResponseJSON(w, err)
 		return
 	}
 	code := http.StatusOK
@@ -100,9 +91,7 @@ func AnimeInfo(w http.ResponseWriter, r *http.Request) {
 
 	result, err := source.AnimeInfo(id)
 	if err != nil {
-		web.ResponseJSON(w, http.StatusBadRequest, map[string]string{
-			"message": err.Error(),
-		})
+		web.ErrResponseJSON(w, err)
 		return
 	}
 	code := http.StatusOK

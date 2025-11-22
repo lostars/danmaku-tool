@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
 	"danmaku-tool/internal/api/dandan"
 	"danmaku-tool/internal/config"
@@ -8,6 +9,7 @@ import (
 	"danmaku-tool/internal/utils"
 	"danmaku-tool/internal/web"
 	"errors"
+	"io"
 	"log/slog"
 	"net/http"
 	"os"
@@ -151,6 +153,13 @@ const webServerC = "web_server"
 
 func LoggerMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var bodyBytes []byte
+		if r.Body != nil {
+			bodyBytes, _ = io.ReadAll(r.Body)
+		}
+		// rewrite body
+		r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+
 		start := time.Now()
 		recorder := &web.StatusRecorder{ResponseWriter: w}
 		next.ServeHTTP(recorder, r)
@@ -160,6 +169,9 @@ func LoggerMiddleware(next http.Handler) http.Handler {
 			slog.String("path", r.URL.Path),
 			slog.Int("status", recorder.Status),
 			slog.Int64("cost_ms", time.Since(start).Milliseconds()),
+			slog.String("ip", web.GetRealIP(r)),
+			"query", r.URL.Query(),
+			"body", string(bodyBytes),
 		)
 	})
 }
