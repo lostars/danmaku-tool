@@ -51,12 +51,25 @@ type SeriesInfo struct {
 	} `json:"result"`
 }
 
-func parseMediaType(mediaType int) danmaku.MediaType {
-	switch mediaType {
-	case 2:
+func (c *client) Type(internalType string) danmaku.MediaType {
+	switch internalType {
+	case "2":
 		return danmaku.Movie
 	}
 	return danmaku.Series
+}
+
+func (c *client) TypeDesc(internalType string) string {
+	return typeDescMap[internalType]
+}
+
+var typeDescMap = map[string]string{
+	"1": "番剧",
+	"2": "电影",
+	"3": "纪录片",
+	"4": "国创",
+	"5": "电视剧",
+	"7": "综艺",
 }
 
 type SearchResult struct {

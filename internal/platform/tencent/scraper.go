@@ -110,20 +110,10 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 				return
 			}
 
-			var mediaType danmaku.MediaType
-			if v.VideoInfo.TypeName == "电影" {
-				mediaType = danmaku.Movie
-			} else {
-				if v.VideoInfo.SubjectDoc.VideoNum <= 0 {
-					// 没有集数信息
-					return
-				}
-				mediaType = danmaku.Series
-			}
-
 			var eps = make([]*danmaku.MediaEpisode, 0, v.VideoInfo.SubjectDoc.VideoNum)
-			// 非搜索模式才获取ep列表
-			if param.Mode != danmaku.Search {
+			// 非搜索模式或者电影才获取ep列表
+			getEp := param.Mode != danmaku.Search || v.VideoInfo.VideoType == 1
+			if getEp {
 				seriesItems, e := c.series(v.Doc.Id)
 				if e != nil {
 					utils.ErrorLog(danmaku.Tencent, e.Error())
@@ -152,18 +142,23 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 				}
 			}
 
+			epCount := v.VideoInfo.SubjectDoc.VideoNum
+			if getEp {
+				epCount = len(eps)
+			}
+			typeStr := strconv.FormatInt(int64(v.VideoInfo.VideoType), 10)
 			media := &danmaku.Media{
 				Id:           v.Doc.Id,
-				Type:         mediaType,
-				TypeDesc:     v.VideoInfo.TypeName,
+				InternalType: typeStr,
 				Desc:         v.VideoInfo.Desc,
 				Title:        v.VideoInfo.Title,
 				Cover:        v.VideoInfo.ImgUrl,
 				Year:         v.VideoInfo.Year,
 				Episodes:     eps,
-				EpisodeCount: v.VideoInfo.SubjectDoc.VideoNum,
+				EpisodeCount: epCount,
 				Platform:     danmaku.Tencent,
 			}
+			media.MediaType(c)
 
 			ch <- media
 		}(v)

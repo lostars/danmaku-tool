@@ -46,19 +46,15 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 		if t.Template == 112 {
 			// 112 内容聚合页面 单独处理
 			for _, intent := range t.IntentAlbumInfos {
-				if intent.SiteId != "iqiyi" {
-					continue
-				}
+				// 聚合页面暂时不处理 siteId
+				// t.S3 = "专辑列表竖图" 不会返回 siteId
+
 				// 匹配albumId
 				albumMatches := albumRegex.FindStringSubmatch(intent.PlayUrl)
 				mediaId := ""
-				typeName := ""
 				epCount := int64(0)
-				var mediaType danmaku.MediaType
 				if len(albumMatches) >= 2 {
 					mediaId = albumMatches[1]
-					typeName = "剧集"
-					mediaType = danmaku.Series
 					epNumbers := epNumberRegex.FindStringSubmatch(intent.SubscriptContent)
 					if len(epNumbers) > 2 {
 						epCount, _ = strconv.ParseInt(epNumbers[1], 10, 64)
@@ -68,8 +64,6 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 				} else {
 					// 默认电影为一集
 					epCount = 1
-					typeName = "电影"
-					mediaType = danmaku.Movie
 					// 如果匹配不到则是电影一类，匹配tvId
 					playUrlMatches := tvIdRegex.FindStringSubmatch(intent.PlayUrl)
 					if len(playUrlMatches) < 2 {
@@ -91,8 +85,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 				if param.Mode == danmaku.Search {
 					m := &danmaku.Media{
 						Id:           mediaId,
-						Type:         mediaType,
-						TypeDesc:     typeName,
+						InternalType: intent.Channel,
 						Platform:     danmaku.Iqiyi,
 						Title:        intent.Title,
 						Cover:        intent.Img,
@@ -100,6 +93,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 						Desc:         intent.PromptDesc,
 						EpisodeCount: int(epCount),
 					}
+					m.MediaType(c)
 					media = append(media, m)
 				} else {
 					if m, e := c.Media(mediaId); e == nil {
@@ -117,7 +111,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 		if t.AlbumInfo.SiteId != "iqiyi" {
 			continue
 		}
-		if t.Template != 101 && t.Template != 103 {
+		if !t.validTemplate() {
 			continue
 		}
 		albumMatches := albumRegex.FindStringSubmatch(t.AlbumInfo.PlayUrl)
@@ -139,25 +133,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 		}
 
 		var eps = make([]*danmaku.MediaEpisode, 0, 200)
-		var mediaType danmaku.MediaType
-		var typeName string
-		switch t.Template {
-		case 103:
-			// 匹配到tvId
-			playUrlMatches := tvIdRegex.FindStringSubmatch(t.AlbumInfo.PlayUrl)
-			if len(playUrlMatches) < 2 {
-				continue
-			}
-			// 电影没有albumId 使用的是base64(tvId) 方便在获取详情时区分是albumId还是tvId
-			mediaId = base64.StdEncoding.EncodeToString([]byte(playUrlMatches[1]))
-			mediaType = danmaku.Movie
-			typeName = "电影"
-			eps = append(eps, &danmaku.MediaEpisode{
-				Id:        playUrlMatches[1],
-				EpisodeId: t.AlbumInfo.Title,
-				Title:     t.AlbumInfo.Title,
-			})
-		case 101:
+		if t.AlbumInfo.Videos != nil {
 			// 剧集
 			if len(t.AlbumInfo.Videos) <= 0 {
 				continue
@@ -166,8 +142,6 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 			if len(albumMatches) < 2 {
 				continue
 			}
-			mediaType = danmaku.Series
-			typeName = "剧集"
 			eps = make([]*danmaku.MediaEpisode, 0, len(t.AlbumInfo.Videos))
 			mediaId = albumMatches[1]
 			for _, v := range t.AlbumInfo.Videos {
@@ -188,12 +162,24 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 					Title:     v.Subtitle,
 				})
 			}
+		} else {
+			// 匹配到tvId
+			playUrlMatches := tvIdRegex.FindStringSubmatch(t.AlbumInfo.PlayUrl)
+			if len(playUrlMatches) < 2 {
+				continue
+			}
+			// 电影没有albumId 使用的是base64(tvId) 方便在获取详情时区分是albumId还是tvId
+			mediaId = base64.StdEncoding.EncodeToString([]byte(playUrlMatches[1]))
+			eps = append(eps, &danmaku.MediaEpisode{
+				Id:        playUrlMatches[1],
+				EpisodeId: t.AlbumInfo.Title,
+				Title:     t.AlbumInfo.Title,
+			})
 		}
 
 		m := &danmaku.Media{
 			Id:           mediaId,
-			Type:         mediaType,
-			TypeDesc:     typeName,
+			InternalType: t.AlbumInfo.Channel,
 			Platform:     danmaku.Iqiyi,
 			Title:        t.AlbumInfo.Title,
 			Cover:        t.AlbumInfo.Img,
@@ -202,6 +188,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 			Episodes:     eps,
 			EpisodeCount: len(eps),
 		}
+		m.MediaType(c)
 		media = append(media, m)
 	}
 

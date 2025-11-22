@@ -186,14 +186,14 @@ func (c *client) Media(id string) (*danmaku.Media, error) {
 		if !baseInfo.success() {
 			return nil, fmt.Errorf("get base info fail: %s", baseInfo.Code)
 		}
+		typeStr := strconv.FormatInt(int64(baseInfo.Data.ChannelId), 10)
 		media := &danmaku.Media{
-			Id:       id,
-			Title:    baseInfo.Data.Name,
-			Cover:    baseInfo.Data.ImageUrl,
-			Platform: danmaku.Iqiyi,
-			Type:     danmaku.Movie,
-			Desc:     baseInfo.Data.Description,
-			TypeDesc: "电影",
+			Id:           id,
+			Title:        baseInfo.Data.Name,
+			Cover:        baseInfo.Data.ImageUrl,
+			Platform:     danmaku.Iqiyi,
+			InternalType: typeStr,
+			Desc:         baseInfo.Data.Description,
 			Episodes: []*danmaku.MediaEpisode{
 				{
 					Id:        id,
@@ -202,6 +202,7 @@ func (c *client) Media(id string) (*danmaku.Media, error) {
 				},
 			},
 		}
+		media.MediaType(c)
 		return media, nil
 	}
 
@@ -274,16 +275,17 @@ func (c *client) Media(id string) (*danmaku.Media, error) {
 		return nil, fmt.Errorf("%s fail to get album info", id)
 	}
 
+	typeStr := strconv.FormatInt(int64(baseInfo.Data.ChannelId), 10)
 	result := &danmaku.Media{
-		Title:    baseInfo.Data.AlbumName,
-		Type:     danmaku.Series,
-		TypeDesc: "剧集",
-		Id:       id,
-		Desc:     baseInfo.Data.Description,
-		Cover:    baseInfo.Data.AlbumImageUrl,
-		Episodes: eps,
-		Platform: danmaku.Iqiyi,
+		Title:        baseInfo.Data.AlbumName,
+		InternalType: typeStr,
+		Id:           id,
+		Desc:         baseInfo.Data.Description,
+		Cover:        baseInfo.Data.AlbumImageUrl,
+		Episodes:     eps,
+		Platform:     danmaku.Iqiyi,
 	}
+	result.MediaType(c)
 
 	return result, nil
 }

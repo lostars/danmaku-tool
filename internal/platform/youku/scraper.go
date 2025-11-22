@@ -134,20 +134,20 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 			continue
 		}
 
+		typeStr := strconv.FormatInt(int64(mediaInfo.CateId), 10)
 		media := &danmaku.Media{
-			Id:       mediaInfo.RealShowId,
-			Title:    mediaInfo.TempTitle,
-			Desc:     mediaInfo.Info,
-			TypeDesc: mediaInfo.Cats,
-			Year:     int(year),
-			Cover:    mediaInfo.ThumbUrl,
-			Platform: danmaku.Youku,
+			Id:           mediaInfo.RealShowId,
+			Title:        mediaInfo.TempTitle,
+			Desc:         mediaInfo.Info,
+			InternalType: typeStr,
+			Year:         int(year),
+			Cover:        mediaInfo.ThumbUrl,
+			Platform:     danmaku.Youku,
 		}
+		media.MediaType(c)
 
 		var eps []*danmaku.MediaEpisode
 		if mediaInfo.Cats == "电影" {
-			// 电影
-			media.Type = danmaku.Movie
 			// 获取videoId
 			vid := c.getVID(mediaInfo.RealShowId)
 			if vid == "" {
@@ -166,7 +166,6 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 				data = n.Nodes[1]
 			}
 
-			media.Type = danmaku.Series
 			eps = make([]*danmaku.MediaEpisode, 0, len(data.Nodes))
 			for _, epInfo := range data.Nodes {
 				episodeId := epInfo.Data.ShowVideoStage

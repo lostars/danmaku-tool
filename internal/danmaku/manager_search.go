@@ -19,7 +19,8 @@ func MatchMedia(param MatchParam) []*Media {
 	if param.SeasonId < 0 {
 		param.SeasonId = MatchSeason(param.Title)
 	}
-	matchYear := true
+	// 如果是搜索模式则默认不匹配年份
+	matchYear := param.Mode != Search
 	for _, y := range config.GetConfig().Tokenizer.YearMatchList {
 		// 如果手动设置了年份匹配 则跳过从元数据获取年份
 		if y.Title == param.Title {

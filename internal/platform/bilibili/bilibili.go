@@ -47,15 +47,17 @@ func (c *client) Media(id string) (*danmaku.Media, error) {
 		})
 	}
 
+	typeStr := strconv.FormatInt(int64(series.Result.Type), 10)
 	result := &danmaku.Media{
-		Episodes: eps,
-		Id:       strconv.FormatInt(series.Result.SeasonId, 10),
-		Title:    series.Result.Title,
-		Desc:     series.Result.Title,
-		Cover:    series.Result.Cover,
-		Type:     parseMediaType(series.Result.Type),
-		Platform: danmaku.Bilibili,
+		Episodes:     eps,
+		Id:           strconv.FormatInt(series.Result.SeasonId, 10),
+		Title:        series.Result.Title,
+		Desc:         series.Result.Title,
+		Cover:        series.Result.Cover,
+		InternalType: typeStr,
+		Platform:     danmaku.Bilibili,
 	}
+	result.MediaType(c)
 
 	return result, nil
 }

@@ -110,6 +110,7 @@ func (c *client) videoInfo(vid string) (*VideoInfoFromHtml, *ShowInfoFromHtml, e
 	if len(matches) < 2 {
 		return nil, nil, fmt.Errorf("%s match json fail from html", vid)
 	}
+	fmt.Println(matches[1])
 	var info VideoInfoFromHtml
 	err = json.Unmarshal([]byte(matches[1]), &info)
 	if err != nil {
@@ -298,13 +299,15 @@ moduleLoop:
 	}
 
 	media := &danmaku.Media{
-		Id:       baseInfo.ShowId,
-		Title:    baseInfo.ShowName,
-		TypeDesc: showInfo.PageMap.Extra.ShowCategory,
-		Cover:    showInfo.PageMap.Extra.ShowImgV,
-		Platform: danmaku.Youku,
-		Episodes: eps,
+		Id:    baseInfo.ShowId,
+		Title: baseInfo.ShowName,
+		// 从html返回的json中cateId 和 接口返回的 cateId 不一致 这里暂时不返回
+		InternalType: "",
+		Cover:        showInfo.PageMap.Extra.ShowImgV,
+		Platform:     danmaku.Youku,
+		Episodes:     eps,
 	}
+	media.MediaType(c)
 
 	return media, nil
 }

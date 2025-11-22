@@ -1,6 +1,7 @@
 package youku
 
 import (
+	"danmaku-tool/internal/danmaku"
 	"regexp"
 	"strings"
 )
@@ -38,6 +39,25 @@ type APIResult struct {
 	Ret     []string `json:"ret"`
 }
 
+func (c *client) Type(internalType string) danmaku.MediaType {
+	switch internalType {
+	case "2":
+		return danmaku.Movie
+	}
+	return danmaku.Series
+}
+
+func (c *client) TypeDesc(internalType string) string {
+	return typeDescMap[internalType]
+}
+
+var typeDescMap = map[string]string{
+	"1": "电视剧",
+	"5": "动漫",
+	"2": "电影",
+	"3": "综艺",
+}
+
 type NodeData struct {
 	// show info
 	IsYouku        int    `json:"isYouku"` // 是否优酷平台剧集
@@ -50,6 +70,7 @@ type NodeData struct {
 	TempTitle      string `json:"tempTitle"`
 	ThumbUrl       string `json:"thumbUrl"`
 	Info           string `json:"info"`
+	CateId         int    `json:"cateId"`
 	Cats           string `json:"cats"` // 分类
 
 	PosterDTO struct {
@@ -122,6 +143,7 @@ type VideoInfoFromHtml struct {
 }
 
 type ShowInfoFromHtml struct {
+	CateId  int `json:"cateId"`
 	PageMap struct {
 		Extra struct {
 			ShowCategory string `json:"showCategory"`

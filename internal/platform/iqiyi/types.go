@@ -1,6 +1,13 @@
 package iqiyi
 
-import "regexp"
+import (
+	"danmaku-tool/internal/danmaku"
+	"danmaku-tool/internal/utils"
+	"fmt"
+	"regexp"
+	"strconv"
+	"strings"
+)
 
 var tvIdRegex = regexp.MustCompile(`^qips://.*tvid=(\d+);`)
 var albumRegex = regexp.MustCompile(`albumid=(\d+);`)
@@ -10,6 +17,7 @@ type VideoBaseInfoResult struct {
 	Code string `json:"code"` // A00000 成功
 	Data struct {
 		TVId          int64  `json:"tvId"`
+		ChannelId     int    `json:"channelId"`
 		AlbumId       int64  `json:"albumId"`
 		AlbumName     string `json:"albumName"`
 		Description   string `json:"description"`
@@ -35,10 +43,57 @@ type SearchResult struct {
 	} `json:"data"`
 }
 
+func (c *client) Type(internalType string) danmaku.MediaType {
+	channel := parseChannel(internalType)
+	if channel == "" {
+		return ""
+	}
+	switch channel {
+	case "1":
+		return danmaku.Movie
+	}
+	return danmaku.Series
+}
+
+func parseChannel(internalType string) string {
+	// channel格式: 动漫,4
+	_, err := strconv.ParseInt(internalType, 10, 64)
+	if err == nil {
+		return internalType
+	}
+	strs := strings.Split(internalType, ",")
+	if len(strs) != 2 {
+		utils.ErrorLog(danmaku.Iqiyi, fmt.Sprintf("invalid format channel: %s", internalType))
+		return ""
+	}
+	return strs[1]
+}
+
+func (c *client) TypeDesc(internalType string) string {
+	return typeDescMap[parseChannel(internalType)]
+}
+
+var typeDescMap = map[string]string{
+	"4": "动漫",
+	"3": "纪录片",
+	"1": "电影",
+	"2": "电视剧",
+	"7": "综艺",
+}
+
+func (s SearchTemplate) validTemplate() bool {
+	switch s.Template {
+	case 101, 102, 103, 112:
+		return true
+	}
+	return false
+}
+
 type SearchTemplate struct {
 	S3        string `json:"s3"`       // 剧集类型展示 template说明
 	Template  int    `json:"template"` // 101=剧集 电影=103
 	AlbumInfo struct {
+		Channel      string `json:"channel"`
 		SiteId       string `json:"siteId"`       // 站点id miguvideo iqiyi 可以用于过滤非本站视频
 		Introduction string `json:"introduction"` // 简介
 		Img          string `json:"img"`

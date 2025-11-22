@@ -330,11 +330,16 @@ func (c *client) Media(id string) (*danmaku.Media, error) {
 	}
 	info := infoItems[0].ItemParams
 
+	year, _ := strconv.ParseInt(info.Year, 10, 64)
 	media := &danmaku.Media{
-		Id:       info.ReportCID,
-		Title:    info.Title,
-		Platform: danmaku.Tencent,
+		Id:           info.ReportCID,
+		Title:        info.Title,
+		InternalType: info.Type,
+		Cover:        info.NewPicVt,
+		Year:         int(year),
+		Platform:     danmaku.Tencent,
 	}
+	media.MediaType(c)
 
 	items, err := c.series(id)
 	if err != nil {

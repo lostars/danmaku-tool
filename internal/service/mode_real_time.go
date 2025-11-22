@@ -137,13 +137,18 @@ func (c *realTimeData) Match(param MatchParam) (*DanDanResult, error) {
 	media := danmaku.MatchMedia(searchParam)
 	// 客户端只会使用第一个结果 但依旧匹配所有搜索结果用于接口调试
 	for _, m := range media {
+		m.DandanType()
+		match := Match{
+			AnimeTitle: fmt.Sprintf("%s [%s]", m.Title, string(m.Platform)),
+			AnimeId:    int(c.getGlobalID(string(m.Platform), m.Id, "")),
+			Type:       string(m.Type),
+			TypeDesc:   m.TypeDesc,
+		}
 		if searchMovies {
 			result.IsMatched = true
-			result.Matches = append(result.Matches, Match{
-				EpisodeId:    c.getGlobalID(string(m.Platform), m.Id, m.Episodes[0].Id),
-				AnimeTitle:   fmt.Sprintf("%s [%s]", m.Title, string(m.Platform)),
-				EpisodeTitle: m.Episodes[0].Title,
-			})
+			match.EpisodeId = c.getGlobalID(string(m.Platform), m.Id, m.Episodes[0].Id)
+			match.EpisodeTitle = m.Episodes[0].Title
+			result.Matches = append(result.Matches, match)
 			utils.InfoLog(realTimeServiceC, "movie matched", "platform", m.Platform, "title", param.FileName)
 		} else {
 			for _, ep := range m.Episodes {
@@ -153,11 +158,9 @@ func (c *realTimeData) Match(param MatchParam) (*DanDanResult, error) {
 				}
 				utils.InfoLog(realTimeServiceC, "ep matched", "platform", m.Platform, "title", param.FileName, "ep", ep.EpisodeId)
 				result.IsMatched = true
-				result.Matches = append(result.Matches, Match{
-					EpisodeId:    c.getGlobalID(string(m.Platform), m.Id, ep.Id),
-					AnimeTitle:   fmt.Sprintf("%s [%s]", m.Title, string(m.Platform)),
-					EpisodeTitle: ep.Title,
-				})
+				match.EpisodeId = c.getGlobalID(string(m.Platform), m.Id, ep.Id)
+				match.EpisodeTitle = ep.Title
+				result.Matches = append(result.Matches, match)
 			}
 		}
 	}
@@ -276,12 +279,13 @@ func (c *realTimeData) SearchAnime(title string) *DanDanAnimeResult {
 	media := danmaku.MatchMedia(param)
 	anime := make([]AnimeResult, 0, len(media))
 	for _, m := range media {
+		m.DandanType()
 		id := c.getGlobalID(string(m.Platform), m.Id, "")
 		anime = append(anime, AnimeResult{
 			AnimeId:      id,
 			BangumiId:    strconv.FormatInt(id, 10),
 			AnimeTitle:   fmt.Sprintf("%s [%s]", m.Title, m.Platform),
-			Type:         parseDandanType(m.Type),
+			Type:         string(m.Type),
 			TypeDesc:     m.TypeDesc,
 			ImageUrl:     m.Cover,
 			EpisodeCount: m.EpisodeCount,
@@ -316,6 +320,7 @@ func (c *realTimeData) AnimeInfo(id string) (*DanDanAnimeInfoResult, error) {
 		utils.ErrorLog(realTimeServiceC, err.Error())
 		return nil, err
 	}
+	media.DandanType()
 
 	animeId := c.getGlobalID(string(media.Platform), media.Id, "")
 	var eps = make([]EpisodeResult, 0, len(media.Episodes))
@@ -332,11 +337,12 @@ func (c *realTimeData) AnimeInfo(id string) (*DanDanAnimeInfoResult, error) {
 		AnimeId:      animeId,
 		BangumiId:    strconv.FormatInt(animeId, 10),
 		AnimeTitle:   media.Title,
-		Type:         parseDandanType(media.Type),
+		Type:         string(media.Type),
 		TypeDesc:     media.TypeDesc,
 		ImageUrl:     media.Cover,
 		EpisodeCount: len(media.Episodes),
 		Episodes:     eps,
+		StartDate:    media.FormatPubTime(false),
 	}
 
 	result := &DanDanAnimeInfoResult{
@@ -344,15 +350,4 @@ func (c *realTimeData) AnimeInfo(id string) (*DanDanAnimeInfoResult, error) {
 		Bangumi:          anime,
 	}
 	return result, nil
-}
-
-func parseDandanType(mediaType danmaku.MediaType) string {
-	typeStr := ""
-	switch mediaType {
-	case danmaku.Movie:
-		typeStr = "movie"
-	case danmaku.Series:
-		typeStr = "tvseries"
-	}
-	return typeStr
 }

@@ -47,6 +47,27 @@ func (s SeriesItem) Title() string {
 	return s.ItemParams.CTitleOutput
 }
 
+func (c *client) Type(internalType string) danmaku.MediaType {
+	switch internalType {
+	case "1":
+		return danmaku.Movie
+	}
+	return danmaku.Series
+}
+
+func (c *client) TypeDesc(internalType string) string {
+	return typeDescMap[internalType]
+}
+
+var typeDescMap = map[string]string{
+	"1":  "电影",
+	"3":  "动漫",
+	"4":  "体育",
+	"2":  "电视剧",
+	"10": "综艺",
+	"9":  "纪录片",
+}
+
 type SeriesItem struct {
 	ItemId     string `json:"item_id"`
 	ItemType   string `json:"item_type"` // =28 一部电影的 多集？
@@ -65,6 +86,8 @@ type SeriesItem struct {
 		PlayTitle     string `json:"play_title"`
 		// 以下是 page_id=detail_page_introduction 返回的剧集信息
 		ReportCID string `json:"report.cid"`
+		NewPicVt  string `json:"new_pic_vt"`
+		Year      string `json:"year"`
 		// 2=剧集 1=电影 10=综艺 3=动漫 9=纪录片 4=体育
 		Type string `json:"type"`
 		// 剧集集数

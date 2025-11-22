@@ -178,10 +178,10 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 			}
 		}
 
+		typeStr := strconv.FormatInt(int64(bangumi.MediaType), 10)
 		b := &danmaku.Media{
 			Id:           mediaId,
-			Type:         parseMediaType(bangumi.MediaType),
-			TypeDesc:     bangumi.SeasonTypeName,
+			InternalType: typeStr,
 			Desc:         bangumi.Desc,
 			Title:        clearTitle,
 			Cover:        bangumi.Cover,
@@ -191,6 +191,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 			Year:         year,
 			Platform:     danmaku.Bilibili,
 		}
+		b.MediaType(c)
 		data = append(data, b)
 
 	}

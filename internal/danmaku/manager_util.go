@@ -276,6 +276,34 @@ func (m *Media) FormatPubTime(force bool) string {
 	return pubTime.Format(time.RFC3339Nano)
 }
 
+// DandanType 将 danmaku 媒体类型转换为 dandan api 类型
+func (m *Media) DandanType() {
+	if m.InternalType == "" {
+		return
+	}
+	// typeDesc则保持平台原有的
+	switch m.Type {
+	case Movie:
+		m.Type = "movie"
+	case Series:
+		m.Type = "tvseries"
+	default:
+		m.Type = "unknown"
+	}
+	return
+}
+
+// MediaType 将平台媒体类型转换为 danmaku 类型
+func (m *Media) MediaType(scraper Scraper) {
+	if m.InternalType == "" {
+		return
+	}
+	if p, ok := scraper.(MediaTypeParser); ok {
+		m.Type = p.Type(m.InternalType)
+		m.TypeDesc = p.TypeDesc(m.InternalType)
+	}
+}
+
 func DeserializeDanmaku(platform string, ssId, epId string) (data []*StandardDanmaku) {
 	path := filepath.Join(config.GetConfig().SavePath, platform, ssId, fmt.Sprintf("%s.%s", epId, XMLSerializer))
 	info, err := os.Stat(path)

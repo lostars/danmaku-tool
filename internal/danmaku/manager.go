@@ -15,6 +15,7 @@ const (
 
 type Media struct {
 	Type         MediaType
+	InternalType string // 平台内部 媒体类型 使用该类型来转换到应用内类型 和 dandan api类型
 	TypeDesc     string // 类型描述 TV动画 / 综艺
 	Id           string // 存储平台实际id
 	Title        string
@@ -53,6 +54,13 @@ type Scraper interface {
 	// CheckEm 是否检查搜索结果em标签
 	CheckEm() bool
 	Platform() Platform
+}
+
+type MediaTypeParser interface {
+	// Type 将平台内部媒体类型转换为 danmaku 类型
+	Type(internalType string) MediaType
+	// TypeDesc 平台内部类型名称
+	TypeDesc(internalType string) string
 }
 
 type MediaIdParser interface {
