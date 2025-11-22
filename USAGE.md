@@ -24,8 +24,15 @@ API的token也是通过配置文件简单实现，根据需要自行配置。
 ```yaml
 # 弹幕保存路径 只作用于CLI模式 web server可以不用配置
 save-path: ""
-# 复制即可
-dandan-mode: "real_time"
+dandan:
+  # dandan api 每个接口都做了内存缓存 建议开启缓存来加速api
+  # 缓存过期时间 <=0或者不配置则禁用缓存 单位：秒
+  cache-timeout: 600
+  # dandan api模式
+  # real_time 实时抓取流媒体弹幕
+  # file 优先从服务器本地弹幕文件读取弹幕 没有或者过期才从流媒体抓取
+  mode: "real_time"
+  timeout: 60 # dandan api 超时时间 秒
 server:
   # token配置
   tokens:
@@ -93,6 +100,7 @@ Usage:
 
 Flags:
   -h, --help              help for scrape
+      --parse             parse media id string to number
       --platform string   danmaku platform: 
                           bilibili
                           tencent
@@ -101,7 +109,6 @@ Flags:
 
 Global Flags:
   -c, --config string   config path
-  -d, --debug           enable debug mode
 ```
 
 * bilibili 支持 剧集ID 和 集ID 的抓取，即 ss1234 和 ep1234。
