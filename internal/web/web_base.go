@@ -76,9 +76,8 @@ func ErrResponseJSON(w http.ResponseWriter, err error) {
 
 func ResponseJSON(w http.ResponseWriter, status int, result interface{}) {
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(result); err == nil {
-		w.WriteHeader(status)
-	} else {
+	w.WriteHeader(status)
+	if err := json.NewEncoder(w).Encode(result); err != nil {
 		http.Error(w, fmt.Sprintf("encode json error: %s", err), http.StatusInternalServerError)
 		utils.ErrorLog("base", err.Error())
 	}
