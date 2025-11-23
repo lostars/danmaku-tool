@@ -80,7 +80,7 @@ func CacheMiddleware(next http.Handler) http.Handler {
 			cacheData := rr.body.Bytes()
 			cacheDuration := time.Duration(config.GetDandan().CacheTimeout * 1e9)
 			if success := cache.SetWithTTL(key, cacheData, int64(len(cacheData)), cacheDuration); !success {
-				utils.ErrorLog(dandanApiCacheC, "cache set failed", "cacheKey", key)
+				utils.ErrorLog(dandanApiCacheC, "cache set failed", "path", r.URL.Path, "cacheKey", key)
 			}
 		}
 	})

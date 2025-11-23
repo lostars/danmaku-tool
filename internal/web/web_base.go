@@ -8,6 +8,8 @@ import (
 	"net"
 	"net/http"
 	"strings"
+
+	"github.com/go-playground/form"
 )
 
 type ErrBadRequest struct {
@@ -47,6 +49,8 @@ func (r *StatusRecorder) Write(b []byte) (int, error) {
 	}
 	return r.ResponseWriter.Write(b)
 }
+
+var Decoder = form.NewDecoder()
 
 func GetRealIP(r *http.Request) string {
 	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {

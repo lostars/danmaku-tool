@@ -202,6 +202,7 @@ func (c *realTimeData) GetDanmaku(param CommentParam) (*CommentResult, error) {
 			P:   d.GenDandanAttribute(),
 		})
 	}
+	comment.Convert(param.Convert)
 	return comment, nil
 }
 

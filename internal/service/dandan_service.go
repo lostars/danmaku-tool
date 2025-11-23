@@ -2,6 +2,11 @@ package service
 
 import (
 	"danmaku-tool/internal/config"
+	"danmaku-tool/internal/utils"
+	"fmt"
+	"time"
+
+	"github.com/longbridgeapp/opencc"
 )
 
 var sourceModes = make(map[string]DandanSourceMode)
@@ -30,10 +35,36 @@ const (
 	file     = "file"
 )
 
+const dandanService = "dandan_service"
+
+func (c CommentResult) Convert(convert int64) {
+	var cc *opencc.OpenCC
+	switch convert {
+	case 0:
+		return
+	case 1:
+		cc, _ = opencc.New("t2s")
+	case 2:
+		cc, _ = opencc.New("s2t")
+	}
+	if cc == nil {
+		return
+	}
+	start := time.Now()
+	for _, comment := range c.Comments {
+		if text, e := cc.Convert(comment.M); e == nil {
+			comment.M = text
+		} else {
+			utils.ErrorLog(dandanService, fmt.Sprintf("comment convert error: %s", e.Error()))
+		}
+	}
+	utils.DebugLog(dandanService, "comment convert done", "cost_ms", time.Since(start).Milliseconds())
+}
+
 type CommentParam struct {
-	From        int64
-	WithRelated bool
-	Convert     bool
+	From        int64 `form:"from"`
+	WithRelated bool  `form:"withRelated"`
+	Convert     int64 `form:"chConvert"`
 	Id          int64
 }
 

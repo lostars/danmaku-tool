@@ -10,36 +10,19 @@ import (
 )
 
 func CommentHandler(w http.ResponseWriter, r *http.Request) {
-
+	param := service.CommentParam{}
+	if err := web.Decoder.Decode(&param, r.URL.Query()); err != nil {
+		web.ResponseJSON(w, http.StatusBadRequest, map[string]string{})
+		return
+	}
 	commentId, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil {
 		web.ResponseJSON(w, http.StatusBadRequest, map[string]string{})
 		return
 	}
+	param.Id = commentId
 
-	query := r.URL.Query()
-	from, err := strconv.ParseInt(query.Get("from"), 10, 64)
-	if err != nil {
-		web.ResponseJSON(w, http.StatusBadRequest, map[string]string{})
-		return
-	}
-	convert, err := strconv.ParseBool(query.Get("chConvert"))
-	if err != nil {
-		web.ResponseJSON(w, http.StatusBadRequest, map[string]string{})
-		return
-	}
-	withRelated, err := strconv.ParseBool(query.Get("withRelated"))
-	if err != nil {
-		web.ResponseJSON(w, http.StatusBadRequest, map[string]string{})
-		return
-	}
-
-	comment, err := source.GetDanmaku(service.CommentParam{
-		Id:          commentId,
-		Convert:     convert,
-		WithRelated: withRelated,
-		From:        from,
-	})
+	comment, err := source.GetDanmaku(param)
 	if err != nil {
 		web.ErrResponseJSON(w, err)
 		return
