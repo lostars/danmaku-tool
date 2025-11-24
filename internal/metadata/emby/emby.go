@@ -28,7 +28,7 @@ func init() {
 	danmaku.Register(&client{})
 }
 
-func (c client) ServerInit() error {
+func (c client) AsyncInit() error {
 	conf := config.GetConfig().Emby
 	if conf.Token != "" && conf.User != "" && conf.Url != "" {
 		c.httpClient = &http.Client{Timeout: 10 * time.Second}
@@ -38,7 +38,19 @@ func (c client) ServerInit() error {
 		danmaku.RegisterMetadata(c)
 	} else {
 		utils.InfoLog(danmaku.Emby, fmt.Sprintf("[%s] is not configured", danmaku.Emby))
+		return nil
 	}
+
+	// test api
+	api := fmt.Sprintf("%s/emby/Users/%s", c.url, c.user)
+	result := map[string]interface{}{}
+	if err := c.doEmbyGet(api, &result); err != nil {
+		utils.ErrorLog(danmaku.Emby, fmt.Sprintf("emby api test failed: %s", err.Error()))
+	}
+	return nil
+}
+
+func (c client) ServerInit() error {
 	return nil
 }
 
@@ -145,6 +157,9 @@ func (c client) doEmbyGet(api string, v any) error {
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return err
+	}
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		return fmt.Errorf(resp.Status)
 	}
 
 	return utils.SafeDecodeOkResp(resp, &v)
