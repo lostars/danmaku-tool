@@ -2,7 +2,6 @@ package youku
 
 import (
 	"crypto/md5"
-	"danmaku-tool/internal/danmaku"
 	"danmaku-tool/internal/utils"
 	"encoding/base64"
 	"encoding/json"
@@ -64,7 +63,6 @@ func (c *client) refreshToken() error {
 	if !tkOk || !encOk {
 		return fmt.Errorf("refresh token fail to get tickets")
 	}
-	c.tkLastUpdate = time.Now()
 	return nil
 }
 
@@ -116,13 +114,6 @@ func (c *client) setReq(req *http.Request) {
 }
 
 func (c *client) sign(params map[string]interface{}, api apiInfo) (url.Values, string, error) {
-	if time.Since(c.tkLastUpdate).Hours() >= tokenExpireInHours {
-		utils.InfoLog(danmaku.Youku, "token expires in sign")
-		if err := c.refreshToken(); err != nil {
-			return nil, "", err
-		}
-	}
-
 	msg, sign := signPayload()
 
 	params["msg"] = msg
@@ -132,16 +123,17 @@ func (c *client) sign(params map[string]interface{}, api apiInfo) (url.Values, s
 	t := fmt.Sprintf("%d", time.Now().UnixMilli())
 	tokenSign := generateTokenSign(c.token, t, api.key, string(payload))
 
-	urlParams := url.Values{}
-	urlParams.Set("jsv", "2.6.1")
-	urlParams.Set("appKey", api.key)
-	urlParams.Set("t", t)
-	urlParams.Set("sign", tokenSign)
-	urlParams.Set("api", api.api)
-	urlParams.Set("v", "1.0")
-	urlParams.Set("type", "originaljson")
-	urlParams.Set("dataType", "jsonp")
-	urlParams.Set("timeout", "20000")
+	urlParams := url.Values{
+		"jsv":      {"2.6.1"},
+		"appKey":   {api.key},
+		"t":        {t},
+		"sign":     {tokenSign},
+		"api":      {api.api},
+		"v":        {"1.0"},
+		"type":     {"originaljson"},
+		"dataType": {"jsonp"},
+		"timeout":  {"20000"},
+	}
 
 	return urlParams, string(payload), nil
 }

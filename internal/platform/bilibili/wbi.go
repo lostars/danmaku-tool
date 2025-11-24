@@ -3,7 +3,6 @@ package bilibili
 import (
 	"bytes"
 	"crypto/md5"
-	"danmaku-tool/internal/danmaku"
 	"danmaku-tool/internal/utils"
 	"encoding/hex"
 	"fmt"
@@ -41,7 +40,6 @@ func (c *client) setToken() error {
 	}
 	c.imgKey = matchImg[1]
 	c.subKey = matchSub[1]
-	c.lastUpdateTime = time.Now()
 
 	return nil
 }
@@ -60,13 +58,6 @@ type navInfo struct {
 }
 
 func (c *client) sign(values url.Values) (url.Values, error) {
-	if time.Since(c.lastUpdateTime).Hours() >= 24 {
-		utils.InfoLog(danmaku.Bilibili, "token expires in sign")
-		if err := c.setToken(); err != nil {
-			return nil, err
-		}
-	}
-
 	values = removeUnwantedChars(values, '!', '\'', '(', ')', '*')
 	values.Set("wts", strconv.FormatInt(time.Now().Unix(), 10))
 

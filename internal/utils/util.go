@@ -23,12 +23,11 @@ func SafeClose(c io.Closer) {
 
 func SafeDecodeOkResp(resp *http.Response, v any) error {
 	defer SafeClose(resp.Body)
-	err := json.NewDecoder(resp.Body).Decode(v)
-	if err != nil {
-		return err
-	}
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		return fmt.Errorf("error http status: %s", resp.Status)
+	}
+	if err := json.NewDecoder(resp.Body).Decode(v); err != nil {
+		return err
 	}
 	return nil
 }

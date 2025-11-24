@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"time"
 
 	"github.com/go-co-op/gocron/v2"
 	"google.golang.org/protobuf/proto"
@@ -22,7 +21,6 @@ type client struct {
 
 	// 接口签名token信息
 	subKey, imgKey string
-	lastUpdateTime time.Time
 }
 
 func (c *client) CheckEm() bool {

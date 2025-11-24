@@ -20,7 +20,6 @@ import (
 type client struct {
 	danmaku.PlatformClient
 	token, tokenEnc, cna string
-	tkLastUpdate         time.Time
 	// 用于解析301请求 Location
 	redirectHttpClient *http.Client
 }
