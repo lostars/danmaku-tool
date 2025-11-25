@@ -2,8 +2,11 @@ package service
 
 import (
 	"danmaku-tool/internal/config"
+	"danmaku-tool/internal/danmaku"
 	"danmaku-tool/internal/utils"
 	"fmt"
+	"runtime"
+	"sync"
 	"time"
 
 	"github.com/longbridgeapp/opencc"
@@ -37,27 +40,62 @@ const (
 
 const dandanService = "dandan_service"
 
-func (c CommentResult) Convert(convert int64) {
+type openCCStruct struct{}
+
+func init() {
+	danmaku.Register(&openCCStruct{})
+}
+
+func (o openCCStruct) ServerInit() error {
+	return nil
+}
+
+func (o openCCStruct) Priority() int {
+	return 10
+}
+
+func (o openCCStruct) AsyncInit() (err error) {
+	t2s, err = opencc.New("t2s")
+	s2t, err = opencc.New("s2t")
+	return
+}
+
+var (
+	t2s *opencc.OpenCC
+	s2t *opencc.OpenCC
+)
+
+func (c *CommentResult) Convert(convert int64) {
 	var cc *opencc.OpenCC
 	switch convert {
 	case 0:
 		return
 	case 1:
-		cc, _ = opencc.New("t2s")
+		cc = t2s
 	case 2:
-		cc, _ = opencc.New("s2t")
+		cc = s2t
 	}
-	if cc == nil {
-		return
-	}
+
 	start := time.Now()
-	for _, comment := range c.Comments {
-		if text, e := cc.Convert(comment.M); e == nil {
-			comment.M = text
-		} else {
-			utils.ErrorLog(dandanService, fmt.Sprintf("comment convert error: %s", e.Error()))
-		}
+	cores := runtime.NumCPU()
+	wg := sync.WaitGroup{}
+	wg.Add(cores)
+	chunkSize := (len(c.Comments) + cores - 1) / cores
+	for i := 0; i < cores; i++ {
+		startIndex := i * chunkSize
+		endIndex := min(startIndex+chunkSize, len(c.Comments))
+		go func(startIndex, endIndex int) {
+			defer wg.Done()
+			for j := startIndex; j < endIndex; j++ {
+				if text, e := cc.Convert(c.Comments[j].M); e == nil {
+					c.Comments[j].M = text
+				} else {
+					utils.ErrorLog(dandanService, fmt.Sprintf("comment convert error: %s", e.Error()))
+				}
+			}
+		}(startIndex, endIndex)
 	}
+	wg.Wait()
 	utils.DebugLog(dandanService, "comment convert done", "cost_ms", time.Since(start).Milliseconds())
 }
 
