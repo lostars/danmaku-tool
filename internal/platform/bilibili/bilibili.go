@@ -61,8 +61,8 @@ func (c *client) Media(id string) (*danmaku.Media, error) {
 }
 
 func (c *client) Init() error {
-	if ok, err := danmaku.InitPlatformClient(&c.PlatformClient, danmaku.Bilibili); !ok {
-		return err
+	if ok := danmaku.InitPlatformClient(&c.PlatformClient, danmaku.Bilibili); !ok {
+		return nil
 	}
 	if err := c.setToken(); err != nil {
 		return err

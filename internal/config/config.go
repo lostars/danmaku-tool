@@ -175,6 +175,10 @@ type PlatformConfig struct {
 	PersistExpire       int      `yaml:"persist-expire"`
 }
 
+func (p PlatformConfig) Disabled() bool {
+	return p.Priority < 0
+}
+
 func (p PlatformConfig) FileExpire(end time.Time) bool {
 	if p.PersistExpire <= 0 {
 		return false

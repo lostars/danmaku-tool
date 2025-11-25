@@ -344,15 +344,16 @@ func DeserializeDanmaku(platform string, ssId, epId string) (data []*StandardDan
 	return
 }
 
-func InitPlatformClient(c *PlatformClient, platform Platform) (bool, error) {
+func InitPlatformClient(c *PlatformClient, platform Platform) bool {
 	conf := config.GetPlatformConfig(string(platform))
-	if conf == nil || conf.Name == "" {
-		return false, fmt.Errorf("[%s] is not configured", platform)
+	if conf == nil {
+		utils.InfoLog(managerUtilC, fmt.Sprintf("[%s] is not configured", platform))
+		return false
 	}
 	if conf.Priority < 0 {
 		c.Disabled = true
 		utils.InfoLog(managerUtilC, fmt.Sprintf("[%s] is disabled", platform))
-		return false, nil
+		return false
 	}
 
 	c.Cookie = conf.Cookie
@@ -366,7 +367,7 @@ func InitPlatformClient(c *PlatformClient, platform Platform) (bool, error) {
 	}
 	c.HttpClient = &http.Client{Timeout: time.Duration(timeout * 1e9)}
 
-	return true, nil
+	return true
 }
 
 const (

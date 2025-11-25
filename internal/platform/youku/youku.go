@@ -33,8 +33,8 @@ func init() {
 }
 
 func (c *client) Init() error {
-	if ok, err := danmaku.InitPlatformClient(&c.PlatformClient, danmaku.Youku); !ok {
-		return err
+	if ok := danmaku.InitPlatformClient(&c.PlatformClient, danmaku.Youku); !ok {
+		return nil
 	}
 	c.redirectHttpClient = &http.Client{
 		Timeout: time.Second * 10,

@@ -14,8 +14,8 @@ import (
 )
 
 func (c *client) Init() error {
-	if ok, err := danmaku.InitPlatformClient(&c.PlatformClient, danmaku.Tencent); !ok {
-		return err
+	if ok := danmaku.InitPlatformClient(&c.PlatformClient, danmaku.Tencent); !ok {
+		return nil
 	}
 	danmaku.RegisterScraper(c)
 	return nil
