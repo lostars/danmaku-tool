@@ -66,6 +66,7 @@ func CacheMiddleware(next http.Handler) http.Handler {
 
 		var key = cacheKey(r)
 		if cachedData, found := cache.Get(key); found {
+			w.Header().Set("Cache-Control", fmt.Sprintf("max-age=%d", config.GetDandan().CacheTimeout))
 			if _, err := w.Write(cachedData); err != nil {
 				utils.ErrorLog(dandanApiCacheC, fmt.Sprintf("write cache error: %s", err.Error()))
 			}
