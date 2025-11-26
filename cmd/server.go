@@ -14,7 +14,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"runtime/debug"
 	"strconv"
 	"syscall"
 	"time"
@@ -83,7 +82,10 @@ func serverCmd() *cobra.Command {
 		InitServer()
 		r := chi.NewRouter()
 
+		// real ip must be used before log
+		r.Use(middleware.RealIP)
 		r.Use(LoggerMiddleware)
+		r.Use(middleware.CleanPath)
 		if port <= 0 {
 			port = config.GetConfig().Server.Port
 		}
@@ -105,7 +107,7 @@ func serverCmd() *cobra.Command {
 
 		srv := &http.Server{
 			Addr:         ":" + strconv.FormatInt(int64(port), 10),
-			Handler:      RecoverMiddleware(r),
+			Handler:      middleware.Recoverer(r),
 			IdleTimeout:  defaultTimeout * time.Second,
 			ReadTimeout:  defaultReadTimeout * time.Second,
 			WriteTimeout: defaultWriteTimeout * time.Second,
@@ -137,18 +139,6 @@ func serverCmd() *cobra.Command {
 	return cmd
 }
 
-func RecoverMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer func() {
-			if err := recover(); err != nil {
-				debug.PrintStack()
-				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			}
-		}()
-		next.ServeHTTP(w, r)
-	})
-}
-
 const webServerC = "web_server"
 
 func LoggerMiddleware(next http.Handler) http.Handler {
@@ -169,7 +159,7 @@ func LoggerMiddleware(next http.Handler) http.Handler {
 			slog.String("path", r.URL.Path),
 			slog.Int("status", recorder.Status),
 			slog.Int64("cost_ms", time.Since(start).Milliseconds()),
-			slog.String("ip", web.GetRealIP(r)),
+			slog.String("ip", r.RemoteAddr),
 			"query", r.URL.Query(),
 			"body", string(bodyBytes),
 		)

@@ -27,6 +27,7 @@ func RegisterRoute(route *chi.Mux) {
 		})
 		d.Use(dandanOptions.Handler)
 		d.Use(middleware.Timeout(time.Duration(1e9 * timeout)))
+		d.Use(middleware.Compress(5, "application/json"))
 		d.Use(CacheMiddleware)
 		d.Use(TokenValidatorMiddleware)
 		d.Use(SourceModeConfigurer)
