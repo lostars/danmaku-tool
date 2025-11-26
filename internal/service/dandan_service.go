@@ -75,6 +75,9 @@ func (c *CommentResult) Convert(convert int64) {
 	case 2:
 		cc = s2t
 	}
+	if cc == nil {
+		return
+	}
 
 	start := time.Now()
 	cores := runtime.NumCPU()
@@ -96,7 +99,9 @@ func (c *CommentResult) Convert(convert int64) {
 		}(startIndex, endIndex)
 	}
 	wg.Wait()
-	utils.DebugLog(dandanService, "comment convert done", "cost_ms", time.Since(start).Milliseconds())
+	utils.DebugLog(dandanService, "comment convert done",
+		"size", len(c.Comments),
+		"cost_ms", time.Since(start).Milliseconds())
 }
 
 type CommentParam struct {
