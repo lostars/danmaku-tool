@@ -56,6 +56,9 @@ func (o openCCStruct) Priority() int {
 
 func (o openCCStruct) AsyncInit() (err error) {
 	t2s, err = opencc.New("t2s")
+	if err != nil {
+		return
+	}
 	s2t, err = opencc.New("s2t")
 	return
 }

@@ -159,7 +159,7 @@ func (c client) doEmbyGet(api string, v any) error {
 		return err
 	}
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-		return fmt.Errorf(resp.Status)
+		return fmt.Errorf("emby failed: %s, %s", api, resp.Status)
 	}
 
 	return utils.SafeDecodeOkResp(resp, &v)

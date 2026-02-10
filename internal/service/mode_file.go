@@ -41,7 +41,7 @@ func (c *fileTimeData) ServerInit() error {
 func (c *fileTimeData) GetDanmaku(param CommentParam) (*CommentResult, error) {
 	platform, ssId, epId, found := c.decodeGlobalID(param.Id)
 	if !found {
-		return nil, web.ErrBadReqeustOf("invalid param")
+		return nil, web.ErrBadRequestOf("invalid param")
 	}
 
 	// load from file

@@ -290,7 +290,6 @@ func (m *Media) DandanType() {
 	default:
 		m.Type = "unknown"
 	}
-	return
 }
 
 // MediaType 将平台媒体类型转换为 danmaku 类型

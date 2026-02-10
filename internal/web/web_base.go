@@ -19,7 +19,7 @@ func (e ErrBadRequest) Error() string {
 	return e.Message
 }
 
-func ErrBadReqeustOf(format string, a ...any) error {
+func ErrBadRequestOf(format string, a ...any) error {
 	return ErrBadRequest{fmt.Sprintf(format, a...)}
 }
 

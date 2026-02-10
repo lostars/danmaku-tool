@@ -172,7 +172,7 @@ func (c *realTimeData) Match(param MatchParam) (*DanDanResult, error) {
 func (c *realTimeData) GetDanmaku(param CommentParam) (*CommentResult, error) {
 	platform, _, epId, found := c.decodeGlobalID(param.Id)
 	if !found {
-		return nil, web.ErrBadReqeustOf("invalid param")
+		return nil, web.ErrBadRequestOf("invalid param")
 	}
 	var scraper = danmaku.GetScraper(platform)
 	if scraper == nil {
@@ -311,11 +311,11 @@ func (c *realTimeData) SearchAnime(title string) *DanDanAnimeResult {
 func (c *realTimeData) AnimeInfo(id string) (*DanDanAnimeInfoResult, error) {
 	globalId, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
-		return nil, web.ErrBadReqeustOf("invalid id")
+		return nil, web.ErrBadRequestOf("invalid id")
 	}
 	platform, ssId, _, found := c.decodeGlobalID(globalId)
 	if !found {
-		return nil, web.ErrBadReqeustOf("invalid id")
+		return nil, web.ErrBadRequestOf("invalid id")
 	}
 	scraper := danmaku.GetScraper(platform)
 	if scraper == nil {
