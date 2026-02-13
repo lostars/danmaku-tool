@@ -1,11 +1,11 @@
 module danmaku-tool
 
-go 1.25
+go 1.26
 
 require (
 	github.com/andybalholm/brotli v1.2.0
 	github.com/dgraph-io/ristretto/v2 v2.4.0
-	github.com/go-chi/chi/v5 v5.2.4
+	github.com/go-chi/chi/v5 v5.2.5
 	github.com/go-chi/cors v1.2.2
 	github.com/go-co-op/gocron/v2 v2.19.1
 	github.com/go-playground/form/v4 v4.3.0
