@@ -169,10 +169,7 @@ func WriteFile(data *SerializerData) {
 		return
 	}
 	// 合并弹幕
-	mergedMills := conf.MergeDanmakuInMills
-	if mergedMills > 0 {
-		data.Data = MergeDanmaku(data.Data, mergedMills, data.DurationInMills)
-	}
+	data.Data = MergeDanmaku(data.Data, conf.MergeDanmakuInMills, data.DurationInMills)
 	for _, s := range conf.Persists {
 		serializer := adapter.serializers[s]
 		if serializer == nil {

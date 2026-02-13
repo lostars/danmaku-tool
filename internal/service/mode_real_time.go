@@ -185,9 +185,9 @@ func (c *realTimeData) GetDanmaku(param CommentParam) (*CommentResult, error) {
 	}
 
 	// merge danmaku
-	mergeMills := config.GetPlatformConfig(string(scraper.Platform())).MergeDanmakuInMills
-	if mergeMills > 0 {
-		data = danmaku.MergeDanmaku(data, mergeMills, 0)
+	platformConfig := config.GetPlatformConfig(string(scraper.Platform()))
+	if platformConfig != nil {
+		data = danmaku.MergeDanmaku(data, platformConfig.MergeDanmakuInMills, 0)
 	}
 
 	comment := &CommentResult{

@@ -109,7 +109,10 @@ func MatchMedia(param MatchParam) []*Media {
 	sort.Slice(result, func(i, j int) bool {
 		a := config.GetPlatformConfig(string(result[i].Platform))
 		b := config.GetPlatformConfig(string(result[j].Platform))
-		return a.Priority < b.Priority
+		if a != nil && b != nil {
+			return a.Priority < b.Priority
+		}
+		return false
 	})
 
 	utils.DebugLog(searchMediaC, "media match finished",
