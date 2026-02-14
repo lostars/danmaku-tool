@@ -19,11 +19,11 @@ No special season matching support by now.
 
 Get a better match with Emby API enabled.
 
-- [ ] complete danmaku scrage CLI
-  - [ ] scrape by BV id of Bilibili
+- [x] complete danmaku scrape CLI
+  - [x] scrape by BV id of Bilibili
   - [x] save as ASS file
-  - [ ] scrape by album of iqiyi
-  - [ ] scrape by show of youku
+  - [x] scrape by album of iqiyi
+  - [x] scrape by show of youku
 - [x] **bilibili** scrape and DanDan API match 
 - [x] **iqiyi** scrape and DanDan API match
 - [x] **youku** scrape and DanDan API match
