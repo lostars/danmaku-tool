@@ -30,7 +30,7 @@ const (
 	defaultServerTimeout = 60
 	defaultTimeout       = 120
 	defaultReadTimeout   = 10
-	defaultWriteTimeout  = 10
+	defaultWriteTimeout  = 60
 	defaultCancelTimeout = 5
 )
 
