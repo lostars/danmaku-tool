@@ -5,8 +5,11 @@ import (
 	"danmaku-tool/internal/danmaku"
 	"danmaku-tool/internal/utils"
 	"fmt"
+	"io"
+	"net/http"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -14,6 +17,11 @@ import (
 )
 
 func (c *client) Scrape(realId string) error {
+	if strings.HasPrefix(realId, "BV1") {
+		// support BV
+		return c.scrapeBV(realId)
+	}
+
 	// 比如 悠哉日常大王 第三季 就是一个单独的剧集 md28231846:ss36204
 	//https://api.bilibili.com/pgc/view/web/season?ep_id=2231363 or season_id=12334
 	var isEP bool
@@ -89,6 +97,143 @@ func (c *client) Scrape(realId string) error {
 	utils.InfoLog(danmaku.Bilibili, "danmaku scraped done", "title", t)
 
 	return nil
+}
+
+func (c *client) scrapeBV(bvid string) error {
+	videoUrl := "https://www.bilibili.com/video/" + bvid + "/"
+
+	req, err := http.NewRequest(http.MethodGet, videoUrl, nil)
+	if err != nil {
+		return err
+	}
+	resp, err := c.DoReq(req)
+	if err != nil {
+		return err
+	}
+	defer utils.SafeClose(resp.Body)
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	htmlContent := string(bodyBytes)
+
+	cidMatches := bvCidRegex.FindStringSubmatch(htmlContent)
+	if len(cidMatches) < 2 {
+		utils.ErrorLog(danmaku.Bilibili, "can't parse video cid")
+		return nil
+	}
+	// duration in mills
+	durationMatches := bvDurationRegex.FindStringSubmatch(htmlContent)
+	if len(durationMatches) < 2 {
+		utils.ErrorLog(danmaku.Bilibili, "can't parse video duration")
+		return nil
+	}
+	var cid, duration = int64(0), int64(0)
+	if cid, err = strconv.ParseInt(cidMatches[1], 10, 64); err != nil {
+		utils.ErrorLog(danmaku.Bilibili, fmt.Sprintf("can't parse video cid: %s", cidMatches[1]))
+		return nil
+	}
+	if duration, err = strconv.ParseInt(durationMatches[1], 10, 64); err != nil {
+		utils.ErrorLog(danmaku.Bilibili, fmt.Sprintf("can't parse video duration: %s", durationMatches[1]))
+		return nil
+	}
+	var width, height = int64(0), int64(0)
+	hwMatches := bvWHRegex.FindStringSubmatch(htmlContent)
+	if len(hwMatches) < 3 {
+		utils.ErrorLog(danmaku.Bilibili, "can't parse video width and height")
+		return nil
+	}
+	if width, err = strconv.ParseInt(hwMatches[1], 10, 64); err != nil {
+		utils.ErrorLog(danmaku.Bilibili, fmt.Sprintf("can't parse video width: %s", hwMatches[1]))
+		return nil
+	}
+	if height, err = strconv.ParseInt(hwMatches[2], 10, 64); err != nil {
+		utils.ErrorLog(danmaku.Bilibili, fmt.Sprintf("can't parse video height: %s", hwMatches[2]))
+		return nil
+	}
+
+	segments := c.videoSegments(duration)
+	tasks := make(chan task, c.MaxWorker)
+	ch := make(chan []*danmaku.StandardDanmaku, c.MaxWorker)
+	var wg sync.WaitGroup
+	for w := 0; w < c.MaxWorker; w++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			for t := range tasks {
+				data, e := c.scrape(t.cid, 0, t.segment)
+				if e != nil {
+					utils.ErrorLog(danmaku.Bilibili, e.Error(), "cid", t.cid, "segment", t.segment)
+					continue
+				}
+				var standardData = make([]*danmaku.StandardDanmaku, 0, len(data))
+				for _, d := range data {
+					standardData = append(standardData, &danmaku.StandardDanmaku{
+						Content:     d.Content,
+						OffsetMills: int64(d.Progress),
+						Mode:        int(d.Mode),
+						Color:       int(d.Color),
+						FontSize:    d.Fontsize,
+					})
+				}
+				ch <- standardData
+			}
+		}(w)
+	}
+	go func() {
+		for seg := int64(1); seg <= segments; seg++ {
+			tasks <- task{
+				cid:     cid,
+				segment: seg,
+			}
+		}
+		close(tasks)
+	}()
+	go func() {
+		wg.Wait()
+		close(ch)
+	}()
+
+	// save file
+	savePath := filepath.Join(config.GetConfig().SavePath, danmaku.Bilibili, bvid)
+	serializer := &danmaku.SerializerData{
+		EpisodeId:       bvid,
+		SeasonId:        bvid,
+		DurationInMills: duration,
+		ResX:            int(width),
+		ResY:            int(height),
+		Platform:        danmaku.Bilibili,
+		FullPath:        savePath,
+		Filename:        bvid,
+	}
+	if err = danmaku.CheckFile(serializer); err != nil {
+		utils.ErrorLog(danmaku.Bilibili, err.Error())
+		return nil
+	}
+	for d := range ch {
+		serializer.Data = append(serializer.Data, d...)
+	}
+
+	danmaku.WriteFile(serializer)
+	utils.InfoLog(danmaku.Bilibili, "bv scraped done", "bvid", bvid, "size", len(serializer.Data))
+
+	return nil
+}
+
+var bvCidRegex = regexp.MustCompile(`"cid":(\d+),`)
+var bvDurationRegex = regexp.MustCompile(`"timelength":(\d+),`)
+var bvWHRegex = regexp.MustCompile(`"width":(\d{4}),"height":(\d{4})`)
+
+func (c *client) videoSegments(durationInMills int64) int64 {
+	var videoDuration = durationInMills/1000 + 1
+	var segments int64
+	if videoDuration%360 == 0 {
+		segments = videoDuration / 360
+	} else {
+		segments = videoDuration/360 + 1
+	}
+	return segments
 }
 
 func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
@@ -211,14 +356,7 @@ func (c *client) GetDanmaku(realId string) ([]*danmaku.StandardDanmaku, error) {
 			continue
 		}
 
-		var videoDuration = ep.Duration/1000 + 1 // in seconds
-		var segments int64
-		if videoDuration%360 == 0 {
-			segments = videoDuration / 360
-		} else {
-			segments = videoDuration/360 + 1
-		}
-
+		segments := c.videoSegments(ep.Duration)
 		tasks := make(chan task, c.MaxWorker)
 		ch := make(chan []*danmaku.StandardDanmaku, c.MaxWorker)
 		var wg sync.WaitGroup
