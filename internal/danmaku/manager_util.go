@@ -218,7 +218,7 @@ func (p MatchParam) Match(match InternalMatchParam) bool {
 	case Ignore:
 		return true
 	case Equals:
-		// 使用替换方式，方式标题重复出现
+		// 使用替换方式，防止标题重复出现
 		result := strings.ReplaceAll(lowerClearTitle, targetLowerTitle, "")
 		return result == ""
 	case Contains:

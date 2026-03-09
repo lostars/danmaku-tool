@@ -129,7 +129,7 @@ func (c *client) scrapeBV(bvid string) error {
 		utils.ErrorLog(danmaku.Bilibili, "can't parse video duration")
 		return nil
 	}
-	var cid, duration = int64(0), int64(0)
+	var cid, duration int64
 	if cid, err = strconv.ParseInt(cidMatches[1], 10, 64); err != nil {
 		utils.ErrorLog(danmaku.Bilibili, fmt.Sprintf("can't parse video cid: %s", cidMatches[1]))
 		return nil
@@ -138,7 +138,7 @@ func (c *client) scrapeBV(bvid string) error {
 		utils.ErrorLog(danmaku.Bilibili, fmt.Sprintf("can't parse video duration: %s", durationMatches[1]))
 		return nil
 	}
-	var width, height = int64(0), int64(0)
+	var width, height int64
 	hwMatches := bvWHRegex.FindStringSubmatch(htmlContent)
 	if len(hwMatches) < 3 {
 		utils.ErrorLog(danmaku.Bilibili, "can't parse video width and height")
