@@ -153,6 +153,34 @@ func (c *client) scrapeBV(bvid string) error {
 		return nil
 	}
 
+	// save file
+	savePath := filepath.Join(config.GetConfig().SavePath, danmaku.Bilibili, bvid)
+	serializer := &danmaku.SerializerData{
+		EpisodeId:       bvid,
+		SeasonId:        bvid,
+		DurationInMills: duration,
+		ResX:            int(width),
+		ResY:            int(height),
+		Platform:        danmaku.Bilibili,
+		FullPath:        savePath,
+		Filename:        bvid,
+	}
+	if err = danmaku.CheckFile(serializer); err != nil {
+		utils.ErrorLog(danmaku.Bilibili, err.Error())
+		return nil
+	}
+	ch := c.fetchDanmaku(cid, duration)
+	for d := range ch {
+		serializer.Data = append(serializer.Data, d...)
+	}
+
+	danmaku.WriteFile(serializer)
+	utils.InfoLog(danmaku.Bilibili, "bv scraped done", "bvid", bvid, "size", len(serializer.Data))
+
+	return nil
+}
+
+func (c *client) fetchDanmaku(cid, duration int64) chan []*danmaku.StandardDanmaku {
 	segments := c.videoSegments(duration)
 	tasks := make(chan task, c.MaxWorker)
 	ch := make(chan []*danmaku.StandardDanmaku, c.MaxWorker)
@@ -195,30 +223,7 @@ func (c *client) scrapeBV(bvid string) error {
 		close(ch)
 	}()
 
-	// save file
-	savePath := filepath.Join(config.GetConfig().SavePath, danmaku.Bilibili, bvid)
-	serializer := &danmaku.SerializerData{
-		EpisodeId:       bvid,
-		SeasonId:        bvid,
-		DurationInMills: duration,
-		ResX:            int(width),
-		ResY:            int(height),
-		Platform:        danmaku.Bilibili,
-		FullPath:        savePath,
-		Filename:        bvid,
-	}
-	if err = danmaku.CheckFile(serializer); err != nil {
-		utils.ErrorLog(danmaku.Bilibili, err.Error())
-		return nil
-	}
-	for d := range ch {
-		serializer.Data = append(serializer.Data, d...)
-	}
-
-	danmaku.WriteFile(serializer)
-	utils.InfoLog(danmaku.Bilibili, "bv scraped done", "bvid", bvid, "size", len(serializer.Data))
-
-	return nil
+	return ch
 }
 
 var bvCidRegex = regexp.MustCompile(`"cid":(\d+),`)
@@ -356,49 +361,7 @@ func (c *client) GetDanmaku(realId string) ([]*danmaku.StandardDanmaku, error) {
 			continue
 		}
 
-		segments := c.videoSegments(ep.Duration)
-		tasks := make(chan task, c.MaxWorker)
-		ch := make(chan []*danmaku.StandardDanmaku, c.MaxWorker)
-		var wg sync.WaitGroup
-		for w := 0; w < c.MaxWorker; w++ {
-			wg.Add(1)
-			go func(i int) {
-				defer wg.Done()
-				for t := range tasks {
-					data, e := c.scrape(t.cid, 0, t.segment)
-					if e != nil {
-						utils.ErrorLog(danmaku.Bilibili, e.Error(), "cid", t.cid, "segment", t.segment)
-						continue
-					}
-					var standardData = make([]*danmaku.StandardDanmaku, 0, len(data))
-					for _, d := range data {
-						standardData = append(standardData, &danmaku.StandardDanmaku{
-							Content:     d.Content,
-							OffsetMills: int64(d.Progress),
-							Mode:        int(d.Mode),
-							Color:       int(d.Color),
-							FontSize:    d.Fontsize,
-						})
-					}
-					ch <- standardData
-				}
-			}(w)
-		}
-
-		go func() {
-			for seg := int64(1); seg <= segments; seg++ {
-				tasks <- task{
-					cid:     ep.CId,
-					segment: seg,
-				}
-			}
-			close(tasks)
-		}()
-
-		go func() {
-			wg.Wait()
-			close(ch)
-		}()
+		ch := c.fetchDanmaku(ep.CId, ep.Duration)
 		for m := range ch {
 			result = append(result, m...)
 		}

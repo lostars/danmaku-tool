@@ -4,6 +4,7 @@ import (
 	"danmaku-tool/internal/config"
 	"danmaku-tool/internal/danmaku"
 	"danmaku-tool/internal/utils"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -158,11 +159,14 @@ func (c client) doEmbyGet(api string, v any) error {
 	if err != nil {
 		return err
 	}
+	defer utils.SafeClose(resp.Body)
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		return fmt.Errorf("emby failed: %s, %s", api, resp.Status)
 	}
-
-	return utils.SafeDecodeOkResp(resp, &v)
+	if err := json.NewDecoder(resp.Body).Decode(&v); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (c client) GetSeasons(id string, recursive bool) (*SearchResult, error) {

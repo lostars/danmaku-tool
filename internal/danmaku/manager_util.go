@@ -111,9 +111,8 @@ func MatchSeason(title string) int {
 	s, err := strconv.ParseInt(seasonMatches[1], 10, 64)
 	if err == nil {
 		return int(s)
-	} else {
-		return GetNumberSeasonFromChinese(seasonMatches[1])
 	}
+	return GetNumberSeasonFromChinese(seasonMatches[1])
 }
 
 func GetNumberSeasonFromChinese(chineseNumber string) int {
@@ -328,9 +327,8 @@ func DeserializeDanmaku(platform string, ssId, epId string) (data []*StandardDan
 			if err = scraper.Scrape(epId); err != nil {
 				utils.ErrorLog(managerUtilC, err.Error())
 				return nil
-			} else {
-				utils.InfoLog(managerUtilC, fmt.Sprintf("%s refresh success", path))
 			}
+			utils.InfoLog(managerUtilC, fmt.Sprintf("%s refresh success", path))
 			utils.DebugLog(managerUtilC, "refresh finished", "cost_ms", time.Since(start).Milliseconds())
 		}
 	}
