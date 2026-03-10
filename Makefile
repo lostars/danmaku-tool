@@ -1,5 +1,4 @@
 VERSION := $(shell git describe --tags --always 2>/dev/null || echo "dev")
-GO_VERSION := 1.25
 BINARY := danmaku
 OUTPUT := dist
 PROJECT := danmaku-tool
