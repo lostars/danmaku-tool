@@ -209,6 +209,27 @@ func (c *client) GetDanmaku(id string) ([]*danmaku.StandardDanmaku, error) {
 }
 
 func (c *client) Scrape(idStr string) error {
+	// https://www.iqiyi.com/a_15qrt88gex9.html albumId: 15qrt88gex9
+	showId := c.ParseNumber(idStr)
+	if showId > 0 {
+		media, err := c.Media(strconv.FormatInt(showId, 10))
+		if err == nil {
+			if len(media.Episodes) < 1 {
+				return fmt.Errorf("get album failed, invalid album id")
+			}
+			for _, ep := range media.Episodes {
+				if err := c.scrapeById(ep.Id); err != nil {
+					utils.ErrorLog(danmaku.Iqiyi, fmt.Sprintf("%s scrape failed: %s", ep.Id, err.Error()))
+				}
+			}
+			return nil
+		}
+	}
+
+	return c.scrapeById(idStr)
+}
+
+func (c *client) scrapeById(idStr string) error {
 	// 支持数字tvId
 	tvId, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
