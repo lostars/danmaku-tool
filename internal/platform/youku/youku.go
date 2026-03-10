@@ -109,7 +109,7 @@ func (c *client) videoInfo(vid string) (*VideoInfoFromHtml, *ShowInfoFromHtml, e
 	if len(matches) < 2 {
 		return nil, nil, fmt.Errorf("%s match json fail from html", vid)
 	}
-	fmt.Println(matches[1])
+	//fmt.Println(matches[1])
 	var info VideoInfoFromHtml
 	err = json.Unmarshal([]byte(matches[1]), &info)
 	if err != nil {

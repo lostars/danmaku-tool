@@ -12,7 +12,26 @@ import (
 	"strings"
 )
 
-func (c *client) Scrape(vid string) error {
+func (c *client) Scrape(id string) error {
+	// check showId first
+	media, err := c.Media(id)
+	if err == nil {
+		if len(media.Episodes) <= 0 {
+			return fmt.Errorf("get ep failed, invalid showId")
+		}
+		for _, ep := range media.Episodes {
+			if err := c.scrapeById(ep.Id); err != nil {
+				utils.ErrorLog(danmaku.Youku, fmt.Sprintf("%s scrape failed: %s", ep.Id, err.Error()))
+			}
+		}
+
+		return nil
+	}
+
+	return c.scrapeById(id)
+}
+
+func (c *client) scrapeById(vid string) error {
 	info, _, err := c.videoInfo(vid)
 	if err != nil {
 		return err
