@@ -294,7 +294,7 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 					eps = append(eps, &danmaku.MediaEpisode{
 						Id: strconv.FormatInt(ep.Id, 10),
 						// 外部需要依靠这个字段去匹配是EP几，需要正确赋值
-						EpisodeId: ep.Title,
+						EpisodeId: ep.IndexTitle,
 						Title:     ep.LongTitle,
 					})
 				}
