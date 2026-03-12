@@ -86,15 +86,14 @@ func (c client) Year(name string, seasonId string) (year int, err error) {
 	case Movie:
 		year = item.ProductionYear
 	case Series:
-		if season, e := c.GetSeasons(item.Id, false); e == nil && len(season.Items) > 1 {
+		year = item.ProductionYear
+		if season, e := c.GetSeasons(item.Id, false); e == nil {
 			for _, s := range season.Items {
 				if strconv.FormatInt(int64(s.IndexNumber), 10) == seasonId {
 					year = s.ProductionYear
 					break
 				}
 			}
-		} else {
-			year = item.ProductionYear
 		}
 	}
 	return
