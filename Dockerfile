@@ -17,4 +17,6 @@ USER ${USER}
 
 EXPOSE 8089
 ENV TZ=Asia/Shanghai
+ENV HTTP_PROXY=
+ENV HTTPS_PROXY=
 ENTRYPOINT ["/usr/local/bin/danmaku", "server", "-c", "/app/config.yaml"]
