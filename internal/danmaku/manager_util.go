@@ -145,25 +145,14 @@ func (p MatchParam) Match(match InternalMatchParam) bool {
 		}
 	}
 	matchMode := string(p.Mode)
-	// 黑名单 正则匹配替换
-	for _, r := range tokenizer.Blacklist {
-		re, err := regexp.Compile(r.Regex)
-		if err != nil {
-			continue
+	// 搜索结果标题规则处理
+	r := config.MatchTitleRule(title, string(p.Platform))
+	if r != nil {
+		// 更改后续匹配模式
+		if r.Mode != "" {
+			matchMode = r.Mode
 		}
-		// 全平台
-		noneMatchPlatform := r.Platform == ""
-		// 特定平台
-		matchPlatform := r.Platform != "" && r.Platform == string(p.Platform)
-		if (noneMatchPlatform || matchPlatform) && re.MatchString(title) {
-			// 更改后续匹配模式
-			if r.Mode != "" {
-				matchMode = r.Mode
-			}
-			title = re.ReplaceAllLiteralString(title, r.Replacement)
-			// 只匹配一次
-			break
-		}
+		title = r.Replacement
 	}
 
 	// 优先匹配季信息

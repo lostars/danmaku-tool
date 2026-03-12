@@ -38,7 +38,28 @@ func Init(path string) {
 	if danmakuConfig.DanDan.DisableAuth {
 		fmt.Println("dandan API authentication is DISABLED!!!")
 	}
+	// init replace rules
+	titleMatchRules = make(map[string]*TitleMatchRule, len(danmakuConfig.Tokenizer.TitleMatchList))
+	for _, r := range danmakuConfig.Tokenizer.TitleMatchList {
+		titleMatchRules[r.Title+"\x00"+r.Platform] = &r
+	}
+	// init year match rules
+	yearMatchRules = make(map[string]*YearMatchRule, len(danmakuConfig.Tokenizer.YearMatchList))
+	for _, y := range danmakuConfig.Tokenizer.YearMatchList {
+		yearMatchRules[y.Title] = &y
+	}
 }
+
+func MatchTitleRule(title string, platform string) *TitleMatchRule {
+	return titleMatchRules[title+"\x00"+platform]
+}
+
+func MatchYearRule(title string) *YearMatchRule {
+	return yearMatchRules[title]
+}
+
+var titleMatchRules map[string]*TitleMatchRule
+var yearMatchRules map[string]*YearMatchRule
 
 func GetConfig() *DanmakuConfig {
 	return danmakuConfig
@@ -110,18 +131,22 @@ func GetDandan() *DandanConfig {
 }
 
 type TokenizerConfig struct {
-	Blacklist []struct {
-		Regex       string `yaml:"regex"`
-		Replacement string `yaml:"replacement"`
-		Platform    string `yaml:"platform"`
-		Mode        string `yaml:"mode"`
-	} `yaml:"blacklist"`
-	YearMatchList []struct {
-		Title  string `yaml:"title"`
-		Season *int   `yaml:"season"`
-		Year   int    `yaml:"year"`
-	} `yaml:"year-match-list"`
-	Rematch []Rematch `yaml:"rematch"`
+	TitleMatchList []TitleMatchRule `yaml:"title-match-list"`
+	YearMatchList  []YearMatchRule  `yaml:"year-match-list"`
+	Rematch        []Rematch        `yaml:"rematch"`
+}
+
+type YearMatchRule struct {
+	Title  string `yaml:"title"`
+	Season *int   `yaml:"season"`
+	Year   int    `yaml:"year"`
+}
+
+type TitleMatchRule struct {
+	Title       string `yaml:"title"`
+	Replacement string `yaml:"replacement"`
+	Platform    string `yaml:"platform"`
+	Mode        string `yaml:"mode"`
 }
 
 type Rematch struct {

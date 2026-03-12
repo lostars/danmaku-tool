@@ -21,23 +21,21 @@ func MatchMedia(param MatchParam) []*Media {
 	}
 	// 如果是搜索模式则默认不匹配年份
 	matchYear := param.Mode != Search
-	for _, y := range config.GetConfig().Tokenizer.YearMatchList {
+	y := config.MatchYearRule(param.Title)
+	if y != nil {
 		// 如果手动设置了年份匹配 则跳过从元数据获取年份
-		if y.Title == param.Title {
-			match := false
-			if y.Season != nil && *y.Season >= 0 {
-				if param.SeasonId == *y.Season {
-					match = true
-				}
-			} else {
+		match := false
+		if y.Season != nil && *y.Season >= 0 {
+			if param.SeasonId == *y.Season {
 				match = true
 			}
-			if match {
-				utils.InfoLog(searchMediaC, fmt.Sprintf("%s matched year-match-list", param.Title), "year", y.Year, "season", y.Season)
-				matchYear = false
-				param.ProductionYear = y.Year
-				break
-			}
+		} else {
+			match = true
+		}
+		if match {
+			utils.InfoLog(searchMediaC, fmt.Sprintf("%s matched year-match-list", param.Title), "year", y.Year, "season", y.Season)
+			matchYear = false
+			param.ProductionYear = y.Year
 		}
 	}
 	// 预处理标题
