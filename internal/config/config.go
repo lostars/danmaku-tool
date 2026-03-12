@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -33,6 +34,9 @@ func Init(path string) {
 		} else {
 			danmakuConfig.Timezone = "Asia/Shanghai"
 		}
+	}
+	if danmakuConfig.DanDan.DisableAuth {
+		fmt.Println("dandan API authentication is DISABLED!!!")
 	}
 }
 
@@ -98,6 +102,7 @@ type DandanConfig struct {
 	CacheTimeout int    `yaml:"cache-timeout"`
 	Mode         string `yaml:"mode"`
 	Timeout      int    `yaml:"timeout"`
+	DisableAuth  bool   `yaml:"disable-auth"` // 是否禁用API验证
 }
 
 func GetDandan() *DandanConfig {

@@ -82,6 +82,11 @@ func SourceModeConfigurer(next http.Handler) http.Handler {
 
 func TokenValidatorMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		disableAuth := config.GetConfig().DanDan.DisableAuth
+		if disableAuth {
+			next.ServeHTTP(w, r)
+			return
+		}
 		token := chi.URLParam(r, "token")
 		for _, t := range config.GetConfig().Server.Tokens {
 			if token == t {
