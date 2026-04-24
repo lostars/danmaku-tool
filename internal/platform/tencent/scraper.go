@@ -95,6 +95,11 @@ func (c *client) Match(param danmaku.MatchParam) ([]*danmaku.Media, error) {
 			if !v.ValidEnName() {
 				return
 			}
+			// 检查 status
+			if v.VideoInfo.Status != 0 {
+				utils.InfoLog(danmaku.Tencent, "media not online", "title", v.VideoInfo.Title)
+				return
+			}
 			// 黑名单 基本都是外站视频
 			if tencentExcludeRegex.MatchString(v.VideoInfo.SubTitle) {
 				return
