@@ -3,6 +3,7 @@ package bilibili
 import (
 	"bytes"
 	"crypto/md5"
+	"danmaku-tool/internal/danmaku"
 	"danmaku-tool/internal/utils"
 	"encoding/hex"
 	"fmt"
@@ -31,7 +32,7 @@ func (c *client) setToken() error {
 		return err
 	}
 	if nav.Code != 0 {
-		return fmt.Errorf("get nav fail: %v %s", nav.Code, nav.Message)
+		return fmt.Errorf("[%s] get nav fail: %v %s", danmaku.Bilibili, nav.Code, nav.Message)
 	}
 	matchImg := tokenRegex.FindStringSubmatch(nav.Data.WbiImg.ImgUrl)
 	matchSub := tokenRegex.FindStringSubmatch(nav.Data.WbiImg.SubUrl)
