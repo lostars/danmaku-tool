@@ -171,8 +171,9 @@ func (c *realTimeData) Match(param MatchParam) (*DanDanResult, error) {
 
 func (c *realTimeData) GetDanmaku(param CommentParam) (*CommentResult, error) {
 	platform, _, epId, found := c.decodeGlobalID(param.Id)
-	if !found {
-		return nil, web.ErrBadRequestOf("invalid param")
+	utils.DebugLog(realTimeServiceC, "decode id result", "found", found, "platform", platform, "epId", epId)
+	if !found || epId == "" {
+		return &CommentResult{}, nil
 	}
 	var scraper = danmaku.GetScraper(platform)
 	if scraper == nil {
