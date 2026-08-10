@@ -31,8 +31,12 @@ func (c *client) setToken() error {
 	if err != nil {
 		return err
 	}
-	if nav.Code != 0 && nav.Code != -101 {
-		return fmt.Errorf("[%s] get nav fail: %v %s", danmaku.Bilibili, nav.Code, nav.Message)
+	if nav.Code != 0 {
+		if nav.Code == -101 {
+			utils.WarnLog(danmaku.Bilibili, "bilibili not login, less danmaku displayed")
+		} else {
+			return fmt.Errorf("[%s] get nav fail: %v %s", danmaku.Bilibili, nav.Code, nav.Message)
+		}
 	}
 	matchImg := tokenRegex.FindStringSubmatch(nav.Data.WbiImg.ImgUrl)
 	matchSub := tokenRegex.FindStringSubmatch(nav.Data.WbiImg.SubUrl)
